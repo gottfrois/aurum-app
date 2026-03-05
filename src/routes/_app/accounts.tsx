@@ -134,27 +134,27 @@ function BankAccountsList() {
                         <Landmark />
                       </ItemMedia>
                       <ItemContent>
-                        <ItemTitle>{account.name}</ItemTitle>
+                        <ItemTitle>
+                          {account.name}
+                          {account.disabled && (
+                            <Badge variant="secondary">Disabled</Badge>
+                          )}
+                          <Badge variant="outline" className="capitalize">
+                            {account.type ?? 'unknown'}
+                          </Badge>
+                        </ItemTitle>
                         <ItemDescription>
                           {account.iban
                             ? account.iban.replace(/(.{4})/g, '$1 ').trim()
                             : account.number ?? ''}
                         </ItemDescription>
                       </ItemContent>
-                      <ItemActions>
-                        {account.disabled && (
-                          <Badge variant="secondary">Disabled</Badge>
-                        )}
-                        <Badge variant="outline" className="uppercase">
-                          {account.type ?? 'unknown'}
-                        </Badge>
-                        <span className="text-lg font-semibold tabular-nums">
-                          {new Intl.NumberFormat('fr-FR', {
-                            style: 'currency',
-                            currency: account.currency,
-                          }).format(account.balance)}
-                        </span>
-                      </ItemActions>
+                      <span className="text-lg font-semibold tabular-nums">
+                        {new Intl.NumberFormat('fr-FR', {
+                          style: 'currency',
+                          currency: account.currency,
+                        }).format(account.balance)}
+                      </span>
                     </Item>
                   </React.Fragment>
                 ))}
