@@ -1,10 +1,8 @@
 import * as React from 'react'
 import { createFileRoute } from '@tanstack/react-router'
 import { useQuery } from 'convex/react'
-import { api } from '../../convex/_generated/api'
-import { AppSidebar } from '~/components/app-sidebar'
+import { api } from '../../../convex/_generated/api'
 import { SiteHeader } from '~/components/site-header'
-import { SidebarInset, SidebarProvider } from '~/components/ui/sidebar'
 import { useProfile } from '~/contexts/profile-context'
 import { Landmark, CirclePlus } from 'lucide-react'
 import { AddConnectionDialog } from '~/components/add-connection-dialog'
@@ -21,25 +19,22 @@ import {
 } from '~/components/ui/item'
 import { Skeleton } from '~/components/ui/skeleton'
 import { Badge } from '~/components/ui/badge'
-import type { Id } from '../../convex/_generated/dataModel'
+import type { Id } from '../../../convex/_generated/dataModel'
 
-export const Route = createFileRoute('/accounts')({
+export const Route = createFileRoute('/_app/accounts')({
   component: AccountsPage,
 })
 
 function AccountsPage() {
   return (
-    <SidebarProvider>
-      <AppSidebar variant="inset" />
-      <SidebarInset>
-        <SiteHeader title="Accounts" />
-        <div className="flex flex-1 flex-col">
-          <div className="flex flex-col gap-4 p-4 md:gap-6 md:p-6">
-            <BankAccountsList />
-          </div>
+    <>
+      <SiteHeader title="Accounts" />
+      <div className="flex flex-1 flex-col">
+        <div className="flex flex-col gap-4 p-4 md:gap-6 md:p-6">
+          <BankAccountsList />
         </div>
-      </SidebarInset>
-    </SidebarProvider>
+      </div>
+    </>
   )
 }
 

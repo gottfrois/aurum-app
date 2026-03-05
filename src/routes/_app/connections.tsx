@@ -1,11 +1,9 @@
 import * as React from 'react'
 import { createFileRoute } from '@tanstack/react-router'
 import { useQuery, useAction } from 'convex/react'
-import { api } from '../../convex/_generated/api'
-import type { Doc } from '../../convex/_generated/dataModel'
-import { AppSidebar } from '~/components/app-sidebar'
+import { api } from '../../../convex/_generated/api'
+import type { Doc } from '../../../convex/_generated/dataModel'
 import { SiteHeader } from '~/components/site-header'
-import { SidebarInset, SidebarProvider } from '~/components/ui/sidebar'
 import { useProfile } from '~/contexts/profile-context'
 import {
   Link2,
@@ -45,23 +43,20 @@ import {
   DialogTitle,
 } from '~/components/ui/dialog'
 
-export const Route = createFileRoute('/connections')({
+export const Route = createFileRoute('/_app/connections')({
   component: ConnectionsPage,
 })
 
 function ConnectionsPage() {
   return (
-    <SidebarProvider>
-      <AppSidebar variant="inset" />
-      <SidebarInset>
-        <SiteHeader title="Connections" />
-        <div className="flex flex-1 flex-col">
-          <div className="flex flex-col gap-4 p-4 md:gap-6 md:p-6">
-            <ConnectionsList />
-          </div>
+    <>
+      <SiteHeader title="Connections" />
+      <div className="flex flex-1 flex-col">
+        <div className="flex flex-col gap-4 p-4 md:gap-6 md:p-6">
+          <ConnectionsList />
         </div>
-      </SidebarInset>
-    </SidebarProvider>
+      </div>
+    </>
   )
 }
 
