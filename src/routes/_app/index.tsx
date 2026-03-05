@@ -125,7 +125,7 @@ function BankAccountsSection() {
         }).format(totalBalance)}
       />
 
-      <h2 className="text-lg font-semibold">Bank Accounts</h2>
+      <h2 className="text-lg font-semibold">Accounts</h2>
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
         {activeAccounts.map((account) => {
           const accountSnapshots = snapshots

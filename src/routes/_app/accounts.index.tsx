@@ -18,6 +18,7 @@ import {
 } from '~/components/ui/item'
 import { Skeleton } from '~/components/ui/skeleton'
 import { BalanceChart } from '~/components/balance-chart'
+import { StackedBalanceChart } from '~/components/stacked-balance-chart'
 import { type Period, getStartTimestamp } from '~/lib/chart-periods'
 import { ACCOUNT_CATEGORIES, getCategoryKey } from '~/lib/account-categories'
 import { computePnL } from '~/lib/pnl'
@@ -91,20 +92,71 @@ function BankAccountsList({ categoryFilter }: { categoryFilter?: string }) {
     )
   }, [bankAccounts])
 
-  // Aggregate chart data across visible accounts
+  // Build a map from bankAccountId -> categoryKey for visible accounts
+  const accountCategoryMap = React.useMemo(() => {
+    if (!bankAccounts) return new Map<string, string>()
+    const map = new Map<string, string>()
+    for (const a of bankAccounts) {
+      map.set(a._id, getCategoryKey(a.type))
+    }
+    return map
+  }, [bankAccounts])
+
+  // Aggregate chart data across visible accounts (flat, for PnL computation)
   const chartData = React.useMemo(() => {
     if (!snapshots || !bankAccounts) return []
-    const accountIds = new Set(bankAccounts.map((a) => a._id))
     const dateMap = new Map<string, number>()
     for (const s of snapshots) {
-      if (accountIds.has(s.bankAccountId)) {
+      if (accountCategoryMap.has(s.bankAccountId)) {
         dateMap.set(s.date, (dateMap.get(s.date) ?? 0) + s.balance)
       }
     }
     return [...dateMap.entries()]
       .sort(([a], [b]) => a.localeCompare(b))
       .map(([date, balance]) => ({ date, balance }))
-  }, [snapshots, bankAccounts])
+  }, [snapshots, bankAccounts, accountCategoryMap])
+
+  // Stacked chart data: one key per category
+  const stackedChartData = React.useMemo(() => {
+    if (!snapshots || !bankAccounts) return []
+    const dateMap = new Map<string, Record<string, number>>()
+    for (const s of snapshots) {
+      const catKey = accountCategoryMap.get(s.bankAccountId)
+      if (!catKey) continue
+      const entry = dateMap.get(s.date) ?? {}
+      entry[catKey] = (entry[catKey] ?? 0) + s.balance
+      dateMap.set(s.date, entry)
+    }
+    const activeCategoryKeys = new Set(accountCategoryMap.values())
+    return [...dateMap.entries()]
+      .sort(([a], [b]) => a.localeCompare(b))
+      .map(([date, values]) => {
+        const row: Record<string, string | number> = { date }
+        for (const key of activeCategoryKeys) {
+          row[key] = values[key] ?? 0
+        }
+        return row
+      })
+  }, [snapshots, bankAccounts, accountCategoryMap])
+
+  // Category series config for the stacked chart
+  const categoryColors: Record<string, string> = {
+    checking: 'var(--color-chart-1)',
+    savings: 'var(--color-chart-2)',
+    investments: 'var(--color-chart-3)',
+    insurance: 'var(--color-chart-4)',
+  }
+
+  const activeCategorySeries = React.useMemo(() => {
+    const activeKeys = new Set(accountCategoryMap.values())
+    return Object.entries(ACCOUNT_CATEGORIES)
+      .filter(([key]) => activeKeys.has(key))
+      .map(([key, cat]) => ({
+        key,
+        label: cat.label,
+        color: categoryColors[key] ?? 'var(--color-chart-5)',
+      }))
+  }, [accountCategoryMap])
 
   if (profileLoading || bankAccounts === undefined) {
     return (
@@ -171,13 +223,24 @@ function BankAccountsList({ categoryFilter }: { categoryFilter?: string }) {
         </div>
       </div>
 
-      <BalanceChart
-        data={chartData}
-        currency={currency}
-        isLoading={snapshots === undefined}
-        period={period}
-        onPeriodChange={setPeriod}
-      />
+      {categoryFilter ? (
+        <BalanceChart
+          data={chartData}
+          currency={currency}
+          isLoading={snapshots === undefined}
+          period={period}
+          onPeriodChange={setPeriod}
+        />
+      ) : (
+        <StackedBalanceChart
+          data={stackedChartData}
+          categories={activeCategorySeries}
+          currency={currency}
+          isLoading={snapshots === undefined}
+          period={period}
+          onPeriodChange={setPeriod}
+        />
+      )}
 
       <div className="space-y-6">
         {groupedByCategory.map(([categoryKey, accounts]) => {
