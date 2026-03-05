@@ -57,7 +57,7 @@ http.route({
 
       const bankAccounts = (accounts ?? []).map((acct) => ({
         powensBankAccountId: acct.id as number,
-        name: (acct.name as string) ?? 'Unnamed Account',
+        name: (acct.original_name as string) ?? (acct.name as string) ?? 'Unnamed Account',
         number: (acct.number as string) ?? undefined,
         iban: (acct.iban as string) ?? undefined,
         type: (acct.type as string) ?? undefined,

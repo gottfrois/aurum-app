@@ -93,14 +93,14 @@ function BankAccountsSection() {
             <Landmark className="size-8 text-muted-foreground" />
           </div>
           <div>
-            <h3 className="text-lg font-semibold">No bank accounts yet</h3>
+            <h3 className="text-lg font-semibold">No accounts yet</h3>
             <p className="text-sm text-muted-foreground">
-              Connect your first bank to start tracking your finances.
+              Add your first connection to start tracking your finances.
             </p>
           </div>
           <Button onClick={() => setDialogOpen(true)}>
             <CirclePlus className="mr-2 size-4" />
-            Connect a Bank
+            Add Connection
           </Button>
         </div>
         <AddConnectionDialog open={dialogOpen} onOpenChange={setDialogOpen} />
@@ -139,7 +139,7 @@ function BankAccountsSection() {
           return (
             <Link key={account._id} to="/accounts/$accountId" params={{ accountId: account._id }}>
               <DashboardCard
-                title={account.name}
+                title={account.connectorName ?? account.name}
                 value={new Intl.NumberFormat('fr-FR', {
                   style: 'currency',
                   currency: account.currency,

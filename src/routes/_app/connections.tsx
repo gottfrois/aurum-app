@@ -149,12 +149,12 @@ function ConnectionsList() {
           <div>
             <h3 className="text-lg font-semibold">No connections yet</h3>
             <p className="text-sm text-muted-foreground">
-              Connect your bank to start syncing your financial data.
+              Add a connection to start syncing your financial data.
             </p>
           </div>
           <Button onClick={() => setDialogOpen(true)}>
             <CirclePlus className="mr-2 size-4" />
-            Connect a Bank
+            Add Connection
           </Button>
         </div>
         <AddConnectionDialog open={dialogOpen} onOpenChange={setDialogOpen} />

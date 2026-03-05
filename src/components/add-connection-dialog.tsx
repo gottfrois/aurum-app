@@ -44,9 +44,9 @@ export function AddConnectionDialog({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>Connect a Bank</DialogTitle>
+          <DialogTitle>Add a Connection</DialogTitle>
           <DialogDescription>
-            Securely connect your bank account to start tracking your finances.
+            Securely connect your bank, broker, or insurance to start tracking your finances.
           </DialogDescription>
         </DialogHeader>
         <div className="flex flex-col items-center gap-4 py-6">
@@ -62,7 +62,7 @@ export function AddConnectionDialog({
             disabled={loading || !activeProfileId}
           >
             {loading && <Loader2 className="mr-2 size-4 animate-spin" />}
-            {loading ? 'Connecting...' : 'Connect Bank Account'}
+            {loading ? 'Connecting...' : 'Add Connection'}
           </Button>
         </div>
       </DialogContent>

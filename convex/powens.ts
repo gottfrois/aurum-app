@@ -230,7 +230,7 @@ export const handleConnectionCallback = action({
           connectionId: connectionDocId,
           profileId: args.profileId,
           powensBankAccountId: acct.id,
-          name: acct.name ?? 'Unnamed Account',
+          name: acct.original_name ?? acct.name ?? 'Unnamed Account',
           number: acct.number ?? undefined,
           iban: acct.iban ?? undefined,
           type: acct.type ?? undefined,
@@ -539,10 +539,21 @@ export const listBankAccounts = query({
   handler: async (ctx, args) => {
     const userId = await getAuthUserId(ctx)
     if (!userId) return []
-    return await ctx.db
+    const accounts = await ctx.db
       .query('bankAccounts')
       .withIndex('by_profileId', (q) => q.eq('profileId', args.profileId))
       .collect()
+    const connectionIds = [...new Set(accounts.map((a) => a.connectionId))]
+    const connections = await Promise.all(
+      connectionIds.map((id) => ctx.db.get(id)),
+    )
+    const connMap = new Map(
+      connections.filter((c): c is NonNullable<typeof c> => c !== null).map((c) => [c._id, c]),
+    )
+    return accounts.map((a) => ({
+      ...a,
+      connectorName: connMap.get(a.connectionId)?.connectorName ?? undefined,
+    }))
   },
 })
 
@@ -551,6 +562,12 @@ export const getBankAccount = query({
   handler: async (ctx, args) => {
     const userId = await getAuthUserId(ctx)
     if (!userId) return null
-    return await ctx.db.get(args.bankAccountId)
+    const account = await ctx.db.get(args.bankAccountId)
+    if (!account) return null
+    const connection = await ctx.db.get(account.connectionId)
+    return {
+      ...account,
+      connectorName: connection?.connectorName ?? undefined,
+    }
   },
 })

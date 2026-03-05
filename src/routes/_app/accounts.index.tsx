@@ -192,14 +192,14 @@ function BankAccountsList({ categoryFilter }: { categoryFilter?: string }) {
             <Landmark className="size-8 text-muted-foreground" />
           </div>
           <div>
-            <h3 className="text-lg font-semibold">No bank accounts yet</h3>
+            <h3 className="text-lg font-semibold">No accounts yet</h3>
             <p className="text-sm text-muted-foreground">
-              Connect a bank to see your accounts here.
+              Add a connection to see your accounts here.
             </p>
           </div>
           <Button onClick={() => setDialogOpen(true)}>
             <CirclePlus className="mr-2 size-4" />
-            Connect a Bank
+            Add Connection
           </Button>
         </div>
         <AddConnectionDialog open={dialogOpen} onOpenChange={setDialogOpen} />
@@ -267,7 +267,7 @@ function BankAccountsList({ categoryFilter }: { categoryFilter?: string }) {
                           <Landmark />
                         </ItemMedia>
                         <ItemContent>
-                          <ItemTitle>{account.name}</ItemTitle>
+                          <ItemTitle>{account.connectorName ?? account.name}</ItemTitle>
                           <ItemDescription>
                             {account.iban
                               ? account.iban.replace(/(.{4})/g, '$1 ').trim()

@@ -39,7 +39,7 @@ function AccountDetailPage() {
 
   return (
     <>
-      <SiteHeader title={bankAccount?.name ?? 'Account'} />
+      <SiteHeader title={bankAccount?.connectorName ?? bankAccount?.name ?? 'Account'} />
       <div className="flex flex-1 flex-col">
         <div className="flex flex-col gap-4 p-4 md:gap-6 md:p-6">
           <Link
@@ -68,7 +68,7 @@ function AccountDetailPage() {
               isLoading={false}
               period={period}
               onPeriodChange={setPeriod}
-              title={bankAccount.name}
+              title={bankAccount.connectorName ?? bankAccount.name}
               description={new Intl.NumberFormat('fr-FR', {
                 style: 'currency',
                 currency: bankAccount.currency,
