@@ -7,7 +7,15 @@ import { useProfile } from '~/contexts/profile-context'
 import { Landmark, CirclePlus } from 'lucide-react'
 import { AddConnectionDialog } from '~/components/add-connection-dialog'
 import { Button } from '~/components/ui/button'
-import { Card, CardContent, CardHeader, CardTitle } from '~/components/ui/card'
+import {
+  Card,
+  CardAction,
+  CardDescription,
+  CardFooter,
+  CardHeader,
+  CardTitle,
+} from '~/components/ui/card'
+import { Badge } from '~/components/ui/badge'
 import { Skeleton } from '~/components/ui/skeleton'
 import { BalanceChart } from '~/components/balance-chart'
 import { type Period, getStartTimestamp } from '~/lib/chart-periods'
@@ -60,15 +68,16 @@ function BankAccountsSection() {
     return (
       <div className="space-y-6">
         <Skeleton className="h-[250px] w-full" />
-        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3 *:data-[slot=card]:shadow-xs">
           {[1, 2, 3].map((i) => (
             <Card key={i}>
               <CardHeader>
                 <Skeleton className="h-4 w-32" />
-              </CardHeader>
-              <CardContent>
                 <Skeleton className="h-8 w-24" />
-              </CardContent>
+              </CardHeader>
+              <CardFooter>
+                <Skeleton className="h-4 w-40" />
+              </CardFooter>
             </Card>
           ))}
         </div>
@@ -127,28 +136,28 @@ function BankAccountsSection() {
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
         {activeAccounts.map((account) => (
           <Link key={account._id} to="/accounts/$accountId" params={{ accountId: account._id }}>
-            <Card className="flex h-full flex-col transition-colors hover:bg-muted/50 cursor-pointer">
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">
-                  {account.name}
-                </CardTitle>
-                <span className="text-xs text-muted-foreground uppercase">
-                  {account.type}
-                </span>
-              </CardHeader>
-              <CardContent className="flex flex-1 flex-col justify-between">
-                <div className="text-2xl font-bold">
+            <Card className="@container/card h-full bg-gradient-to-t from-primary/5 to-card shadow-xs transition-colors hover:bg-muted/50 cursor-pointer dark:bg-card">
+              <CardHeader>
+                <CardDescription>{account.name}</CardDescription>
+                <CardTitle className="text-2xl font-semibold tabular-nums @[250px]/card:text-3xl">
                   {new Intl.NumberFormat('fr-FR', {
                     style: 'currency',
                     currency: account.currency,
                   }).format(account.balance)}
-                </div>
-                <p className="text-xs text-muted-foreground mt-1 min-h-4">
+                </CardTitle>
+                <CardAction>
+                  <Badge variant="outline" className="capitalize">
+                    {account.type ?? 'unknown'}
+                  </Badge>
+                </CardAction>
+              </CardHeader>
+              <CardFooter className="flex-col items-start gap-1.5 text-sm">
+                <div className="text-muted-foreground">
                   {account.iban
                     ? account.iban.replace(/(.{4})/g, '$1 ').trim()
                     : '\u00A0'}
-                </p>
-              </CardContent>
+                </div>
+              </CardFooter>
             </Card>
           </Link>
         ))}
