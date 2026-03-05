@@ -3,6 +3,7 @@ import {
   Outlet,
   Scripts,
   createRootRouteWithContext,
+  redirect,
   useRouteContext,
 } from '@tanstack/react-router'
 import { ClerkProvider, useAuth } from '@clerk/tanstack-react-start'
@@ -68,6 +69,10 @@ export const Route = createRootRouteWithContext<{
 
     if (token) {
       ctx.context.convexQueryClient.serverHttpClient?.setAuth(token)
+    }
+
+    if (!userId && !ctx.location.pathname.startsWith('/sign-in')) {
+      throw redirect({ to: '/sign-in/$', params: { _splat: '' } })
     }
 
     return { userId, token }
