@@ -9,7 +9,7 @@ import {
   Search,
 } from 'lucide-react'
 
-import { AccountSwitcher } from '~/components/account-switcher'
+import { ProfileSwitcher } from '~/components/profile-switcher'
 import { NavMain } from '~/components/nav-main'
 import { NavSecondary } from '~/components/nav-secondary'
 import { NavUser } from '~/components/nav-user'
@@ -29,12 +29,12 @@ const data = {
     },
     {
       title: 'Accounts',
-      url: '#',
+      url: '/accounts',
       icon: Landmark,
     },
     {
       title: 'Connections',
-      url: '#',
+      url: '/connections',
       icon: Link,
     },
     {
@@ -66,7 +66,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
   return (
     <Sidebar collapsible="offcanvas" {...props}>
       <SidebarHeader>
-        <AccountSwitcher />
+        <ProfileSwitcher />
       </SidebarHeader>
       <SidebarContent>
         <NavMain items={data.navMain} />

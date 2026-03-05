@@ -44,14 +44,14 @@ http.route({
         return new Response('Missing id_user or id', { status: 400 })
       }
 
-      // Find the account linked to this Powens user
-      const account = await ctx.runQuery(
-        internal.powens.findAccountByPowensUserId,
+      // Find the profile linked to this Powens user
+      const profile = await ctx.runQuery(
+        internal.powens.findProfileByPowensUserId,
         { powensUserId },
       )
 
-      if (!account) {
-        console.warn(`No account found for Powens user ${powensUserId}`)
+      if (!profile) {
+        console.warn(`No profile found for Powens user ${powensUserId}`)
         return new Response('OK', { status: 200 })
       }
 
@@ -70,7 +70,7 @@ http.route({
       }))
 
       await ctx.runMutation(internal.powens.syncConnectionFromWebhook, {
-        accountId: account._id,
+        profileId: profile._id,
         powensConnectionId,
         connectorName:
           (payload.connector as Record<string, unknown>)?.name as string ??

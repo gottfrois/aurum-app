@@ -15,7 +15,7 @@ function getPowensConfig() {
 }
 
 export const createPowensUser = action({
-  args: { accountId: v.id('accounts') },
+  args: { profileId: v.id('profiles') },
   handler: async (ctx, args) => {
     await requireAuthUserId(ctx)
     const { baseUrl, clientId, clientSecret } = getPowensConfig()
@@ -38,8 +38,8 @@ export const createPowensUser = action({
     const token = data.auth_token as string
     const powensUserId = data.id_user as number
 
-    await ctx.runMutation(internal.powens.updateAccountPowensUser, {
-      accountId: args.accountId,
+    await ctx.runMutation(internal.powens.updateProfilePowensUser, {
+      profileId: args.profileId,
       powensUserToken: token,
       powensUserId,
     })
@@ -49,20 +49,20 @@ export const createPowensUser = action({
 })
 
 export const generateConnectUrl = action({
-  args: { accountId: v.id('accounts') },
+  args: { profileId: v.id('profiles') },
   handler: async (ctx, args) => {
     await requireAuthUserId(ctx)
     const { baseUrl, clientId, clientSecret } = getPowensConfig()
     const siteUrl = process.env.SITE_URL
     if (!siteUrl) throw new Error('SITE_URL not configured')
 
-    // Get account to check for existing Powens user
-    const account = await ctx.runQuery(
-      internal.powens.getAccountInternal,
-      { accountId: args.accountId },
+    // Get profile to check for existing Powens user
+    const profile = await ctx.runQuery(
+      internal.powens.getProfileInternal,
+      { profileId: args.profileId },
     )
 
-    let token = account?.powensUserToken
+    let token = profile?.powensUserToken
 
     // Create Powens user if needed
     if (!token) {
@@ -80,8 +80,8 @@ export const generateConnectUrl = action({
       }
       const initData = await initResponse.json()
       token = initData.auth_token as string
-      await ctx.runMutation(internal.powens.updateAccountPowensUser, {
-        accountId: args.accountId,
+      await ctx.runMutation(internal.powens.updateProfilePowensUser, {
+        profileId: args.profileId,
         powensUserToken: token,
         powensUserId: initData.id_user as number,
       })
@@ -110,21 +110,21 @@ export const generateConnectUrl = action({
   },
 })
 
-export const getAccountInternal = internalQuery({
-  args: { accountId: v.id('accounts') },
+export const getProfileInternal = internalQuery({
+  args: { profileId: v.id('profiles') },
   handler: async (ctx, args) => {
-    return await ctx.db.get(args.accountId)
+    return await ctx.db.get(args.profileId)
   },
 })
 
-export const updateAccountPowensUser = internalMutation({
+export const updateProfilePowensUser = internalMutation({
   args: {
-    accountId: v.id('accounts'),
+    profileId: v.id('profiles'),
     powensUserToken: v.string(),
     powensUserId: v.number(),
   },
   handler: async (ctx, args) => {
-    await ctx.db.patch(args.accountId, {
+    await ctx.db.patch(args.profileId, {
       powensUserToken: args.powensUserToken,
       powensUserId: args.powensUserId,
     })
@@ -134,25 +134,25 @@ export const updateAccountPowensUser = internalMutation({
 export const handleConnectionCallback = action({
   args: {
     connectionId: v.number(),
-    accountId: v.id('accounts'),
+    profileId: v.id('profiles'),
   },
   returns: v.id('connections'),
   handler: async (ctx, args) => {
     await requireAuthUserId(ctx)
     const { baseUrl } = getPowensConfig()
 
-    const account = await ctx.runQuery(internal.powens.getAccountInternal, {
-      accountId: args.accountId,
+    const profile = await ctx.runQuery(internal.powens.getProfileInternal, {
+      profileId: args.profileId,
     })
-    if (!account?.powensUserToken) {
-      throw new Error('Account has no Powens user token')
+    if (!profile?.powensUserToken) {
+      throw new Error('Profile has no Powens user token')
     }
 
-    // Fetch connection details
+    // Fetch connection details with expanded connector
     const connResponse = await fetch(
-      `${baseUrl}/users/me/connections/${args.connectionId}`,
+      `${baseUrl}/users/me/connections/${args.connectionId}?expand=connector`,
       {
-        headers: { Authorization: `Bearer ${account.powensUserToken}` },
+        headers: { Authorization: `Bearer ${profile.powensUserToken}` },
       },
     )
 
@@ -169,7 +169,7 @@ export const handleConnectionCallback = action({
     const connectionDocId: Id<'connections'> = await ctx.runMutation(
       internal.powens.upsertConnection,
       {
-        accountId: args.accountId,
+        profileId: args.profileId,
         powensConnectionId: args.connectionId,
         connectorName: connData.connector?.name ?? 'Unknown',
         connectorLogo: connData.connector?.logo ?? undefined,
@@ -182,7 +182,7 @@ export const handleConnectionCallback = action({
     const acctResponse = await fetch(
       `${baseUrl}/users/me/connections/${args.connectionId}/accounts`,
       {
-        headers: { Authorization: `Bearer ${account.powensUserToken}` },
+        headers: { Authorization: `Bearer ${profile.powensUserToken}` },
       },
     )
 
@@ -193,7 +193,7 @@ export const handleConnectionCallback = action({
       for (const acct of bankAccts) {
         await ctx.runMutation(internal.powens.upsertBankAccount, {
           connectionId: connectionDocId,
-          accountId: args.accountId,
+          profileId: args.profileId,
           powensBankAccountId: acct.id,
           name: acct.name ?? 'Unnamed Account',
           number: acct.number ?? undefined,
@@ -214,7 +214,7 @@ export const handleConnectionCallback = action({
 
 export const upsertConnection = internalMutation({
   args: {
-    accountId: v.id('accounts'),
+    profileId: v.id('profiles'),
     powensConnectionId: v.number(),
     connectorName: v.string(),
     connectorLogo: v.optional(v.string()),
@@ -240,7 +240,7 @@ export const upsertConnection = internalMutation({
     }
 
     return await ctx.db.insert('connections', {
-      accountId: args.accountId,
+      profileId: args.profileId,
       powensConnectionId: args.powensConnectionId,
       connectorName: args.connectorName,
       connectorLogo: args.connectorLogo,
@@ -253,7 +253,7 @@ export const upsertConnection = internalMutation({
 export const upsertBankAccount = internalMutation({
   args: {
     connectionId: v.id('connections'),
-    accountId: v.id('accounts'),
+    profileId: v.id('profiles'),
     powensBankAccountId: v.number(),
     name: v.string(),
     number: v.optional(v.string()),
@@ -295,11 +295,11 @@ export const upsertBankAccount = internalMutation({
   },
 })
 
-export const findAccountByPowensUserId = internalQuery({
+export const findProfileByPowensUserId = internalQuery({
   args: { powensUserId: v.number() },
   handler: async (ctx, args) => {
     return await ctx.db
-      .query('accounts')
+      .query('profiles')
       .withIndex('by_powensUserId', (q) =>
         q.eq('powensUserId', args.powensUserId),
       )
@@ -309,7 +309,7 @@ export const findAccountByPowensUserId = internalQuery({
 
 export const syncConnectionFromWebhook = internalMutation({
   args: {
-    accountId: v.id('accounts'),
+    profileId: v.id('profiles'),
     powensConnectionId: v.number(),
     connectorName: v.string(),
     connectorColor: v.optional(v.string()),
@@ -349,7 +349,7 @@ export const syncConnectionFromWebhook = internalMutation({
       connectionId = existingConn._id
     } else {
       connectionId = await ctx.db.insert('connections', {
-        accountId: args.accountId,
+        profileId: args.profileId,
         powensConnectionId: args.powensConnectionId,
         connectorName: args.connectorName,
         state: args.state,
@@ -384,7 +384,7 @@ export const syncConnectionFromWebhook = internalMutation({
       } else {
         await ctx.db.insert('bankAccounts', {
           connectionId,
-          accountId: args.accountId,
+          profileId: args.profileId,
           ...acct,
         })
       }
@@ -392,14 +392,93 @@ export const syncConnectionFromWebhook = internalMutation({
   },
 })
 
+export const deleteConnection = action({
+  args: {
+    connectionId: v.id('connections'),
+    profileId: v.id('profiles'),
+  },
+  handler: async (ctx, args) => {
+    await requireAuthUserId(ctx)
+    const { baseUrl } = getPowensConfig()
+
+    const profile = await ctx.runQuery(internal.powens.getProfileInternal, {
+      profileId: args.profileId,
+    })
+
+    const connection = await ctx.runQuery(
+      internal.powens.getConnectionInternal,
+      { connectionId: args.connectionId },
+    )
+
+    // Delete from Powens if we have a token and a Powens connection ID
+    if (profile?.powensUserToken && connection?.powensConnectionId) {
+      const response = await fetch(
+        `${baseUrl}/users/me/connections/${connection.powensConnectionId}`,
+        {
+          method: 'DELETE',
+          headers: { Authorization: `Bearer ${profile.powensUserToken}` },
+        },
+      )
+      if (!response.ok && response.status !== 404) {
+        const text = await response.text()
+        throw new Error(
+          `Powens connection delete failed: ${response.status} ${text}`,
+        )
+      }
+    }
+
+    // Delete local data
+    await ctx.runMutation(internal.powens.deleteConnectionData, {
+      connectionId: args.connectionId,
+    })
+  },
+})
+
+export const getConnectionInternal = internalQuery({
+  args: { connectionId: v.id('connections') },
+  handler: async (ctx, args) => {
+    return await ctx.db.get(args.connectionId)
+  },
+})
+
+export const deleteConnectionData = internalMutation({
+  args: { connectionId: v.id('connections') },
+  handler: async (ctx, args) => {
+    // Delete all bank accounts for this connection
+    const bankAccounts = await ctx.db
+      .query('bankAccounts')
+      .withIndex('by_connectionId', (q) =>
+        q.eq('connectionId', args.connectionId),
+      )
+      .collect()
+    for (const ba of bankAccounts) {
+      await ctx.db.delete(ba._id)
+    }
+    // Delete the connection itself
+    await ctx.db.delete(args.connectionId)
+  },
+})
+
+export const listConnections = query({
+  args: { profileId: v.id('profiles') },
+  handler: async (ctx, args) => {
+    const userId = await getAuthUserId(ctx)
+    if (!userId) return []
+    return await ctx.db
+      .query('connections')
+      .withIndex('by_profileId', (q) => q.eq('profileId', args.profileId))
+      .collect()
+  },
+})
+
 export const listBankAccounts = query({
-  args: { accountId: v.id('accounts') },
+  args: { profileId: v.id('profiles') },
   handler: async (ctx, args) => {
     const userId = await getAuthUserId(ctx)
     if (!userId) return []
     return await ctx.db
       .query('bankAccounts')
-      .withIndex('by_accountId', (q) => q.eq('accountId', args.accountId))
+      .withIndex('by_profileId', (q) => q.eq('profileId', args.profileId))
       .collect()
   },
 })

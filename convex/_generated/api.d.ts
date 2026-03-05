@@ -8,10 +8,10 @@
  * @module
  */
 
-import type * as accounts from "../accounts.js";
 import type * as http from "../http.js";
 import type * as lib_auth from "../lib/auth.js";
 import type * as powens from "../powens.js";
+import type * as profiles from "../profiles.js";
 import type * as workspaces from "../workspaces.js";
 
 import type {
@@ -21,10 +21,10 @@ import type {
 } from "convex/server";
 
 declare const fullApi: ApiFromModules<{
-  accounts: typeof accounts;
   http: typeof http;
   "lib/auth": typeof lib_auth;
   powens: typeof powens;
+  profiles: typeof profiles;
   workspaces: typeof workspaces;
 }>;
 

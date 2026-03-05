@@ -2,7 +2,7 @@ import * as React from 'react'
 import { ChevronsUpDown, Plus, User, Briefcase, Users } from 'lucide-react'
 import { useMutation } from 'convex/react'
 import { api } from '../../convex/_generated/api'
-import { useAccount } from '~/contexts/account-context'
+import { useProfile } from '~/contexts/profile-context'
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -40,11 +40,11 @@ function getIcon(name?: string) {
   return iconMap[name] ?? User
 }
 
-export function AccountSwitcher() {
+export function ProfileSwitcher() {
   const { isMobile } = useSidebar()
-  const { accounts, activeAccount, setActiveAccountId, isLoading } =
-    useAccount()
-  const createAccount = useMutation(api.accounts.createAccount)
+  const { profiles, activeProfile, setActiveProfileId, isLoading } =
+    useProfile()
+  const createProfile = useMutation(api.profiles.createProfile)
   const [dialogOpen, setDialogOpen] = React.useState(false)
   const [newName, setNewName] = React.useState('')
 
@@ -61,12 +61,12 @@ export function AccountSwitcher() {
     )
   }
 
-  const ActiveIcon = getIcon(activeAccount?.icon)
+  const ActiveIcon = getIcon(activeProfile?.icon)
 
   async function handleCreate() {
     if (!newName.trim()) return
-    const id = await createAccount({ name: newName.trim(), icon: 'User' })
-    setActiveAccountId(id)
+    const id = await createProfile({ name: newName.trim(), icon: 'User' })
+    setActiveProfileId(id)
     setNewName('')
     setDialogOpen(false)
   }
@@ -86,7 +86,7 @@ export function AccountSwitcher() {
                 </div>
                 <div className="grid flex-1 text-left text-sm leading-tight">
                   <span className="truncate font-semibold">
-                    {activeAccount?.name ?? 'Select Account'}
+                    {activeProfile?.name ?? 'Select Profile'}
                   </span>
                 </div>
                 <ChevronsUpDown className="ml-auto size-4" />
@@ -99,20 +99,20 @@ export function AccountSwitcher() {
               sideOffset={4}
             >
               <DropdownMenuLabel className="text-xs text-muted-foreground">
-                Accounts
+                Profiles
               </DropdownMenuLabel>
-              {accounts?.map((account) => {
-                const Icon = getIcon(account.icon)
+              {profiles?.map((profile) => {
+                const Icon = getIcon(profile.icon)
                 return (
                   <DropdownMenuItem
-                    key={account._id}
-                    onClick={() => setActiveAccountId(account._id)}
+                    key={profile._id}
+                    onClick={() => setActiveProfileId(profile._id)}
                     className="gap-2 p-2"
                   >
                     <div className="flex size-6 items-center justify-center rounded-sm border">
                       <Icon className="size-4 shrink-0" />
                     </div>
-                    {account.name}
+                    {profile.name}
                   </DropdownMenuItem>
                 )
               })}
@@ -125,7 +125,7 @@ export function AccountSwitcher() {
                   <Plus className="size-4" />
                 </div>
                 <span className="font-medium text-muted-foreground">
-                  Add account
+                  Add profile
                 </span>
               </DropdownMenuItem>
             </DropdownMenuContent>
@@ -136,13 +136,13 @@ export function AccountSwitcher() {
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Create Account</DialogTitle>
+            <DialogTitle>Create Profile</DialogTitle>
           </DialogHeader>
           <div className="grid gap-4 py-4">
             <div className="grid gap-2">
-              <Label htmlFor="account-name">Name</Label>
+              <Label htmlFor="profile-name">Name</Label>
               <Input
-                id="account-name"
+                id="profile-name"
                 value={newName}
                 onChange={(e) => setNewName(e.target.value)}
                 placeholder="e.g. SASU Pro, Joint Account"

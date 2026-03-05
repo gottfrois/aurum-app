@@ -13,28 +13,28 @@ async function getUserWorkspaceId(ctx: { db: any; auth: any }) {
   return member.workspaceId
 }
 
-export const listAccounts = query({
+export const listProfiles = query({
   args: {},
   handler: async (ctx) => {
     const workspaceId = await getUserWorkspaceId(ctx)
     if (!workspaceId) return []
     return await ctx.db
-      .query('accounts')
+      .query('profiles')
       .withIndex('by_workspaceId', (q) => q.eq('workspaceId', workspaceId))
       .collect()
   },
 })
 
-export const getAccount = query({
-  args: { accountId: v.id('accounts') },
+export const getProfile = query({
+  args: { profileId: v.id('profiles') },
   handler: async (ctx, args) => {
     const workspaceId = await getUserWorkspaceId(ctx)
     if (!workspaceId) return null
-    return await ctx.db.get(args.accountId)
+    return await ctx.db.get(args.profileId)
   },
 })
 
-export const createAccount = mutation({
+export const createProfile = mutation({
   args: {
     name: v.string(),
     icon: v.optional(v.string()),
@@ -42,7 +42,7 @@ export const createAccount = mutation({
   handler: async (ctx, args) => {
     const workspaceId = await getUserWorkspaceId(ctx)
     if (!workspaceId) throw new Error('No workspace found')
-    return await ctx.db.insert('accounts', {
+    return await ctx.db.insert('profiles', {
       workspaceId,
       name: args.name,
       icon: args.icon,
@@ -50,35 +50,35 @@ export const createAccount = mutation({
   },
 })
 
-export const updateAccount = mutation({
+export const updateProfile = mutation({
   args: {
-    accountId: v.id('accounts'),
+    profileId: v.id('profiles'),
     name: v.optional(v.string()),
     icon: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
     const workspaceId = await getUserWorkspaceId(ctx)
     if (!workspaceId) throw new Error('No workspace found')
-    const { accountId, ...updates } = args
+    const { profileId, ...updates } = args
     const filtered = Object.fromEntries(
       Object.entries(updates).filter(([_, v]) => v !== undefined),
     )
-    await ctx.db.patch(accountId, filtered)
+    await ctx.db.patch(profileId, filtered)
   },
 })
 
-export const deleteAccount = mutation({
-  args: { accountId: v.id('accounts') },
+export const deleteProfile = mutation({
+  args: { profileId: v.id('profiles') },
   handler: async (ctx, args) => {
     const workspaceId = await getUserWorkspaceId(ctx)
     if (!workspaceId) throw new Error('No workspace found')
-    const accounts = await ctx.db
-      .query('accounts')
+    const profiles = await ctx.db
+      .query('profiles')
       .withIndex('by_workspaceId', (q) => q.eq('workspaceId', workspaceId))
       .collect()
-    if (accounts.length <= 1) {
-      throw new Error('Cannot delete the last account')
+    if (profiles.length <= 1) {
+      throw new Error('Cannot delete the last profile')
     }
-    await ctx.db.delete(args.accountId)
+    await ctx.db.delete(args.profileId)
   },
 })

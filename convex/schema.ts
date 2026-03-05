@@ -15,7 +15,7 @@ export default defineSchema({
     .index('by_userId', ['userId'])
     .index('by_workspaceId', ['workspaceId']),
 
-  accounts: defineTable({
+  profiles: defineTable({
     workspaceId: v.id('workspaces'),
     name: v.string(),
     icon: v.optional(v.string()),
@@ -26,19 +26,19 @@ export default defineSchema({
     .index('by_powensUserId', ['powensUserId']),
 
   connections: defineTable({
-    accountId: v.id('accounts'),
+    profileId: v.id('profiles'),
     powensConnectionId: v.number(),
     connectorName: v.string(),
     connectorLogo: v.optional(v.string()),
     state: v.optional(v.string()),
     lastSync: v.optional(v.string()),
   })
-    .index('by_accountId', ['accountId'])
+    .index('by_profileId', ['profileId'])
     .index('by_powensConnectionId', ['powensConnectionId']),
 
   bankAccounts: defineTable({
     connectionId: v.id('connections'),
-    accountId: v.id('accounts'),
+    profileId: v.id('profiles'),
     powensBankAccountId: v.number(),
     name: v.string(),
     number: v.optional(v.string()),
@@ -51,5 +51,5 @@ export default defineSchema({
     lastSync: v.optional(v.string()),
   })
     .index('by_connectionId', ['connectionId'])
-    .index('by_accountId', ['accountId']),
+    .index('by_profileId', ['profileId']),
 })

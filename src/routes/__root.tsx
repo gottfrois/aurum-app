@@ -15,7 +15,7 @@ import type { QueryClient } from '@tanstack/react-query'
 import type { ConvexQueryClient } from '@convex-dev/react-query'
 import type { ConvexReactClient } from 'convex/react'
 import { TooltipProvider } from '~/components/ui/tooltip'
-import { AccountProvider } from '~/contexts/account-context'
+import { ProfileProvider } from '~/contexts/profile-context'
 import appCss from '~/styles/app.css?url'
 
 const fetchClerkAuth = createServerFn({ method: 'GET' }).handler(async () => {
@@ -97,11 +97,11 @@ function RootComponent() {
     <ClerkProvider>
       <ConvexProviderWithClerk client={context.convexClient} useAuth={useAuth}>
         <TooltipProvider>
-          <AccountProvider>
+          <ProfileProvider>
             <RootDocument>
               <Outlet />
             </RootDocument>
-          </AccountProvider>
+          </ProfileProvider>
         </TooltipProvider>
       </ConvexProviderWithClerk>
     </ClerkProvider>

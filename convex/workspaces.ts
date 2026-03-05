@@ -26,7 +26,7 @@ export const ensureWorkspace = mutation({
       role: 'owner',
     })
 
-    await ctx.db.insert('accounts', {
+    await ctx.db.insert('profiles', {
       workspaceId,
       name: 'Personal',
       icon: 'User',

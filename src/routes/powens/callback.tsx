@@ -2,7 +2,7 @@ import * as React from 'react'
 import { createFileRoute, useNavigate } from '@tanstack/react-router'
 import { useAction } from 'convex/react'
 import { api } from '../../../convex/_generated/api'
-import { useAccount } from '~/contexts/account-context'
+import { useProfile } from '~/contexts/profile-context'
 import { Loader2, CheckCircle2, XCircle } from 'lucide-react'
 
 export const Route = createFileRoute('/powens/callback')({
@@ -16,7 +16,7 @@ export const Route = createFileRoute('/powens/callback')({
 function PowensCallback() {
   const { connection_id } = Route.useSearch()
   const navigate = useNavigate()
-  const { activeAccountId } = useAccount()
+  const { activeProfileId } = useProfile()
   const handleCallback = useAction(api.powens.handleConnectionCallback)
   const [status, setStatus] = React.useState<'loading' | 'success' | 'error'>(
     'loading',
@@ -25,12 +25,12 @@ function PowensCallback() {
   const processed = React.useRef(false)
 
   React.useEffect(() => {
-    if (processed.current || !connection_id || !activeAccountId) return
+    if (processed.current || !connection_id || !activeProfileId) return
     processed.current = true
 
     handleCallback({
       connectionId: Number(connection_id),
-      accountId: activeAccountId,
+      profileId: activeProfileId,
     })
       .then(() => {
         setStatus('success')
@@ -40,7 +40,7 @@ function PowensCallback() {
         setStatus('error')
         setError(err instanceof Error ? err.message : 'Unknown error')
       })
-  }, [connection_id, activeAccountId, handleCallback, navigate])
+  }, [connection_id, activeProfileId, handleCallback, navigate])
 
   return (
     <div className="flex min-h-screen items-center justify-center">

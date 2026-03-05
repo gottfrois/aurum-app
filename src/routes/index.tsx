@@ -5,7 +5,7 @@ import { api } from '../../convex/_generated/api'
 import { AppSidebar } from '~/components/app-sidebar'
 import { SiteHeader } from '~/components/site-header'
 import { SidebarInset, SidebarProvider } from '~/components/ui/sidebar'
-import { useAccount } from '~/contexts/account-context'
+import { useProfile } from '~/contexts/profile-context'
 import { Landmark, CirclePlus } from 'lucide-react'
 import { AddConnectionDialog } from '~/components/add-connection-dialog'
 import { Button } from '~/components/ui/button'
@@ -33,14 +33,14 @@ function Dashboard() {
 }
 
 function BankAccountsSection() {
-  const { activeAccountId, isLoading: accountLoading } = useAccount()
+  const { activeProfileId, isLoading: profileLoading } = useProfile()
   const bankAccounts = useQuery(
     api.powens.listBankAccounts,
-    activeAccountId ? { accountId: activeAccountId } : 'skip',
+    activeProfileId ? { profileId: activeProfileId } : 'skip',
   )
   const [dialogOpen, setDialogOpen] = React.useState(false)
 
-  if (accountLoading || bankAccounts === undefined) {
+  if (profileLoading || bankAccounts === undefined) {
     return (
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
         {[1, 2, 3].map((i) => (
@@ -82,13 +82,7 @@ function BankAccountsSection() {
 
   return (
     <>
-      <div className="flex items-center justify-between">
-        <h2 className="text-lg font-semibold">Bank Accounts</h2>
-        <Button variant="outline" size="sm" onClick={() => setDialogOpen(true)}>
-          <CirclePlus className="mr-2 size-4" />
-          Add Connection
-        </Button>
-      </div>
+      <h2 className="text-lg font-semibold">Bank Accounts</h2>
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
         {bankAccounts
           .filter((a) => !a.deleted && !a.disabled)
@@ -118,7 +112,6 @@ function BankAccountsSection() {
             </Card>
           ))}
       </div>
-      <AddConnectionDialog open={dialogOpen} onOpenChange={setDialogOpen} />
     </>
   )
 }

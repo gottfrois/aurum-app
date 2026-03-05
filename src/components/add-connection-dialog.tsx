@@ -2,7 +2,7 @@ import * as React from 'react'
 import { Loader2, Landmark } from 'lucide-react'
 import { useAction } from 'convex/react'
 import { api } from '../../convex/_generated/api'
-import { useAccount } from '~/contexts/account-context'
+import { useProfile } from '~/contexts/profile-context'
 import {
   Dialog,
   DialogContent,
@@ -21,18 +21,18 @@ export function AddConnectionDialog({
   open,
   onOpenChange,
 }: AddConnectionDialogProps) {
-  const { activeAccountId } = useAccount()
+  const { activeProfileId } = useProfile()
   const generateConnectUrl = useAction(api.powens.generateConnectUrl)
   const [loading, setLoading] = React.useState(false)
   const [error, setError] = React.useState<string | null>(null)
 
   async function handleConnect() {
-    if (!activeAccountId) return
+    if (!activeProfileId) return
     setLoading(true)
     setError(null)
 
     try {
-      const url = await generateConnectUrl({ accountId: activeAccountId })
+      const url = await generateConnectUrl({ profileId: activeProfileId })
       window.location.href = url
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to connect')
@@ -59,7 +59,7 @@ export function AddConnectionDialog({
           <Button
             size="lg"
             onClick={handleConnect}
-            disabled={loading || !activeAccountId}
+            disabled={loading || !activeProfileId}
           >
             {loading && <Loader2 className="mr-2 size-4 animate-spin" />}
             {loading ? 'Connecting...' : 'Connect Bank Account'}
