@@ -237,9 +237,7 @@ function BankAccountsList({ categoryFilter }: { categoryFilter?: string }) {
             </EmptyDescription>
           </EmptyHeader>
           <EmptyContent>
-            <Button onClick={() => setDialogOpen(true)}>
-              Add Connection
-            </Button>
+            <Button onClick={() => setDialogOpen(true)}>Add Connection</Button>
           </EmptyContent>
         </Empty>
         <AddConnectionDialog open={dialogOpen} onOpenChange={setDialogOpen} />

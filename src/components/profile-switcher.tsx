@@ -1,13 +1,6 @@
 import * as React from 'react'
 import { Link } from '@tanstack/react-router'
-import {
-  Briefcase,
-  ChevronsUpDown,
-  Plus,
-  Settings,
-  User,
-  Users,
-} from 'lucide-react'
+import { ChevronsUpDown, Plus, Settings, Users } from 'lucide-react'
 import { useMutation } from 'convex/react'
 import { api } from '../../convex/_generated/api'
 import { useProfile } from '~/contexts/profile-context'
@@ -36,17 +29,7 @@ import {
   useSidebar,
 } from '~/components/ui/sidebar'
 import { Skeleton } from '~/components/ui/skeleton'
-
-const iconMap: Record<string, React.ElementType> = {
-  User,
-  Briefcase,
-  Users,
-}
-
-function getIcon(name?: string) {
-  if (!name) return User
-  return iconMap[name] ?? User
-}
+import { ProfileAvatar } from '~/components/profile-avatar'
 
 export function ProfileSwitcher() {
   const { isMobile } = useSidebar()
@@ -70,7 +53,6 @@ export function ProfileSwitcher() {
   }
 
   const isAllProfiles = !activeProfile && profiles && profiles.length > 0
-  const ActiveIcon = isAllProfiles ? Users : getIcon(activeProfile?.icon)
   const activeLabel = isAllProfiles
     ? 'All Profiles'
     : (activeProfile?.name ?? 'Select Profile')
@@ -93,9 +75,20 @@ export function ProfileSwitcher() {
                 size="lg"
                 className="data-[state=open]:bg-sidebar-accent data-[state=open]:text-sidebar-accent-foreground"
               >
-                <div className="flex aspect-square size-8 items-center justify-center rounded-lg bg-sidebar-primary text-sidebar-primary-foreground">
-                  <ActiveIcon className="size-4" />
-                </div>
+                {isAllProfiles ? (
+                  <div className="flex aspect-square size-8 items-center justify-center rounded-lg bg-sidebar-primary text-sidebar-primary-foreground">
+                    <Users className="size-4" />
+                  </div>
+                ) : activeProfile ? (
+                  <ProfileAvatar
+                    name={activeProfile.name}
+                    className="aspect-square size-8"
+                  />
+                ) : (
+                  <div className="flex aspect-square size-8 items-center justify-center rounded-lg bg-sidebar-primary text-sidebar-primary-foreground">
+                    <Users className="size-4" />
+                  </div>
+                )}
                 <div className="grid flex-1 text-left text-sm leading-tight">
                   <span className="truncate font-semibold">{activeLabel}</span>
                 </div>
@@ -121,21 +114,19 @@ export function ProfileSwitcher() {
                 All Profiles
               </DropdownMenuItem>
               <DropdownMenuSeparator />
-              {profiles?.map((profile) => {
-                const Icon = getIcon(profile.icon)
-                return (
+              {profiles?.map((profile) => (
                   <DropdownMenuItem
                     key={profile._id}
                     onClick={() => setActiveProfileId(profile._id)}
                     className="gap-2 p-2"
                   >
-                    <div className="flex size-6 items-center justify-center rounded-sm border">
-                      <Icon className="size-4 shrink-0" />
-                    </div>
+                    <ProfileAvatar
+                      name={profile.name}
+                      className="size-6"
+                    />
                     {profile.name}
                   </DropdownMenuItem>
-                )
-              })}
+                ))}
               <DropdownMenuSeparator />
               <DropdownMenuItem
                 className="gap-2 p-2"

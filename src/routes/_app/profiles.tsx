@@ -1,15 +1,7 @@
 import * as React from 'react'
 import { createFileRoute } from '@tanstack/react-router'
 import { useMutation } from 'convex/react'
-import {
-  Briefcase,
-  Check,
-  Copy,
-  Pencil,
-  Trash2,
-  User,
-  Users,
-} from 'lucide-react'
+import { Check, Copy, Pencil, Trash2 } from 'lucide-react'
 import { api } from '../../../convex/_generated/api'
 import type { Doc } from '../../../convex/_generated/dataModel'
 import { SiteHeader } from '~/components/site-header'
@@ -23,7 +15,6 @@ import {
   ItemContent,
   ItemDescription,
   ItemGroup,
-  ItemMedia,
   ItemSeparator,
   ItemTitle,
 } from '~/components/ui/item'
@@ -37,21 +28,11 @@ import {
 } from '~/components/ui/dialog'
 import { Skeleton } from '~/components/ui/skeleton'
 import { Badge } from '~/components/ui/badge'
+import { ProfileAvatar } from '~/components/profile-avatar'
 
 export const Route = createFileRoute('/_app/profiles')({
   component: ProfilesPage,
 })
-
-const iconMap: Record<string, React.ElementType> = {
-  User,
-  Briefcase,
-  Users,
-}
-
-function getIcon(name?: string) {
-  if (!name) return User
-  return iconMap[name] ?? User
-}
 
 function ProfilesPage() {
   const { profiles, isLoading, setActiveProfileId } = useProfile()
@@ -136,15 +117,14 @@ function ProfilesPage() {
             </ItemGroup>
           ) : (
             <ItemGroup className="rounded-lg border">
-              {profiles.map((profile, i) => {
-                const Icon = getIcon(profile.icon)
-                return (
+              {profiles.map((profile, i) => (
                   <React.Fragment key={profile._id}>
                     {i > 0 && <ItemSeparator />}
                     <Item>
-                      <ItemMedia variant="icon">
-                        <Icon />
-                      </ItemMedia>
+                      <ProfileAvatar
+                        name={profile.name}
+                        className="size-8"
+                      />
                       <ItemContent>
                         <ItemTitle>{profile.name}</ItemTitle>
                         <ItemDescription>
@@ -177,8 +157,7 @@ function ProfilesPage() {
                       </ItemActions>
                     </Item>
                   </React.Fragment>
-                )
-              })}
+                ))}
             </ItemGroup>
           )}
         </div>
