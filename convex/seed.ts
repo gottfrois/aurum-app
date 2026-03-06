@@ -493,27 +493,27 @@ export const clearDemoData = internalMutation({
       .first()
     if (!profile) throw new Error('No profile found')
 
-    // Delete all seeded snapshots
-    const snapshots = await ctx.db
-      .query('balanceSnapshots')
-      .withIndex('by_profileId_timestamp', (q) =>
-        q.eq('profileId', profile._id),
-      )
-      .collect()
-    for (const s of snapshots) {
-      if (s.seed) await ctx.db.delete('balanceSnapshots', s._id)
-    }
-
-    // Delete all dailyNetWorth entries for this profile
-    const dailyNetWorthEntries = await ctx.db
-      .query('dailyNetWorth')
-      .withIndex('by_profileId_timestamp', (q) =>
-        q.eq('profileId', profile._id),
-      )
-      .collect()
-    for (const d of dailyNetWorthEntries) {
-      await ctx.db.delete('dailyNetWorth', d._id)
-    }
+    // Delete all seeded snapshots and dailyNetWorth entries for this profile
+    const [snapshots, dailyNetWorthEntries] = await Promise.all([
+      ctx.db
+        .query('balanceSnapshots')
+        .withIndex('by_profileId_timestamp', (q) =>
+          q.eq('profileId', profile._id),
+        )
+        .collect(),
+      ctx.db
+        .query('dailyNetWorth')
+        .withIndex('by_profileId_timestamp', (q) =>
+          q.eq('profileId', profile._id),
+        )
+        .collect(),
+    ])
+    await Promise.all([
+      ...snapshots
+        .filter((s) => s.seed)
+        .map((s) => ctx.db.delete('balanceSnapshots', s._id)),
+      ...dailyNetWorthEntries.map((d) => ctx.db.delete('dailyNetWorth', d._id)),
+    ])
 
     // Delete all investments for this profile
     const investments = await ctx.db

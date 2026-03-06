@@ -9,17 +9,21 @@ export const backfillBalanceSnapshots = internalMutation({
     const date = now.toISOString().slice(0, 10)
     const timestamp = now.getTime()
 
-    let count = 0
-    for (const ba of bankAccounts) {
-      const existing = await ctx.db
-        .query('balanceSnapshots')
-        .withIndex('by_bankAccountId_date', (q) =>
-          q.eq('bankAccountId', ba._id).eq('date', date),
-        )
-        .first()
+    const existingSnapshots = await Promise.all(
+      bankAccounts.map((ba) =>
+        ctx.db
+          .query('balanceSnapshots')
+          .withIndex('by_bankAccountId_date', (q) =>
+            q.eq('bankAccountId', ba._id).eq('date', date),
+          )
+          .first(),
+      ),
+    )
 
-      if (!existing) {
-        await ctx.db.insert('balanceSnapshots', {
+    const toInsert = bankAccounts.filter((_, i) => !existingSnapshots[i])
+    await Promise.all(
+      toInsert.map((ba) =>
+        ctx.db.insert('balanceSnapshots', {
           bankAccountId: ba._id,
           profileId: ba.profileId,
           balance: ba.balance,
@@ -27,11 +31,10 @@ export const backfillBalanceSnapshots = internalMutation({
           date,
           timestamp,
           encrypted: false,
-        })
-        count++
-      }
-    }
-    return { backfilled: count }
+        }),
+      ),
+    )
+    return { backfilled: toInsert.length }
   },
 })
 
@@ -108,30 +111,39 @@ export const backfillDailyNetWorth = internalMutation({
       }
     }
 
-    let count = 0
-    for (const agg of aggregates.values()) {
-      const existing = await ctx.db
-        .query('dailyNetWorth')
-        .withIndex('by_profileId_date', (q) =>
-          q.eq('profileId', agg.profileId).eq('date', agg.date),
-        )
-        .first()
+    const aggValues = [...aggregates.values()]
 
-      if (existing) {
-        await ctx.db.patch('dailyNetWorth', existing._id, {
-          balance: Math.round(agg.balance * 100) / 100,
-        })
-      } else {
-        await ctx.db.insert('dailyNetWorth', {
-          profileId: agg.profileId,
-          date: agg.date,
-          timestamp: agg.timestamp,
-          balance: Math.round(agg.balance * 100) / 100,
-          currency: agg.currency,
-        })
-        count++
-      }
-    }
+    const existingEntries = await Promise.all(
+      aggValues.map((agg) =>
+        ctx.db
+          .query('dailyNetWorth')
+          .withIndex('by_profileId_date', (q) =>
+            q.eq('profileId', agg.profileId).eq('date', agg.date),
+          )
+          .first(),
+      ),
+    )
+
+    let count = 0
+    await Promise.all(
+      aggValues.map((agg, i) => {
+        const existing = existingEntries[i]
+        if (existing) {
+          return ctx.db.patch('dailyNetWorth', existing._id, {
+            balance: Math.round(agg.balance * 100) / 100,
+          })
+        } else {
+          count++
+          return ctx.db.insert('dailyNetWorth', {
+            profileId: agg.profileId,
+            date: agg.date,
+            timestamp: agg.timestamp,
+            balance: Math.round(agg.balance * 100) / 100,
+            currency: agg.currency,
+          })
+        }
+      }),
+    )
     return { backfilled: count }
   },
 })
@@ -140,13 +152,10 @@ export const deleteSeedSnapshots = internalMutation({
   args: {},
   handler: async (ctx) => {
     const all = await ctx.db.query('balanceSnapshots').collect()
-    let count = 0
-    for (const snap of all) {
-      if (snap.seed) {
-        await ctx.db.delete('balanceSnapshots', snap._id)
-        count++
-      }
-    }
-    return { deleted: count }
+    const toDelete = all.filter((snap) => snap.seed)
+    await Promise.all(
+      toDelete.map((snap) => ctx.db.delete('balanceSnapshots', snap._id)),
+    )
+    return { deleted: toDelete.length }
   },
 })
