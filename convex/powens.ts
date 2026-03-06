@@ -1,9 +1,11 @@
 import { v } from 'convex/values'
-import { action, internalMutation, internalQuery, query } from './_generated/server'
+import { action, internalAction, internalMutation, internalQuery, query } from './_generated/server'
 import { internal } from './_generated/api'
 import type { Id } from './_generated/dataModel'
 import type { MutationCtx } from './_generated/server'
 import { getAuthUserId, requireAuthUserId } from './lib/auth'
+
+const INVESTMENT_TYPES = ['market', 'pea', 'pee']
 
 async function recordBalanceSnapshot(
   ctx: MutationCtx,
@@ -226,7 +228,7 @@ export const handleConnectionCallback = action({
       const bankAccts = acctData.accounts ?? []
 
       for (const acct of bankAccts) {
-        await ctx.runMutation(internal.powens.upsertBankAccount, {
+        const bankAccountId = await ctx.runMutation(internal.powens.upsertBankAccount, {
           connectionId: connectionDocId,
           profileId: args.profileId,
           powensBankAccountId: acct.id,
@@ -240,6 +242,22 @@ export const handleConnectionCallback = action({
           deleted: acct.deleted != null,
           lastSync: acct.last_update ?? undefined,
         })
+
+        if (INVESTMENT_TYPES.includes(acct.type ?? '')) {
+          const investmentsResponse = await fetch(
+            `${baseUrl}/users/me/accounts/${acct.id}/investments`,
+            { headers: { Authorization: `Bearer ${profile.powensUserToken}` } },
+          )
+          if (investmentsResponse.ok) {
+            const investmentsData = await investmentsResponse.json()
+            const investments = (investmentsData.investments ?? []).map(mapPowensInvestment)
+            await ctx.runMutation(internal.powens.upsertInvestments, {
+              bankAccountId,
+              profileId: args.profileId,
+              investments,
+            })
+          }
+        }
       }
     }
 
@@ -484,6 +502,7 @@ export const deleteConnection = action({
     // Delete local data
     await ctx.runMutation(internal.powens.deleteConnectionData, {
       connectionId: args.connectionId,
+      profileId: args.profileId,
     })
   },
 })
@@ -496,29 +515,44 @@ export const getConnectionInternal = internalQuery({
 })
 
 export const deleteConnectionData = internalMutation({
-  args: { connectionId: v.id('connections') },
+  args: {
+    connectionId: v.id('connections'),
+    profileId: v.id('profiles'),
+  },
   handler: async (ctx, args) => {
-    // Delete all bank accounts and their snapshots for this connection
-    const bankAccounts = await ctx.db
-      .query('bankAccounts')
-      .withIndex('by_connectionId', (q) =>
-        q.eq('connectionId', args.connectionId),
-      )
-      .collect()
-    for (const ba of bankAccounts) {
-      const snapshots = await ctx.db
-        .query('balanceSnapshots')
-        .withIndex('by_bankAccountId_timestamp', (q) =>
-          q.eq('bankAccountId', ba._id),
+    const [bankAccounts, snapshots, investments] = await Promise.all([
+      ctx.db
+        .query('bankAccounts')
+        .withIndex('by_connectionId', (q) =>
+          q.eq('connectionId', args.connectionId),
         )
-        .collect()
-      for (const snap of snapshots) {
-        await ctx.db.delete(snap._id)
-      }
-      await ctx.db.delete(ba._id)
-    }
-    // Delete the connection itself
-    await ctx.db.delete(args.connectionId)
+        .collect(),
+      ctx.db
+        .query('balanceSnapshots')
+        .withIndex('by_profileId_timestamp', (q) =>
+          q.eq('profileId', args.profileId),
+        )
+        .collect(),
+      ctx.db
+        .query('investments')
+        .withIndex('by_profileId', (q) =>
+          q.eq('profileId', args.profileId),
+        )
+        .collect(),
+    ])
+
+    const bankAccountIds = new Set(bankAccounts.map((ba) => ba._id))
+
+    await Promise.all([
+      ...snapshots
+        .filter((s) => bankAccountIds.has(s.bankAccountId))
+        .map((s) => ctx.db.delete(s._id)),
+      ...investments
+        .filter((i) => bankAccountIds.has(i.bankAccountId))
+        .map((i) => ctx.db.delete(i._id)),
+      ...bankAccounts.map((ba) => ctx.db.delete(ba._id)),
+      ctx.db.delete(args.connectionId),
+    ])
   },
 })
 
@@ -599,6 +633,151 @@ export const listAllBankAccounts = query({
       ...a,
       connectorName: connMap.get(a.connectionId)?.connectorName ?? undefined,
     }))
+  },
+})
+
+function mapPowensInvestment(raw: Record<string, unknown>) {
+  return {
+    powensInvestmentId: raw.id as number,
+    code: (raw.code as string) ?? undefined,
+    codeType: (raw.code_type as string) ?? undefined,
+    label: (raw.label as string) ?? 'Unknown',
+    description: (raw.description as string) ?? undefined,
+    quantity: (raw.quantity as number) ?? 0,
+    unitprice: (raw.unitprice as number) ?? 0,
+    unitvalue: (raw.unitvalue as number) ?? 0,
+    valuation: (raw.valuation as number) ?? 0,
+    portfolioShare: (raw.portfolio_share as number) ?? undefined,
+    diff: (raw.diff as number) ?? undefined,
+    diffPercent: (raw.diff_percent as number) ?? undefined,
+    originalCurrency:
+      ((raw.original_currency as Record<string, unknown>)?.id as string) ??
+      undefined,
+    originalValuation: (raw.original_valuation as number) ?? undefined,
+    vdate: (raw.vdate as string) ?? undefined,
+    deleted: raw.deleted != null,
+  }
+}
+
+export const upsertInvestments = internalMutation({
+  args: {
+    bankAccountId: v.id('bankAccounts'),
+    profileId: v.id('profiles'),
+    investments: v.array(
+      v.object({
+        powensInvestmentId: v.number(),
+        code: v.optional(v.string()),
+        codeType: v.optional(v.string()),
+        label: v.string(),
+        description: v.optional(v.string()),
+        quantity: v.number(),
+        unitprice: v.number(),
+        unitvalue: v.number(),
+        valuation: v.number(),
+        portfolioShare: v.optional(v.number()),
+        diff: v.optional(v.number()),
+        diffPercent: v.optional(v.number()),
+        originalCurrency: v.optional(v.string()),
+        originalValuation: v.optional(v.number()),
+        vdate: v.optional(v.string()),
+        deleted: v.boolean(),
+      }),
+    ),
+  },
+  handler: async (ctx, args) => {
+    for (const inv of args.investments) {
+      const existing = await ctx.db
+        .query('investments')
+        .withIndex('by_powensInvestmentId', (q) =>
+          q.eq('powensInvestmentId', inv.powensInvestmentId),
+        )
+        .first()
+
+      if (existing) {
+        await ctx.db.patch(existing._id, {
+          ...inv,
+          bankAccountId: args.bankAccountId,
+          profileId: args.profileId,
+        })
+      } else {
+        await ctx.db.insert('investments', {
+          bankAccountId: args.bankAccountId,
+          profileId: args.profileId,
+          ...inv,
+        })
+      }
+    }
+  },
+})
+
+export const listBankAccountsByConnection = internalQuery({
+  args: { connectionId: v.id('connections') },
+  handler: async (ctx, args) => {
+    return await ctx.db
+      .query('bankAccounts')
+      .withIndex('by_connectionId', (q) =>
+        q.eq('connectionId', args.connectionId),
+      )
+      .collect()
+  },
+})
+
+export const syncInvestmentsFromWebhook = internalAction({
+  args: {
+    profileId: v.id('profiles'),
+    powensConnectionId: v.number(),
+  },
+  handler: async (ctx, args) => {
+    const { baseUrl } = getPowensConfig()
+
+    const profile = await ctx.runQuery(internal.powens.getProfileInternal, {
+      profileId: args.profileId,
+    })
+    if (!profile?.powensUserToken) return
+
+    // Find the connection doc
+    const connection = await ctx.runQuery(
+      internal.powens.findConnectionByPowensId,
+      { powensConnectionId: args.powensConnectionId },
+    )
+    if (!connection) return
+
+    const bankAccounts = await ctx.runQuery(
+      internal.powens.listBankAccountsByConnection,
+      { connectionId: connection._id },
+    )
+
+    for (const ba of bankAccounts) {
+      if (!INVESTMENT_TYPES.includes(ba.type ?? '')) continue
+
+      const response = await fetch(
+        `${baseUrl}/users/me/accounts/${ba.powensBankAccountId}/investments`,
+        { headers: { Authorization: `Bearer ${profile.powensUserToken}` } },
+      )
+
+      if (!response.ok) continue
+
+      const data = await response.json()
+      const investments = (data.investments ?? []).map(mapPowensInvestment)
+
+      await ctx.runMutation(internal.powens.upsertInvestments, {
+        bankAccountId: ba._id,
+        profileId: args.profileId,
+        investments,
+      })
+    }
+  },
+})
+
+export const findConnectionByPowensId = internalQuery({
+  args: { powensConnectionId: v.number() },
+  handler: async (ctx, args) => {
+    return await ctx.db
+      .query('connections')
+      .withIndex('by_powensConnectionId', (q) =>
+        q.eq('powensConnectionId', args.powensConnectionId),
+      )
+      .first()
   },
 })
 

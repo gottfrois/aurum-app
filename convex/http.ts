@@ -82,6 +82,11 @@ http.route({
         lastSync: (payload.last_update as string) ?? undefined,
         bankAccounts,
       })
+
+      await ctx.runAction(internal.powens.syncInvestmentsFromWebhook, {
+        profileId: profile._id,
+        powensConnectionId,
+      })
     }
 
     return new Response('OK', { status: 200 })

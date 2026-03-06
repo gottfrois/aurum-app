@@ -40,3 +40,11 @@ for (const [key, cat] of Object.entries(ACCOUNT_CATEGORIES)) {
 export function getCategoryKey(accountType: string | undefined): string {
   return typeToCategory.get(accountType ?? '') ?? 'checking'
 }
+
+const INVESTMENT_ACCOUNT_TYPES = new Set(
+  ACCOUNT_CATEGORIES.investments.types,
+)
+
+export function isInvestmentAccount(type?: string): boolean {
+  return INVESTMENT_ACCOUNT_TYPES.has(type ?? '')
+}

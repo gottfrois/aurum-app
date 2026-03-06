@@ -81,24 +81,30 @@ export const deleteProfile = mutation({
     }
 
     // Delete all associated data using profileId indexes (flat, no nesting)
-    const [connections, bankAccounts, snapshots] = await Promise.all([
-      ctx.db
-        .query('connections')
-        .withIndex('by_profileId', (q) => q.eq('profileId', args.profileId))
-        .collect(),
-      ctx.db
-        .query('bankAccounts')
-        .withIndex('by_profileId', (q) => q.eq('profileId', args.profileId))
-        .collect(),
-      ctx.db
-        .query('balanceSnapshots')
-        .withIndex('by_profileId_timestamp', (q) =>
-          q.eq('profileId', args.profileId),
-        )
-        .collect(),
-    ])
+    const [connections, bankAccounts, snapshots, investments] =
+      await Promise.all([
+        ctx.db
+          .query('connections')
+          .withIndex('by_profileId', (q) => q.eq('profileId', args.profileId))
+          .collect(),
+        ctx.db
+          .query('bankAccounts')
+          .withIndex('by_profileId', (q) => q.eq('profileId', args.profileId))
+          .collect(),
+        ctx.db
+          .query('balanceSnapshots')
+          .withIndex('by_profileId_timestamp', (q) =>
+            q.eq('profileId', args.profileId),
+          )
+          .collect(),
+        ctx.db
+          .query('investments')
+          .withIndex('by_profileId', (q) => q.eq('profileId', args.profileId))
+          .collect(),
+      ])
     await Promise.all([
       ...snapshots.map((s) => ctx.db.delete(s._id)),
+      ...investments.map((inv) => ctx.db.delete(inv._id)),
       ...bankAccounts.map((ba) => ctx.db.delete(ba._id)),
       ...connections.map((c) => ctx.db.delete(c._id)),
     ])

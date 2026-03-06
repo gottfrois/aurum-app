@@ -5,10 +5,13 @@ import { api } from '../../../convex/_generated/api'
 import type { Id } from '../../../convex/_generated/dataModel'
 import { SiteHeader } from '~/components/site-header'
 import { BalanceChart } from '~/components/balance-chart'
+import { HoldingsTable } from '~/components/holdings-table'
+import { Card, CardContent, CardHeader, CardTitle } from '~/components/ui/card'
 import { Skeleton } from '~/components/ui/skeleton'
 import { ArrowLeft } from 'lucide-react'
 import { type Period, getStartTimestamp } from '~/lib/chart-periods'
 import { fillMissingDates } from '~/lib/fill-missing-dates'
+import { isInvestmentAccount } from '~/lib/account-categories'
 
 export const Route = createFileRoute('/_app/accounts/$accountId')({
   component: AccountDetailPage,
@@ -27,6 +30,15 @@ function AccountDetailPage() {
     bankAccountId: accountId as Id<'bankAccounts'>,
     startTimestamp,
   })
+
+  const isInvestment = isInvestmentAccount(bankAccount?.type ?? undefined)
+
+  const investments = useQuery(
+    api.investments.listInvestments,
+    isInvestment
+      ? { bankAccountId: accountId as Id<'bankAccounts'> }
+      : 'skip',
+  )
 
   const isLoading = bankAccount === undefined || snapshots === undefined
 
@@ -62,18 +74,31 @@ function AccountDetailPage() {
               Account not found.
             </div>
           ) : (
-            <BalanceChart
-              data={chartData}
-              currency={bankAccount.currency}
-              isLoading={false}
-              period={period}
-              onPeriodChange={setPeriod}
-              title={bankAccount.connectorName ?? bankAccount.name}
-              description={new Intl.NumberFormat('fr-FR', {
-                style: 'currency',
-                currency: bankAccount.currency,
-              }).format(bankAccount.balance)}
-            />
+            <>
+              <BalanceChart
+                data={chartData}
+                currency={bankAccount.currency}
+                isLoading={false}
+                period={period}
+                onPeriodChange={setPeriod}
+                title={bankAccount.connectorName ?? bankAccount.name}
+                description={new Intl.NumberFormat('fr-FR', {
+                  style: 'currency',
+                  currency: bankAccount.currency,
+                }).format(bankAccount.balance)}
+              />
+
+              {isInvestment && investments && investments.length > 0 && (
+                <Card>
+                  <CardHeader>
+                    <CardTitle>Holdings</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <HoldingsTable investments={investments} />
+                  </CardContent>
+                </Card>
+              )}
+            </>
           )}
         </div>
       </div>

@@ -53,6 +53,30 @@ export default defineSchema({
     .index('by_connectionId', ['connectionId'])
     .index('by_profileId', ['profileId']),
 
+  investments: defineTable({
+    bankAccountId: v.id('bankAccounts'),
+    profileId: v.id('profiles'),
+    powensInvestmentId: v.number(),
+    code: v.optional(v.string()),
+    codeType: v.optional(v.string()),
+    label: v.string(),
+    description: v.optional(v.string()),
+    quantity: v.number(),
+    unitprice: v.number(),
+    unitvalue: v.number(),
+    valuation: v.number(),
+    portfolioShare: v.optional(v.number()),
+    diff: v.optional(v.number()),
+    diffPercent: v.optional(v.number()),
+    originalCurrency: v.optional(v.string()),
+    originalValuation: v.optional(v.number()),
+    vdate: v.optional(v.string()),
+    deleted: v.boolean(),
+  })
+    .index('by_bankAccountId', ['bankAccountId'])
+    .index('by_profileId', ['profileId'])
+    .index('by_powensInvestmentId', ['powensInvestmentId']),
+
   balanceSnapshots: defineTable({
     bankAccountId: v.id('bankAccounts'),
     profileId: v.id('profiles'),

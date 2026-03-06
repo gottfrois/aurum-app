@@ -10,6 +10,7 @@
 
 import type * as balanceSnapshots from "../balanceSnapshots.js";
 import type * as http from "../http.js";
+import type * as investments from "../investments.js";
 import type * as lib_auth from "../lib/auth.js";
 import type * as migrations from "../migrations.js";
 import type * as powens from "../powens.js";
@@ -25,6 +26,7 @@ import type {
 declare const fullApi: ApiFromModules<{
   balanceSnapshots: typeof balanceSnapshots;
   http: typeof http;
+  investments: typeof investments;
   "lib/auth": typeof lib_auth;
   migrations: typeof migrations;
   powens: typeof powens;
