@@ -644,13 +644,21 @@ function MigrateDialog({
     allProfileIds.length > 0 ? { profileIds: allProfileIds } : 'skip',
   )
 
+  const BATCH_SIZE = 50
+
   const migrateConnection = useMutation(api.encryptionKeys.migrateConnection)
   const migrateAccounts = useMutation(api.encryptionKeys.migrateBankAccount)
-  const migrateSnapshot = useMutation(api.encryptionKeys.migrateBalanceSnapshot)
-  const migrateInvestment = useMutation(api.encryptionKeys.migrateInvestment)
+  const migrateSnapshotBatch = useMutation(
+    api.encryptionKeys.migrateBalanceSnapshotBatch,
+  )
+  const migrateInvestmentBatch = useMutation(
+    api.encryptionKeys.migrateInvestmentBatch,
+  )
 
   const [migrating, setMigrating] = useState(false)
   const [progress, setProgress] = useState({ done: 0, total: 0 })
+  const cancelRef = useRef(false)
+  const isCancelled = () => cancelRef.current
 
   const unencryptedConnections = allConnections?.filter((c) => !c.encryptedData)
   const unencryptedAccounts = allBankAccounts?.filter(
@@ -671,8 +679,13 @@ function MigrateDialog({
     (unencryptedSnapshots?.length ?? 0) +
     (unencryptedInvestments?.length ?? 0)
 
+  function handleCancel() {
+    cancelRef.current = true
+  }
+
   async function handleMigrate() {
     if (!privateKey || !workspacePublicKey) return
+    cancelRef.current = false
     setMigrating(true)
 
     const publicKey = await importPublicKey(workspacePublicKey)
@@ -680,7 +693,9 @@ function MigrateDialog({
     setProgress({ done: 0, total })
     let done = 0
 
+    // Connections — small count, keep sequential
     for (const conn of unencryptedConnections ?? []) {
+      if (isCancelled()) break
       const encrypted = await encryptData(
         { connectorName: conn.connectorName },
         publicKey,
@@ -693,7 +708,9 @@ function MigrateDialog({
       setProgress({ done, total })
     }
 
+    // Accounts — small count, keep sequential
     for (const acct of unencryptedAccounts ?? []) {
+      if (isCancelled()) break
       const encrypted = await encryptData(
         {
           name: acct.name,
@@ -711,43 +728,63 @@ function MigrateDialog({
       setProgress({ done, total })
     }
 
-    for (const snap of unencryptedSnapshots ?? []) {
-      const encrypted = await encryptData({ balance: snap.balance }, publicKey)
-      await migrateSnapshot({
-        snapshotId: snap._id,
-        encryptedData: encrypted,
-      })
-      done++
-      setProgress({ done, total })
-    }
-
-    for (const inv of unencryptedInvestments ?? []) {
-      const encrypted = await encryptData(
-        {
-          code: inv.code,
-          label: inv.label,
-          description: inv.description,
-          quantity: inv.quantity,
-          unitprice: inv.unitprice,
-          unitvalue: inv.unitvalue,
-          valuation: inv.valuation,
-          portfolioShare: inv.portfolioShare,
-          diff: inv.diff,
-          diffPercent: inv.diffPercent,
-        },
-        publicKey,
+    // Snapshots — bulk: encrypt in parallel, write in batches
+    const snapshots = unencryptedSnapshots ?? []
+    for (let i = 0; i < snapshots.length; i += BATCH_SIZE) {
+      if (isCancelled()) break
+      const chunk = snapshots.slice(i, i + BATCH_SIZE)
+      const items = await Promise.all(
+        chunk.map(async (snap) => ({
+          snapshotId: snap._id,
+          encryptedData: await encryptData(
+            { balance: snap.balance },
+            publicKey,
+          ),
+        })),
       )
-      await migrateInvestment({
-        investmentId: inv._id,
-        encryptedData: encrypted,
-      })
-      done++
+      if (isCancelled()) break
+      await migrateSnapshotBatch({ items })
+      done += chunk.length
       setProgress({ done, total })
     }
 
-    toast.success('Migration complete')
+    // Investments — bulk: encrypt in parallel, write in batches
+    const investments = unencryptedInvestments ?? []
+    for (let i = 0; i < investments.length; i += BATCH_SIZE) {
+      if (isCancelled()) break
+      const chunk = investments.slice(i, i + BATCH_SIZE)
+      const items = await Promise.all(
+        chunk.map(async (inv) => ({
+          investmentId: inv._id,
+          encryptedData: await encryptData(
+            {
+              code: inv.code,
+              label: inv.label,
+              description: inv.description,
+              quantity: inv.quantity,
+              unitprice: inv.unitprice,
+              unitvalue: inv.unitvalue,
+              valuation: inv.valuation,
+              portfolioShare: inv.portfolioShare,
+              diff: inv.diff,
+              diffPercent: inv.diffPercent,
+            },
+            publicKey,
+          ),
+        })),
+      )
+      if (isCancelled()) break
+      await migrateInvestmentBatch({ items })
+      done += chunk.length
+      setProgress({ done, total })
+    }
+
+    if (isCancelled()) {
+      toast.info(`Migration paused — ${done} of ${total} records encrypted`)
+    } else {
+      toast.success('Migration complete')
+    }
     setMigrating(false)
-    onOpenChange(false)
   }
 
   return (
@@ -791,19 +828,20 @@ function MigrateDialog({
           )}
         </div>
         <DialogFooter>
-          <Button
-            variant="outline"
-            onClick={() => onOpenChange(false)}
-            disabled={migrating}
-          >
-            Cancel
-          </Button>
-          <Button
-            onClick={handleMigrate}
-            disabled={migrating || totalUnencrypted === 0}
-          >
-            {migrating ? 'Encrypting...' : 'Start migration'}
-          </Button>
+          {migrating ? (
+            <Button variant="outline" onClick={handleCancel}>
+              Stop
+            </Button>
+          ) : (
+            <>
+              <Button variant="outline" onClick={() => onOpenChange(false)}>
+                Close
+              </Button>
+              <Button onClick={handleMigrate} disabled={totalUnencrypted === 0}>
+                {progress.done > 0 ? 'Resume migration' : 'Start migration'}
+              </Button>
+            </>
+          )}
         </DialogFooter>
       </DialogContent>
     </Dialog>
@@ -839,10 +877,16 @@ function DisableDialog({
     allProfileIds.length > 0 ? { profileIds: allProfileIds } : 'skip',
   )
 
+  const BATCH_SIZE = 50
+
   const decryptConn = useMutation(api.encryptionKeys.decryptConnection)
   const decryptAccount = useMutation(api.encryptionKeys.decryptBankAccount)
-  const decryptSnapshot = useMutation(api.encryptionKeys.decryptBalanceSnapshot)
-  const decryptInvestment = useMutation(api.encryptionKeys.decryptInvestment)
+  const decryptSnapshotBatch = useMutation(
+    api.encryptionKeys.decryptBalanceSnapshotBatch,
+  )
+  const decryptInvestmentBatch = useMutation(
+    api.encryptionKeys.decryptInvestmentBatch,
+  )
   const disableEncryption = useMutation(
     api.encryptionKeys.disableWorkspaceEncryption,
   )
@@ -851,6 +895,8 @@ function DisableDialog({
   const [progress, setProgress] = useState({ done: 0, total: 0 })
   const [confirmText, setConfirmText] = useState('')
   const [copied, setCopied] = useState(false)
+  const cancelRef = useRef(false)
+  const isCancelled = () => cancelRef.current
 
   const confirmPhrase = 'disable encryption'
   const isConfirmed = confirmText === confirmPhrase
@@ -875,15 +921,22 @@ function DisableDialog({
     encryptedSnapshots.length +
     encryptedInvestments.length
 
+  function handleCancel() {
+    cancelRef.current = true
+  }
+
   async function handleDisable() {
     if (!privateKey || !isConfirmed) return
+    cancelRef.current = false
     setDisabling(true)
 
     const total = totalEncrypted
     setProgress({ done: 0, total })
     let done = 0
 
+    // Connections — small count, keep sequential
     for (const conn of encryptedConnections) {
+      if (isCancelled()) break
       const data = await decryptData(conn.encryptedData!, privateKey)
       await decryptConn({
         connectionId: conn._id,
@@ -893,7 +946,9 @@ function DisableDialog({
       setProgress({ done, total })
     }
 
+    // Accounts — small count, keep sequential
     for (const acct of encryptedAccounts) {
+      if (isCancelled()) break
       const data = await decryptData(acct.encryptedData!, privateKey)
       await decryptAccount({
         bankAccountId: acct._id,
@@ -906,34 +961,58 @@ function DisableDialog({
       setProgress({ done, total })
     }
 
-    for (const snap of encryptedSnapshots) {
-      const data = await decryptData(snap.encryptedData!, privateKey)
-      await decryptSnapshot({
-        snapshotId: snap._id,
-        balance: (data.balance as number | undefined) ?? 0,
-      })
-      done++
+    // Snapshots — bulk: decrypt in parallel, write in batches
+    for (let i = 0; i < encryptedSnapshots.length; i += BATCH_SIZE) {
+      if (isCancelled()) break
+      const chunk = encryptedSnapshots.slice(i, i + BATCH_SIZE)
+      const items = await Promise.all(
+        chunk.map(async (snap) => {
+          const data = await decryptData(snap.encryptedData!, privateKey)
+          return {
+            snapshotId: snap._id,
+            balance: (data.balance as number | undefined) ?? 0,
+          }
+        }),
+      )
+      if (isCancelled()) break
+      await decryptSnapshotBatch({ items })
+      done += chunk.length
       setProgress({ done, total })
     }
 
-    for (const inv of encryptedInvestments) {
-      const data = await decryptData(inv.encryptedData!, privateKey)
-      await decryptInvestment({
-        investmentId: inv._id,
-        code: (data.code as string | undefined) ?? undefined,
-        label: (data.label as string | undefined) ?? 'Unknown',
-        description: (data.description as string | undefined) ?? undefined,
-        quantity: (data.quantity as number | undefined) ?? 0,
-        unitprice: (data.unitprice as number | undefined) ?? 0,
-        unitvalue: (data.unitvalue as number | undefined) ?? 0,
-        valuation: (data.valuation as number | undefined) ?? 0,
-        portfolioShare:
-          (data.portfolioShare as number | undefined) ?? undefined,
-        diff: (data.diff as number | undefined) ?? undefined,
-        diffPercent: (data.diffPercent as number | undefined) ?? undefined,
-      })
-      done++
+    // Investments — bulk: decrypt in parallel, write in batches
+    for (let i = 0; i < encryptedInvestments.length; i += BATCH_SIZE) {
+      if (isCancelled()) break
+      const chunk = encryptedInvestments.slice(i, i + BATCH_SIZE)
+      const items = await Promise.all(
+        chunk.map(async (inv) => {
+          const data = await decryptData(inv.encryptedData!, privateKey)
+          return {
+            investmentId: inv._id,
+            code: (data.code as string | undefined) ?? undefined,
+            label: (data.label as string | undefined) ?? 'Unknown',
+            description: (data.description as string | undefined) ?? undefined,
+            quantity: (data.quantity as number | undefined) ?? 0,
+            unitprice: (data.unitprice as number | undefined) ?? 0,
+            unitvalue: (data.unitvalue as number | undefined) ?? 0,
+            valuation: (data.valuation as number | undefined) ?? 0,
+            portfolioShare:
+              (data.portfolioShare as number | undefined) ?? undefined,
+            diff: (data.diff as number | undefined) ?? undefined,
+            diffPercent: (data.diffPercent as number | undefined) ?? undefined,
+          }
+        }),
+      )
+      if (isCancelled()) break
+      await decryptInvestmentBatch({ items })
+      done += chunk.length
       setProgress({ done, total })
+    }
+
+    if (isCancelled()) {
+      toast.info(`Decryption paused — ${done} of ${total} records decrypted`)
+      setDisabling(false)
+      return
     }
 
     await disableEncryption()
@@ -1010,20 +1089,24 @@ function DisableDialog({
           )}
         </div>
         <DialogFooter>
-          <Button
-            variant="outline"
-            onClick={() => onOpenChange(false)}
-            disabled={disabling}
-          >
-            Cancel
-          </Button>
-          <Button
-            variant="destructive"
-            onClick={handleDisable}
-            disabled={!isConfirmed || disabling}
-          >
-            {disabling ? 'Decrypting...' : 'Disable encryption'}
-          </Button>
+          {disabling ? (
+            <Button variant="outline" onClick={handleCancel}>
+              Stop
+            </Button>
+          ) : (
+            <>
+              <Button variant="outline" onClick={() => onOpenChange(false)}>
+                Cancel
+              </Button>
+              <Button
+                variant="destructive"
+                onClick={handleDisable}
+                disabled={!isConfirmed}
+              >
+                {progress.done > 0 ? 'Resume decryption' : 'Disable encryption'}
+              </Button>
+            </>
+          )}
         </DialogFooter>
       </DialogContent>
     </Dialog>

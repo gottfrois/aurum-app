@@ -376,6 +376,26 @@ export const migrateBalanceSnapshot = mutation({
   },
 })
 
+export const migrateBalanceSnapshotBatch = mutation({
+  args: {
+    items: v.array(
+      v.object({
+        snapshotId: v.id('balanceSnapshots'),
+        encryptedData: v.string(),
+      }),
+    ),
+  },
+  handler: async (ctx, args) => {
+    await requireAuthUserId(ctx)
+    for (const item of args.items) {
+      await ctx.db.patch('balanceSnapshots', item.snapshotId, {
+        encryptedData: item.encryptedData,
+        balance: 0,
+      })
+    }
+  },
+})
+
 export const migrateInvestment = mutation({
   args: {
     investmentId: v.id('investments'),
@@ -396,6 +416,35 @@ export const migrateInvestment = mutation({
       diff: undefined,
       diffPercent: undefined,
     })
+  },
+})
+
+export const migrateInvestmentBatch = mutation({
+  args: {
+    items: v.array(
+      v.object({
+        investmentId: v.id('investments'),
+        encryptedData: v.string(),
+      }),
+    ),
+  },
+  handler: async (ctx, args) => {
+    await requireAuthUserId(ctx)
+    for (const item of args.items) {
+      await ctx.db.patch('investments', item.investmentId, {
+        encryptedData: item.encryptedData,
+        code: undefined,
+        label: 'Encrypted',
+        description: undefined,
+        quantity: 0,
+        unitprice: 0,
+        unitvalue: 0,
+        valuation: 0,
+        portfolioShare: undefined,
+        diff: undefined,
+        diffPercent: undefined,
+      })
+    }
   },
 })
 
@@ -433,6 +482,26 @@ export const decryptBalanceSnapshot = mutation({
   },
 })
 
+export const decryptBalanceSnapshotBatch = mutation({
+  args: {
+    items: v.array(
+      v.object({
+        snapshotId: v.id('balanceSnapshots'),
+        balance: v.number(),
+      }),
+    ),
+  },
+  handler: async (ctx, args) => {
+    await requireAuthUserId(ctx)
+    for (const item of args.items) {
+      await ctx.db.patch('balanceSnapshots', item.snapshotId, {
+        balance: item.balance,
+        encryptedData: undefined,
+      })
+    }
+  },
+})
+
 export const decryptInvestment = mutation({
   args: {
     investmentId: v.id('investments'),
@@ -454,5 +523,35 @@ export const decryptInvestment = mutation({
       ...fields,
       encryptedData: undefined,
     })
+  },
+})
+
+export const decryptInvestmentBatch = mutation({
+  args: {
+    items: v.array(
+      v.object({
+        investmentId: v.id('investments'),
+        code: v.optional(v.string()),
+        label: v.string(),
+        description: v.optional(v.string()),
+        quantity: v.number(),
+        unitprice: v.number(),
+        unitvalue: v.number(),
+        valuation: v.number(),
+        portfolioShare: v.optional(v.number()),
+        diff: v.optional(v.number()),
+        diffPercent: v.optional(v.number()),
+      }),
+    ),
+  },
+  handler: async (ctx, args) => {
+    await requireAuthUserId(ctx)
+    for (const item of args.items) {
+      const { investmentId, ...fields } = item
+      await ctx.db.patch('investments', investmentId, {
+        ...fields,
+        encryptedData: undefined,
+      })
+    }
   },
 })
