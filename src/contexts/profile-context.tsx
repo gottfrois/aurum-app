@@ -3,11 +3,17 @@ import { useConvexAuth, useQuery, useMutation } from 'convex/react'
 import { api } from '../../convex/_generated/api'
 import type { Id, Doc } from '../../convex/_generated/dataModel'
 
+type ActiveProfileId = Id<'profiles'> | 'all' | null
+
 interface ProfileContextValue {
   profiles: Doc<'profiles'>[] | undefined
-  activeProfileId: Id<'profiles'> | null
+  activeProfileId: ActiveProfileId
   activeProfile: Doc<'profiles'> | undefined
-  setActiveProfileId: (id: Id<'profiles'>) => void
+  setActiveProfileId: (id: Id<'profiles'> | 'all') => void
+  isAllProfiles: boolean
+  allProfileIds: Id<'profiles'>[]
+  /** activeProfileId when a single profile is selected, null otherwise */
+  singleProfileId: Id<'profiles'> | null
   isLoading: boolean
 }
 
@@ -23,7 +29,7 @@ export function ProfileProvider({ children }: { children: React.ReactNode }) {
   )
   const ensureWorkspace = useMutation(api.workspaces.ensureWorkspace)
   const [activeProfileId, setActiveProfileIdState] =
-    React.useState<Id<'profiles'> | null>(null)
+    React.useState<ActiveProfileId>(null)
   const bootstrapping = React.useRef(false)
 
   // Bootstrap workspace once Convex auth is ready and we see no profiles
@@ -45,19 +51,31 @@ export function ProfileProvider({ children }: { children: React.ReactNode }) {
     if (!profiles || profiles.length === 0) return
 
     const stored = localStorage.getItem(STORAGE_KEY)
-    if (stored && profiles.some((p) => p._id === stored)) {
+    if (stored === 'all') {
+      setActiveProfileIdState('all')
+    } else if (stored && profiles.some((p) => p._id === stored)) {
       setActiveProfileIdState(stored as Id<'profiles'>)
     } else {
       setActiveProfileIdState(profiles[0]._id)
     }
   }, [profiles])
 
-  const setActiveProfileId = React.useCallback((id: Id<'profiles'>) => {
+  const setActiveProfileId = React.useCallback((id: Id<'profiles'> | 'all') => {
     setActiveProfileIdState(id)
     localStorage.setItem(STORAGE_KEY, id)
   }, [])
 
-  const activeProfile = profiles?.find((p) => p._id === activeProfileId)
+  const isAllProfiles = activeProfileId === 'all'
+  const singleProfileId: Id<'profiles'> | null =
+    activeProfileId && activeProfileId !== 'all' ? activeProfileId : null
+  const activeProfile = isAllProfiles
+    ? undefined
+    : profiles?.find((p) => p._id === activeProfileId)
+
+  const allProfileIds = React.useMemo(
+    () => profiles?.map((p) => p._id) ?? [],
+    [profiles],
+  )
 
   const isLoading =
     isAuthLoading || (isAuthenticated && (!profiles || profiles.length === 0))
@@ -70,6 +88,9 @@ export function ProfileProvider({ children }: { children: React.ReactNode }) {
         activeProfile,
         setActiveProfileId,
         isLoading,
+        isAllProfiles,
+        allProfileIds,
+        singleProfileId,
       }}
     >
       {children}

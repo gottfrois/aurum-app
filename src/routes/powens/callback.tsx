@@ -16,7 +16,7 @@ export const Route = createFileRoute('/powens/callback')({
 function PowensCallback() {
   const { connection_id } = Route.useSearch()
   const navigate = useNavigate()
-  const { activeProfileId } = useProfile()
+  const { singleProfileId } = useProfile()
   const handleCallback = useAction(api.powens.handleConnectionCallback)
   const [status, setStatus] = React.useState<'loading' | 'success' | 'error'>(
     'loading',
@@ -25,12 +25,12 @@ function PowensCallback() {
   const processed = React.useRef(false)
 
   React.useEffect(() => {
-    if (processed.current || !connection_id || !activeProfileId) return
+    if (processed.current || !connection_id || !singleProfileId) return
     processed.current = true
 
     handleCallback({
       connectionId: Number(connection_id),
-      profileId: activeProfileId,
+      profileId: singleProfileId,
     })
       .then(() => {
         setStatus('success')
@@ -40,7 +40,7 @@ function PowensCallback() {
         setStatus('error')
         setError(err instanceof Error ? err.message : 'Unknown error')
       })
-  }, [connection_id, activeProfileId, handleCallback, navigate])
+  }, [connection_id, singleProfileId, handleCallback, navigate])
 
   return (
     <div className="flex min-h-screen items-center justify-center">

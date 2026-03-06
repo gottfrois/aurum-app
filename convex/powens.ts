@@ -534,6 +534,23 @@ export const listConnections = query({
   },
 })
 
+export const listAllConnections = query({
+  args: { profileIds: v.array(v.id('profiles')) },
+  handler: async (ctx, args) => {
+    const userId = await getAuthUserId(ctx)
+    if (!userId) return []
+    const results = await Promise.all(
+      args.profileIds.map((profileId) =>
+        ctx.db
+          .query('connections')
+          .withIndex('by_profileId', (q) => q.eq('profileId', profileId))
+          .collect(),
+      ),
+    )
+    return results.flat()
+  },
+})
+
 export const listBankAccounts = query({
   args: { profileId: v.id('profiles') },
   handler: async (ctx, args) => {
@@ -543,6 +560,34 @@ export const listBankAccounts = query({
       .query('bankAccounts')
       .withIndex('by_profileId', (q) => q.eq('profileId', args.profileId))
       .collect()
+    const connectionIds = [...new Set(accounts.map((a) => a.connectionId))]
+    const connections = await Promise.all(
+      connectionIds.map((id) => ctx.db.get(id)),
+    )
+    const connMap = new Map(
+      connections.filter((c): c is NonNullable<typeof c> => c !== null).map((c) => [c._id, c]),
+    )
+    return accounts.map((a) => ({
+      ...a,
+      connectorName: connMap.get(a.connectionId)?.connectorName ?? undefined,
+    }))
+  },
+})
+
+export const listAllBankAccounts = query({
+  args: { profileIds: v.array(v.id('profiles')) },
+  handler: async (ctx, args) => {
+    const userId = await getAuthUserId(ctx)
+    if (!userId) return []
+    const allAccounts = await Promise.all(
+      args.profileIds.map((profileId) =>
+        ctx.db
+          .query('bankAccounts')
+          .withIndex('by_profileId', (q) => q.eq('profileId', profileId))
+          .collect(),
+      ),
+    )
+    const accounts = allAccounts.flat()
     const connectionIds = [...new Set(accounts.map((a) => a.connectionId))]
     const connections = await Promise.all(
       connectionIds.map((id) => ctx.db.get(id)),

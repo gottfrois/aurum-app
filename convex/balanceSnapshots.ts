@@ -39,3 +39,25 @@ export const listSnapshotsByProfile = query({
       .collect()
   },
 })
+
+export const listAllSnapshotsByProfiles = query({
+  args: {
+    profileIds: v.array(v.id('profiles')),
+    startTimestamp: v.number(),
+  },
+  handler: async (ctx, args) => {
+    const userId = await getAuthUserId(ctx)
+    if (!userId) return []
+    const results = await Promise.all(
+      args.profileIds.map((profileId) =>
+        ctx.db
+          .query('balanceSnapshots')
+          .withIndex('by_profileId_timestamp', (q) =>
+            q.eq('profileId', profileId).gte('timestamp', args.startTimestamp),
+          )
+          .collect(),
+      ),
+    )
+    return results.flat()
+  },
+})

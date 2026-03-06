@@ -49,20 +49,36 @@ function AccountsPage() {
 }
 
 function BankAccountsList({ categoryFilter }: { categoryFilter?: string }) {
-  const { activeProfileId, isLoading: profileLoading } = useProfile()
+  const { isLoading: profileLoading, isAllProfiles, allProfileIds, singleProfileId } = useProfile()
   const [period, setPeriod] = React.useState<Period>('1M')
   const startTimestamp = React.useMemo(
     () => getStartTimestamp(period),
     [period],
   )
-  const allBankAccounts = useQuery(
+
+  const allBankAccountsSingle = useQuery(
     api.powens.listBankAccounts,
-    activeProfileId ? { profileId: activeProfileId } : 'skip',
+    singleProfileId ? { profileId: singleProfileId } : 'skip',
   )
-  const snapshots = useQuery(
+  const allBankAccountsAll = useQuery(
+    api.powens.listAllBankAccounts,
+    isAllProfiles && allProfileIds.length > 0
+      ? { profileIds: allProfileIds }
+      : 'skip',
+  )
+  const allBankAccounts = isAllProfiles ? allBankAccountsAll : allBankAccountsSingle
+
+  const snapshotsSingle = useQuery(
     api.balanceSnapshots.listSnapshotsByProfile,
-    activeProfileId ? { profileId: activeProfileId, startTimestamp } : 'skip',
+    singleProfileId ? { profileId: singleProfileId, startTimestamp } : 'skip',
   )
+  const snapshotsAll = useQuery(
+    api.balanceSnapshots.listAllSnapshotsByProfiles,
+    isAllProfiles && allProfileIds.length > 0
+      ? { profileIds: allProfileIds, startTimestamp }
+      : 'skip',
+  )
+  const snapshots = isAllProfiles ? snapshotsAll : snapshotsSingle
   const [dialogOpen, setDialogOpen] = React.useState(false)
 
   const bankAccounts = React.useMemo(() => {

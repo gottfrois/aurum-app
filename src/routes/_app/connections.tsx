@@ -105,15 +105,31 @@ function ConnectionStateBadge({ state }: { state?: string | null }) {
 }
 
 function ConnectionsList() {
-  const { activeProfileId, isLoading: profileLoading } = useProfile()
-  const connections = useQuery(
+  const { isLoading: profileLoading, isAllProfiles, allProfileIds, singleProfileId } = useProfile()
+
+  const connectionsSingle = useQuery(
     api.powens.listConnections,
-    activeProfileId ? { profileId: activeProfileId } : 'skip',
+    singleProfileId ? { profileId: singleProfileId } : 'skip',
   )
-  const bankAccounts = useQuery(
+  const connectionsAll = useQuery(
+    api.powens.listAllConnections,
+    isAllProfiles && allProfileIds.length > 0
+      ? { profileIds: allProfileIds }
+      : 'skip',
+  )
+  const connections = isAllProfiles ? connectionsAll : connectionsSingle
+
+  const bankAccountsSingle = useQuery(
     api.powens.listBankAccounts,
-    activeProfileId ? { profileId: activeProfileId } : 'skip',
+    singleProfileId ? { profileId: singleProfileId } : 'skip',
   )
+  const bankAccountsAll = useQuery(
+    api.powens.listAllBankAccounts,
+    isAllProfiles && allProfileIds.length > 0
+      ? { profileIds: allProfileIds }
+      : 'skip',
+  )
+  const bankAccounts = isAllProfiles ? bankAccountsAll : bankAccountsSingle
   const [dialogOpen, setDialogOpen] = React.useState(false)
 
   if (profileLoading || connections === undefined) {
@@ -213,18 +229,16 @@ function ConnectionItem({
   numAccounts: number
   lastSync: string | null
 }) {
-  const { activeProfileId } = useProfile()
   const deleteConnection = useAction(api.powens.deleteConnection)
   const [confirmOpen, setConfirmOpen] = React.useState(false)
   const [deleting, setDeleting] = React.useState(false)
 
   async function handleDelete() {
-    if (!activeProfileId) return
     setDeleting(true)
     try {
       await deleteConnection({
         connectionId: connection._id,
-        profileId: activeProfileId,
+        profileId: connection.profileId,
       })
       setConfirmOpen(false)
     } catch (err) {

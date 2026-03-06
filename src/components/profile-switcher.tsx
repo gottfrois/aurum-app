@@ -61,7 +61,9 @@ export function ProfileSwitcher() {
     )
   }
 
-  const ActiveIcon = getIcon(activeProfile?.icon)
+  const isAllProfiles = !activeProfile && profiles && profiles.length > 0
+  const ActiveIcon = isAllProfiles ? Users : getIcon(activeProfile?.icon)
+  const activeLabel = isAllProfiles ? 'All Profiles' : (activeProfile?.name ?? 'Select Profile')
 
   async function handleCreate() {
     if (!newName.trim()) return
@@ -86,7 +88,7 @@ export function ProfileSwitcher() {
                 </div>
                 <div className="grid flex-1 text-left text-sm leading-tight">
                   <span className="truncate font-semibold">
-                    {activeProfile?.name ?? 'Select Profile'}
+                    {activeLabel}
                   </span>
                 </div>
                 <ChevronsUpDown className="ml-auto size-4" />
@@ -101,6 +103,16 @@ export function ProfileSwitcher() {
               <DropdownMenuLabel className="text-xs text-muted-foreground">
                 Profiles
               </DropdownMenuLabel>
+              <DropdownMenuItem
+                onClick={() => setActiveProfileId('all')}
+                className="gap-2 p-2"
+              >
+                <div className="flex size-6 items-center justify-center rounded-sm border">
+                  <Users className="size-4 shrink-0" />
+                </div>
+                All Profiles
+              </DropdownMenuItem>
+              <DropdownMenuSeparator />
               {profiles?.map((profile) => {
                 const Icon = getIcon(profile.icon)
                 return (

@@ -35,11 +35,18 @@ export function NavMain({
   }>
 }) {
   const [dialogOpen, setDialogOpen] = React.useState(false)
-  const { activeProfileId } = useProfile()
-  const bankAccounts = useQuery(
+  const { isAllProfiles, allProfileIds, singleProfileId } = useProfile()
+  const bankAccountsSingle = useQuery(
     api.powens.listBankAccounts,
-    activeProfileId ? { profileId: activeProfileId } : 'skip',
+    singleProfileId ? { profileId: singleProfileId } : 'skip',
   )
+  const bankAccountsAll = useQuery(
+    api.powens.listAllBankAccounts,
+    isAllProfiles && allProfileIds.length > 0
+      ? { profileIds: allProfileIds }
+      : 'skip',
+  )
+  const bankAccounts = isAllProfiles ? bankAccountsAll : bankAccountsSingle
 
   const activeCategories = React.useMemo(() => {
     if (!bankAccounts) return []

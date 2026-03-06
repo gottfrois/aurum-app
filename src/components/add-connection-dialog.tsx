@@ -21,18 +21,18 @@ export function AddConnectionDialog({
   open,
   onOpenChange,
 }: AddConnectionDialogProps) {
-  const { activeProfileId } = useProfile()
+  const { singleProfileId } = useProfile()
   const generateConnectUrl = useAction(api.powens.generateConnectUrl)
   const [loading, setLoading] = React.useState(false)
   const [error, setError] = React.useState<string | null>(null)
 
   async function handleConnect() {
-    if (!activeProfileId) return
+    if (!singleProfileId) return
     setLoading(true)
     setError(null)
 
     try {
-      const url = await generateConnectUrl({ profileId: activeProfileId })
+      const url = await generateConnectUrl({ profileId: singleProfileId })
       window.location.href = url
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to connect')
@@ -59,7 +59,7 @@ export function AddConnectionDialog({
           <Button
             size="lg"
             onClick={handleConnect}
-            disabled={loading || !activeProfileId}
+            disabled={loading || !singleProfileId}
           >
             {loading && <Loader2 className="mr-2 size-4 animate-spin" />}
             {loading ? 'Connecting...' : 'Add Connection'}
