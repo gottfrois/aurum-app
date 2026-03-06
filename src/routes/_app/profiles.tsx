@@ -1,7 +1,7 @@
 import * as React from 'react'
 import { createFileRoute } from '@tanstack/react-router'
 import { useMutation } from 'convex/react'
-import { Check, Copy, Pencil, Trash2 } from 'lucide-react'
+import { Check, Copy, MoreVertical, Pencil, Trash2 } from 'lucide-react'
 import { api } from '../../../convex/_generated/api'
 import type { Doc } from '../../../convex/_generated/dataModel'
 import { SiteHeader } from '~/components/site-header'
@@ -10,14 +10,17 @@ import { Button } from '~/components/ui/button'
 import { Input } from '~/components/ui/input'
 import { Label } from '~/components/ui/label'
 import {
-  Item,
-  ItemActions,
-  ItemContent,
-  ItemDescription,
-  ItemGroup,
-  ItemSeparator,
-  ItemTitle,
-} from '~/components/ui/item'
+  ItemCard,
+  ItemCardHeader,
+  ItemCardHeaderContent,
+  ItemCardHeaderTitle,
+  ItemCardItem,
+  ItemCardItemAction,
+  ItemCardItemContent,
+  ItemCardItemDescription,
+  ItemCardItemTitle,
+  ItemCardItems,
+} from '~/components/item-card'
 import {
   Dialog,
   DialogContent,
@@ -26,9 +29,16 @@ import {
   DialogHeader,
   DialogTitle,
 } from '~/components/ui/dialog'
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '~/components/ui/dropdown-menu'
 import { Skeleton } from '~/components/ui/skeleton'
 import { Badge } from '~/components/ui/badge'
 import { ProfileAvatar } from '~/components/profile-avatar'
+import { CreateProfileDialog } from '~/components/create-profile-dialog'
 
 export const Route = createFileRoute('/_app/profiles')({
   component: ProfilesPage,
@@ -39,6 +49,7 @@ function ProfilesPage() {
   const updateProfile = useMutation(api.profiles.updateProfile)
   const deleteProfile = useMutation(api.profiles.deleteProfile)
 
+  const [createDialogOpen, setCreateDialogOpen] = React.useState(false)
   const [editingProfile, setEditingProfile] =
     React.useState<Doc<'profiles'> | null>(null)
   const [editName, setEditName] = React.useState('')
@@ -80,7 +91,6 @@ function ProfilesPage() {
     setIsDeleting(true)
     try {
       await deleteProfile({ profileId: deletingProfile._id })
-      // If we just deleted the active profile, switch to the first remaining one
       const remaining = profiles?.filter((p) => p._id !== deletingProfile._id)
       if (remaining && remaining.length > 0) {
         setActiveProfileId(remaining[0]._id)
@@ -95,71 +105,82 @@ function ProfilesPage() {
 
   const canDelete = (profiles?.length ?? 0) > 1
 
+  if (isLoading || !profiles) {
+    return (
+      <>
+        <SiteHeader title="Manage Profiles" />
+        <div className="mx-auto w-full max-w-3xl flex-1 px-10 py-16">
+          <div className="mt-8 space-y-6">
+            <Skeleton className="h-48 w-full rounded-lg" />
+          </div>
+        </div>
+      </>
+    )
+  }
+
   return (
     <>
       <SiteHeader title="Manage Profiles" />
-      <div className="flex flex-1 flex-col">
-        <div className="flex flex-col gap-4 p-4 md:gap-6 md:p-6">
-          {isLoading || !profiles ? (
-            <ItemGroup className="rounded-lg border">
-              {[1, 2].map((i) => (
-                <React.Fragment key={i}>
-                  {i > 1 && <ItemSeparator />}
-                  <Item>
-                    <Skeleton className="size-8 rounded-sm" />
-                    <div className="flex-1 space-y-2">
-                      <Skeleton className="h-4 w-40" />
-                    </div>
-                    <Skeleton className="h-8 w-16" />
-                  </Item>
-                </React.Fragment>
-              ))}
-            </ItemGroup>
-          ) : (
-            <ItemGroup className="rounded-lg border">
-              {profiles.map((profile, i) => (
-                  <React.Fragment key={profile._id}>
-                    {i > 0 && <ItemSeparator />}
-                    <Item>
-                      <ProfileAvatar
-                        name={profile.name}
-                        className="size-8"
-                      />
-                      <ItemContent>
-                        <ItemTitle>{profile.name}</ItemTitle>
-                        <ItemDescription>
-                          Created{' '}
-                          {new Date(profile._creationTime).toLocaleDateString(
-                            'fr-FR',
-                          )}
-                        </ItemDescription>
-                      </ItemContent>
-                      <ItemActions>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          className="size-8"
-                          onClick={() => openEdit(profile)}
-                        >
-                          <Pencil className="size-4" />
-                          <span className="sr-only">Edit</span>
+      <div className="mx-auto w-full max-w-3xl flex-1 px-10 py-16">
+        <header>
+          <h1 className="text-3xl font-semibold">Profiles</h1>
+        </header>
+        <div className="mt-8 space-y-6">
+          <ItemCard>
+            <ItemCardHeader>
+              <ItemCardHeaderContent>
+                <ItemCardHeaderTitle>
+                  {profiles.length}{' '}
+                  {profiles.length === 1 ? 'profile' : 'profiles'}
+                </ItemCardHeaderTitle>
+              </ItemCardHeaderContent>
+              <Button size="sm" onClick={() => setCreateDialogOpen(true)}>
+                Add profile
+              </Button>
+            </ItemCardHeader>
+            <ItemCardItems>
+              {profiles.map((profile) => (
+                <ItemCardItem key={profile._id}>
+                  <div className="flex items-center gap-3">
+                    <ProfileAvatar name={profile.name} className="size-8" />
+                    <ItemCardItemContent>
+                      <ItemCardItemTitle>{profile.name}</ItemCardItemTitle>
+                      <ItemCardItemDescription>
+                        Created{' '}
+                        {new Date(profile._creationTime).toLocaleDateString(
+                          'fr-FR',
+                        )}
+                      </ItemCardItemDescription>
+                    </ItemCardItemContent>
+                  </div>
+                  <ItemCardItemAction>
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <Button variant="ghost" size="icon" className="size-8">
+                          <MoreVertical className="size-4" />
+                          <span className="sr-only">More</span>
                         </Button>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          className="size-8 text-destructive hover:text-destructive"
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end">
+                        <DropdownMenuItem onClick={() => openEdit(profile)}>
+                          <Pencil className="size-4" />
+                          Rename
+                        </DropdownMenuItem>
+                        <DropdownMenuItem
+                          variant="destructive"
                           onClick={() => openDelete(profile)}
                           disabled={!canDelete}
                         >
                           <Trash2 className="size-4" />
-                          <span className="sr-only">Delete</span>
-                        </Button>
-                      </ItemActions>
-                    </Item>
-                  </React.Fragment>
-                ))}
-            </ItemGroup>
-          )}
+                          Delete
+                        </DropdownMenuItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
+                  </ItemCardItemAction>
+                </ItemCardItem>
+              ))}
+            </ItemCardItems>
+          </ItemCard>
         </div>
       </div>
 
@@ -262,6 +283,11 @@ function ProfilesPage() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      <CreateProfileDialog
+        open={createDialogOpen}
+        onOpenChange={setCreateDialogOpen}
+      />
     </>
   )
 }

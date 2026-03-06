@@ -1,8 +1,6 @@
 import * as React from 'react'
 import { Link } from '@tanstack/react-router'
 import { ChevronsUpDown, Plus, Settings, Users } from 'lucide-react'
-import { useMutation } from 'convex/react'
-import { api } from '../../convex/_generated/api'
 import { useProfile } from '~/contexts/profile-context'
 import {
   DropdownMenu,
@@ -13,16 +11,6 @@ import {
   DropdownMenuTrigger,
 } from '~/components/ui/dropdown-menu'
 import {
-  Dialog,
-  DialogContent,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from '~/components/ui/dialog'
-import { Button } from '~/components/ui/button'
-import { Input } from '~/components/ui/input'
-import { Label } from '~/components/ui/label'
-import {
   SidebarMenu,
   SidebarMenuButton,
   SidebarMenuItem,
@@ -30,14 +18,13 @@ import {
 } from '~/components/ui/sidebar'
 import { Skeleton } from '~/components/ui/skeleton'
 import { ProfileAvatar } from '~/components/profile-avatar'
+import { CreateProfileDialog } from '~/components/create-profile-dialog'
 
 export function ProfileSwitcher() {
   const { isMobile } = useSidebar()
   const { profiles, activeProfile, setActiveProfileId, isLoading } =
     useProfile()
-  const createProfile = useMutation(api.profiles.createProfile)
   const [dialogOpen, setDialogOpen] = React.useState(false)
-  const [newName, setNewName] = React.useState('')
 
   if (isLoading) {
     return (
@@ -56,14 +43,6 @@ export function ProfileSwitcher() {
   const activeLabel = isAllProfiles
     ? 'All Profiles'
     : (activeProfile?.name ?? 'Select Profile')
-
-  async function handleCreate() {
-    if (!newName.trim()) return
-    const id = await createProfile({ name: newName.trim(), icon: 'User' })
-    setActiveProfileId(id)
-    setNewName('')
-    setDialogOpen(false)
-  }
 
   return (
     <>
@@ -115,18 +94,15 @@ export function ProfileSwitcher() {
               </DropdownMenuItem>
               <DropdownMenuSeparator />
               {profiles?.map((profile) => (
-                  <DropdownMenuItem
-                    key={profile._id}
-                    onClick={() => setActiveProfileId(profile._id)}
-                    className="gap-2 p-2"
-                  >
-                    <ProfileAvatar
-                      name={profile.name}
-                      className="size-6"
-                    />
-                    {profile.name}
-                  </DropdownMenuItem>
-                ))}
+                <DropdownMenuItem
+                  key={profile._id}
+                  onClick={() => setActiveProfileId(profile._id)}
+                  className="gap-2 p-2"
+                >
+                  <ProfileAvatar name={profile.name} className="size-6" />
+                  {profile.name}
+                </DropdownMenuItem>
+              ))}
               <DropdownMenuSeparator />
               <DropdownMenuItem
                 className="gap-2 p-2"
@@ -154,35 +130,7 @@ export function ProfileSwitcher() {
         </SidebarMenuItem>
       </SidebarMenu>
 
-      <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Create Profile</DialogTitle>
-          </DialogHeader>
-          <div className="grid gap-4 py-4">
-            <div className="grid gap-2">
-              <Label htmlFor="profile-name">Name</Label>
-              <Input
-                id="profile-name"
-                value={newName}
-                onChange={(e) => setNewName(e.target.value)}
-                placeholder="e.g. SASU Pro, Joint Account"
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter') handleCreate()
-                }}
-              />
-            </div>
-          </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setDialogOpen(false)}>
-              Cancel
-            </Button>
-            <Button onClick={handleCreate} disabled={!newName.trim()}>
-              Create
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+      <CreateProfileDialog open={dialogOpen} onOpenChange={setDialogOpen} />
     </>
   )
 }
