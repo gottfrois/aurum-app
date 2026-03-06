@@ -18,6 +18,11 @@ import {
   CardTitle,
 } from '~/components/ui/card'
 import { ToggleGroup, ToggleGroupItem } from '~/components/ui/toggle-group'
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from '~/components/ui/tooltip'
 import { usePrivacy } from '~/contexts/privacy-context'
 
 interface AllocationEntry {
@@ -366,12 +371,22 @@ export function AllocationChart({
               if (val) setView(val as ChartView)
             }}
           >
-            <ToggleGroupItem value="donut" aria-label="Donut chart">
-              <PieChartIcon className="size-4" />
-            </ToggleGroupItem>
-            <ToggleGroupItem value="treemap" aria-label="Treemap">
-              <LayoutGrid className="size-4" />
-            </ToggleGroupItem>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <ToggleGroupItem value="donut" aria-label="Donut chart">
+                  <PieChartIcon className="size-4" />
+                </ToggleGroupItem>
+              </TooltipTrigger>
+              <TooltipContent>Donut chart</TooltipContent>
+            </Tooltip>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <ToggleGroupItem value="treemap" aria-label="Treemap">
+                  <LayoutGrid className="size-4" />
+                </ToggleGroupItem>
+              </TooltipTrigger>
+              <TooltipContent>Treemap</TooltipContent>
+            </Tooltip>
           </ToggleGroup>
         </CardAction>
       </CardHeader>
