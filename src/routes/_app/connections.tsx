@@ -5,6 +5,7 @@ import { api } from '../../../convex/_generated/api'
 import type { Doc } from '../../../convex/_generated/dataModel'
 import { SiteHeader } from '~/components/site-header'
 import { useProfile } from '~/contexts/profile-context'
+import { useDecryptRecords } from '~/contexts/encryption-context'
 import {
   Link2,
   CirclePlus,
@@ -118,7 +119,8 @@ function ConnectionsList() {
       ? { profileIds: allProfileIds }
       : 'skip',
   )
-  const connections = isAllProfiles ? connectionsAll : connectionsSingle
+  const rawConnections = isAllProfiles ? connectionsAll : connectionsSingle
+  const connections = useDecryptRecords(rawConnections)
 
   const bankAccountsSingle = useQuery(
     api.powens.listBankAccounts,

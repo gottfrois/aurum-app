@@ -63,6 +63,10 @@ function EncryptionPage() {
 
   const shouldQueryMigration =
     isEncryptionEnabled && isUnlocked && allProfileIds.length > 0
+  const allConnections = useQuery(
+    api.powens.listAllConnections,
+    shouldQueryMigration ? { profileIds: allProfileIds } : 'skip',
+  )
   const allBankAccounts = useQuery(
     api.powens.listAllBankAccounts,
     shouldQueryMigration ? { profileIds: allProfileIds } : 'skip',
@@ -79,8 +83,9 @@ function EncryptionPage() {
   )
 
   const unencryptedCount =
+    (allConnections?.filter((c) => !c.encryptedData).length ?? 0) +
     (allBankAccounts?.filter(
-      (a) => !a.encryptedData && (a.balance !== 0 || a.number || a.iban),
+      (a) => !a.encryptedData && (a.balance !== 0 || a.number || a.iban || a.name !== 'Encrypted'),
     ).length ?? 0) +
     (allSnapshots?.filter((s) => !s.encryptedData && s.balance !== 0).length ??
       0) +
@@ -594,6 +599,10 @@ function MigrateDialog({
   const { privateKey, workspacePublicKey } = useEncryption()
   const { allProfileIds } = useProfile()
 
+  const allConnections = useQuery(
+    api.powens.listAllConnections,
+    allProfileIds.length > 0 ? { profileIds: allProfileIds } : 'skip',
+  )
   const allBankAccounts = useQuery(
     api.powens.listAllBankAccounts,
     allProfileIds.length > 0 ? { profileIds: allProfileIds } : 'skip',
@@ -609,6 +618,7 @@ function MigrateDialog({
     allProfileIds.length > 0 ? { profileIds: allProfileIds } : 'skip',
   )
 
+  const migrateConnection = useMutation(api.encryptionKeys.migrateConnection)
   const migrateAccounts = useMutation(api.encryptionKeys.migrateBankAccount)
   const migrateSnapshot = useMutation(api.encryptionKeys.migrateBalanceSnapshot)
   const migrateInvestment = useMutation(api.encryptionKeys.migrateInvestment)
@@ -616,8 +626,11 @@ function MigrateDialog({
   const [migrating, setMigrating] = useState(false)
   const [progress, setProgress] = useState({ done: 0, total: 0 })
 
+  const unencryptedConnections = allConnections?.filter(
+    (c) => !c.encryptedData,
+  )
   const unencryptedAccounts = allBankAccounts?.filter(
-    (a) => !a.encryptedData && (a.balance !== 0 || a.number || a.iban),
+    (a) => !a.encryptedData && (a.balance !== 0 || a.number || a.iban || a.name !== 'Encrypted'),
   )
   const unencryptedSnapshots = allSnapshots?.filter(
     (s) => !s.encryptedData && s.balance !== 0,
@@ -627,6 +640,7 @@ function MigrateDialog({
   )
 
   const totalUnencrypted =
+    (unencryptedConnections?.length ?? 0) +
     (unencryptedAccounts?.length ?? 0) +
     (unencryptedSnapshots?.length ?? 0) +
     (unencryptedInvestments?.length ?? 0)
@@ -636,16 +650,27 @@ function MigrateDialog({
     setMigrating(true)
 
     const publicKey = await importPublicKey(workspacePublicKey)
-    const total =
-      (unencryptedAccounts?.length ?? 0) +
-      (unencryptedSnapshots?.length ?? 0) +
-      (unencryptedInvestments?.length ?? 0)
+    const total = totalUnencrypted
     setProgress({ done: 0, total })
     let done = 0
+
+    for (const conn of unencryptedConnections ?? []) {
+      const encrypted = await encryptData(
+        { connectorName: conn.connectorName },
+        publicKey,
+      )
+      await migrateConnection({
+        connectionId: conn._id,
+        encryptedData: encrypted,
+      })
+      done++
+      setProgress({ done, total })
+    }
 
     for (const acct of unencryptedAccounts ?? []) {
       const encrypted = await encryptData(
         {
+          name: acct.name,
           number: acct.number,
           iban: acct.iban,
           balance: acct.balance,
@@ -673,6 +698,7 @@ function MigrateDialog({
     for (const inv of unencryptedInvestments ?? []) {
       const encrypted = await encryptData(
         {
+          code: inv.code,
           label: inv.label,
           description: inv.description,
           quantity: inv.quantity,
@@ -768,6 +794,10 @@ function DisableDialog({
   const { privateKey } = useEncryption()
   const { allProfileIds } = useProfile()
 
+  const allConnections = useQuery(
+    api.powens.listAllConnections,
+    allProfileIds.length > 0 ? { profileIds: allProfileIds } : 'skip',
+  )
   const allBankAccounts = useQuery(
     api.powens.listAllBankAccounts,
     allProfileIds.length > 0 ? { profileIds: allProfileIds } : 'skip',
@@ -783,6 +813,7 @@ function DisableDialog({
     allProfileIds.length > 0 ? { profileIds: allProfileIds } : 'skip',
   )
 
+  const decryptConn = useMutation(api.encryptionKeys.decryptConnection)
   const decryptAccount = useMutation(api.encryptionKeys.decryptBankAccount)
   const decryptSnapshot = useMutation(api.encryptionKeys.decryptBalanceSnapshot)
   const decryptInvestment = useMutation(api.encryptionKeys.decryptInvestment)
@@ -804,12 +835,15 @@ function DisableDialog({
     setTimeout(() => setCopied(false), 2000)
   }
 
+  const encryptedConnections =
+    allConnections?.filter((c) => c.encryptedData) ?? []
   const encryptedAccounts = allBankAccounts?.filter((a) => a.encryptedData) ?? []
   const encryptedSnapshots = allSnapshots?.filter((s) => s.encryptedData) ?? []
   const encryptedInvestments =
     allInvestments?.filter((inv) => inv.encryptedData) ?? []
 
   const totalEncrypted =
+    encryptedConnections.length +
     encryptedAccounts.length +
     encryptedSnapshots.length +
     encryptedInvestments.length
@@ -822,10 +856,21 @@ function DisableDialog({
     setProgress({ done: 0, total })
     let done = 0
 
+    for (const conn of encryptedConnections) {
+      const data = await decryptData(conn.encryptedData!, privateKey)
+      await decryptConn({
+        connectionId: conn._id,
+        connectorName: (data.connectorName as string) ?? 'Unknown',
+      })
+      done++
+      setProgress({ done, total })
+    }
+
     for (const acct of encryptedAccounts) {
       const data = await decryptData(acct.encryptedData!, privateKey)
       await decryptAccount({
         bankAccountId: acct._id,
+        name: (data.name as string) ?? 'Unknown',
         balance: (data.balance as number) ?? 0,
         number: (data.number as string) ?? undefined,
         iban: (data.iban as string) ?? undefined,
@@ -848,6 +893,7 @@ function DisableDialog({
       const data = await decryptData(inv.encryptedData!, privateKey)
       await decryptInvestment({
         investmentId: inv._id,
+        code: (data.code as string) ?? undefined,
         label: (data.label as string) ?? 'Unknown',
         description: (data.description as string) ?? undefined,
         quantity: (data.quantity as number) ?? 0,

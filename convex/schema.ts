@@ -67,9 +67,9 @@ export default defineSchema({
     profileId: v.id('profiles'),
     powensConnectionId: v.number(),
     connectorName: v.string(),
-    connectorLogo: v.optional(v.string()),
     state: v.optional(v.string()),
     lastSync: v.optional(v.string()),
+    encryptedData: v.optional(v.string()),
   })
     .index('by_profileId', ['profileId'])
     .index('by_powensConnectionId', ['powensConnectionId']),

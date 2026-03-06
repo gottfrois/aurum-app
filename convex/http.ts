@@ -62,26 +62,39 @@ http.route({
         { profileId: profile._id },
       )
 
+      const realConnectorName =
+        ((payload.connector as Record<string, unknown>)?.name as string) ??
+        'Unknown'
+
+      let connectionEncryptedData: string | undefined
+      if (publicKey) {
+        connectionEncryptedData = await encryptForProfile(
+          { connectorName: realConnectorName },
+          publicKey,
+        )
+      }
+
       const bankAccounts = await Promise.all(
         (accounts ?? []).map(async (acct) => {
           const number = (acct.number as string) ?? undefined
           const iban = (acct.iban as string) ?? undefined
           const balance = (acct.balance as number) ?? 0
+          const name =
+            (acct.original_name as string) ??
+            (acct.name as string) ??
+            'Unnamed Account'
 
           let encryptedData: string | undefined
           if (publicKey) {
             encryptedData = await encryptForProfile(
-              { number, iban, balance },
+              { name, number, iban, balance },
               publicKey,
             )
           }
 
           return {
             powensBankAccountId: acct.id as number,
-            name:
-              (acct.original_name as string) ??
-              (acct.name as string) ??
-              'Unnamed Account',
+            name: publicKey ? 'Encrypted' : name,
             number: publicKey ? undefined : number,
             iban: publicKey ? undefined : iban,
             type: (acct.type as string) ?? undefined,
@@ -100,15 +113,11 @@ http.route({
       await ctx.runMutation(internal.powens.syncConnectionFromWebhook, {
         profileId: profile._id,
         powensConnectionId,
-        connectorName:
-          (payload.connector as Record<string, unknown>)?.name as string ??
-          'Unknown',
-        connectorColor:
-          ((payload.connector as Record<string, unknown>)?.color as string) ??
-          undefined,
+        connectorName: publicKey ? 'Encrypted' : realConnectorName,
         state: (payload.state as string) ?? undefined,
         lastSync: (payload.last_update as string) ?? undefined,
         bankAccounts,
+        encryptedData: connectionEncryptedData,
       })
 
       await ctx.runAction(internal.powens.syncInvestmentsFromWebhook, {

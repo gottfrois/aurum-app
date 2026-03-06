@@ -163,7 +163,7 @@ export function useEncryption() {
 }
 
 // Hook to transparently decrypt records that may have encrypted data
-export function useDecryptRecords<T extends { encryptedData?: string }>(
+export function useDecryptRecords<T extends { encryptedData?: string; connectionEncryptedData?: string }>(
   records: T[] | undefined,
 ): T[] | undefined {
   const { privateKey, isEncryptionEnabled, isLoading } = useEncryption()
@@ -186,7 +186,7 @@ export function useDecryptRecords<T extends { encryptedData?: string }>(
     }
 
     // No encrypted records — pass through
-    const hasEncrypted = records.some((r) => r.encryptedData)
+    const hasEncrypted = records.some((r) => r.encryptedData || r.connectionEncryptedData)
     if (!hasEncrypted) {
       setDecrypted(records)
       return
@@ -208,13 +208,24 @@ export function useDecryptRecords<T extends { encryptedData?: string }>(
     async function run() {
       const results = await Promise.all(
         records!.map(async (r) => {
-          if (!r.encryptedData) return r
-          try {
-            const data = await decryptData(r.encryptedData, privateKey!)
-            return { ...r, ...data } as T
-          } catch {
-            return r
+          let result = r
+          if (r.encryptedData) {
+            try {
+              const data = await decryptData(r.encryptedData, privateKey!)
+              result = { ...result, ...data }
+            } catch {
+              // keep original
+            }
           }
+          if (r.connectionEncryptedData) {
+            try {
+              const data = await decryptData(r.connectionEncryptedData, privateKey!)
+              result = { ...result, ...data }
+            } catch {
+              // keep original
+            }
+          }
+          return result as T
         }),
       )
       if (!cancelled) setDecrypted(results)
@@ -229,7 +240,7 @@ export function useDecryptRecords<T extends { encryptedData?: string }>(
 }
 
 // Hook to decrypt a single record
-export function useDecryptRecord<T extends { encryptedData?: string }>(
+export function useDecryptRecord<T extends { encryptedData?: string; connectionEncryptedData?: string }>(
   record: T | null | undefined,
 ): T | null | undefined {
   const arr = React.useMemo(

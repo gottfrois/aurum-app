@@ -256,23 +256,32 @@ export const handleConnectionCallback = action({
 
     const connData = await connResponse.json()
 
+    // Check if encryption is enabled
+    const publicKey: string | null = await ctx.runQuery(
+      internal.encryptionKeys.getPublicKeyForProfile,
+      { profileId: args.profileId },
+    )
+
     // Store connection
+    const realConnectorName = connData.connector?.name ?? 'Unknown'
+    let connectionEncryptedData: string | undefined
+    if (publicKey) {
+      connectionEncryptedData = await encryptForProfile(
+        { connectorName: realConnectorName },
+        publicKey,
+      )
+    }
+
     const connectionDocId: Id<'connections'> = await ctx.runMutation(
       internal.powens.upsertConnection,
       {
         profileId: args.profileId,
         powensConnectionId: args.connectionId,
-        connectorName: connData.connector?.name ?? 'Unknown',
-        connectorLogo: connData.connector?.logo ?? undefined,
+        connectorName: publicKey ? 'Encrypted' : realConnectorName,
         state: connData.state ?? undefined,
         lastSync: connData.last_update ?? undefined,
+        encryptedData: connectionEncryptedData,
       },
-    )
-
-    // Check if encryption is enabled
-    const publicKey: string | null = await ctx.runQuery(
-      internal.encryptionKeys.getPublicKeyForProfile,
-      { profileId: args.profileId },
     )
 
     // Sync bank accounts for this connection
@@ -291,11 +300,12 @@ export const handleConnectionCallback = action({
         const number = acct.number ?? undefined
         const iban = acct.iban ?? undefined
         const balance = acct.balance ?? 0
+        const name = acct.original_name ?? acct.name ?? 'Unnamed Account'
 
         let encryptedData: string | undefined
         if (publicKey) {
           encryptedData = await encryptForProfile(
-            { number, iban, balance },
+            { name, number, iban, balance },
             publicKey,
           )
         }
@@ -304,7 +314,7 @@ export const handleConnectionCallback = action({
           connectionId: connectionDocId,
           profileId: args.profileId,
           powensBankAccountId: acct.id,
-          name: acct.original_name ?? acct.name ?? 'Unnamed Account',
+          name: publicKey ? 'Encrypted' : name,
           number: publicKey ? undefined : number,
           iban: publicKey ? undefined : iban,
           type: acct.type ?? undefined,
@@ -331,6 +341,7 @@ export const handleConnectionCallback = action({
                 rawInvestments.map(async (inv: ReturnType<typeof mapPowensInvestment>) => {
                   const encData = await encryptForProfile(
                     {
+                      code: inv.code,
                       label: inv.label,
                       description: inv.description,
                       quantity: inv.quantity,
@@ -345,6 +356,7 @@ export const handleConnectionCallback = action({
                   )
                   return {
                     ...inv,
+                    code: undefined,
                     label: 'Encrypted',
                     description: undefined,
                     quantity: 0,
@@ -379,9 +391,9 @@ export const upsertConnection = internalMutation({
     profileId: v.id('profiles'),
     powensConnectionId: v.number(),
     connectorName: v.string(),
-    connectorLogo: v.optional(v.string()),
     state: v.optional(v.string()),
     lastSync: v.optional(v.string()),
+    encryptedData: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
     const existing = await ctx.db
@@ -394,9 +406,9 @@ export const upsertConnection = internalMutation({
     if (existing) {
       await ctx.db.patch(existing._id, {
         connectorName: args.connectorName,
-        connectorLogo: args.connectorLogo,
         state: args.state,
         lastSync: args.lastSync,
+        encryptedData: args.encryptedData,
       })
       return existing._id
     }
@@ -405,9 +417,9 @@ export const upsertConnection = internalMutation({
       profileId: args.profileId,
       powensConnectionId: args.powensConnectionId,
       connectorName: args.connectorName,
-      connectorLogo: args.connectorLogo,
       state: args.state,
       lastSync: args.lastSync,
+      encryptedData: args.encryptedData,
     })
   },
 })
@@ -487,9 +499,9 @@ export const syncConnectionFromWebhook = internalMutation({
     profileId: v.id('profiles'),
     powensConnectionId: v.number(),
     connectorName: v.string(),
-    connectorColor: v.optional(v.string()),
     state: v.optional(v.string()),
     lastSync: v.optional(v.string()),
+    encryptedData: v.optional(v.string()),
     bankAccounts: v.array(
       v.object({
         powensBankAccountId: v.number(),
@@ -521,6 +533,7 @@ export const syncConnectionFromWebhook = internalMutation({
         connectorName: args.connectorName,
         state: args.state,
         lastSync: args.lastSync,
+        encryptedData: args.encryptedData,
       })
       connectionId = existingConn._id
     } else {
@@ -530,6 +543,7 @@ export const syncConnectionFromWebhook = internalMutation({
         connectorName: args.connectorName,
         state: args.state,
         lastSync: args.lastSync,
+        encryptedData: args.encryptedData,
       })
     }
 
@@ -716,10 +730,14 @@ export const listBankAccounts = query({
     const connMap = new Map(
       connections.filter((c): c is NonNullable<typeof c> => c !== null).map((c) => [c._id, c]),
     )
-    return accounts.map((a) => ({
-      ...a,
-      connectorName: connMap.get(a.connectionId)?.connectorName ?? undefined,
-    }))
+    return accounts.map((a) => {
+      const conn = connMap.get(a.connectionId)
+      return {
+        ...a,
+        connectorName: conn?.connectorName ?? undefined,
+        connectionEncryptedData: conn?.encryptedData ?? undefined,
+      }
+    })
   },
 })
 
@@ -744,10 +762,14 @@ export const listAllBankAccounts = query({
     const connMap = new Map(
       connections.filter((c): c is NonNullable<typeof c> => c !== null).map((c) => [c._id, c]),
     )
-    return accounts.map((a) => ({
-      ...a,
-      connectorName: connMap.get(a.connectionId)?.connectorName ?? undefined,
-    }))
+    return accounts.map((a) => {
+      const conn = connMap.get(a.connectionId)
+      return {
+        ...a,
+        connectorName: conn?.connectorName ?? undefined,
+        connectionEncryptedData: conn?.encryptedData ?? undefined,
+      }
+    })
   },
 })
 
@@ -890,6 +912,7 @@ export const syncInvestmentsFromWebhook = internalAction({
           rawInvestments.map(async (inv: ReturnType<typeof mapPowensInvestment>) => {
             const encData = await encryptForProfile(
               {
+                code: inv.code,
                 label: inv.label,
                 description: inv.description,
                 quantity: inv.quantity,
@@ -904,6 +927,7 @@ export const syncInvestmentsFromWebhook = internalAction({
             )
             return {
               ...inv,
+              code: undefined,
               label: 'Encrypted',
               description: undefined,
               quantity: 0,
@@ -951,6 +975,7 @@ export const getBankAccount = query({
     return {
       ...account,
       connectorName: connection?.connectorName ?? undefined,
+      connectionEncryptedData: connection?.encryptedData ?? undefined,
     }
   },
 })

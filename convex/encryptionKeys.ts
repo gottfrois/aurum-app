@@ -316,7 +316,35 @@ export const getPublicKeyForProfile = internalQuery({
   },
 })
 
-// Migration mutations (unchanged)
+export const migrateConnection = mutation({
+  args: {
+    connectionId: v.id('connections'),
+    encryptedData: v.string(),
+  },
+  handler: async (ctx, args) => {
+    await requireAuthUserId(ctx)
+    await ctx.db.patch(args.connectionId, {
+      encryptedData: args.encryptedData,
+      connectorName: 'Encrypted',
+    })
+  },
+})
+
+export const decryptConnection = mutation({
+  args: {
+    connectionId: v.id('connections'),
+    connectorName: v.string(),
+  },
+  handler: async (ctx, args) => {
+    await requireAuthUserId(ctx)
+    await ctx.db.patch(args.connectionId, {
+      connectorName: args.connectorName,
+      encryptedData: undefined,
+    })
+  },
+})
+
+// Migration mutations
 export const migrateBankAccount = mutation({
   args: {
     bankAccountId: v.id('bankAccounts'),
@@ -326,6 +354,7 @@ export const migrateBankAccount = mutation({
     await requireAuthUserId(ctx)
     await ctx.db.patch(args.bankAccountId, {
       encryptedData: args.encryptedData,
+      name: 'Encrypted',
       balance: 0,
       number: undefined,
       iban: undefined,
@@ -356,6 +385,7 @@ export const migrateInvestment = mutation({
     await requireAuthUserId(ctx)
     await ctx.db.patch(args.investmentId, {
       encryptedData: args.encryptedData,
+      code: undefined,
       label: 'Encrypted',
       description: undefined,
       quantity: 0,
@@ -372,6 +402,7 @@ export const migrateInvestment = mutation({
 export const decryptBankAccount = mutation({
   args: {
     bankAccountId: v.id('bankAccounts'),
+    name: v.string(),
     balance: v.number(),
     number: v.optional(v.string()),
     iban: v.optional(v.string()),
@@ -379,6 +410,7 @@ export const decryptBankAccount = mutation({
   handler: async (ctx, args) => {
     await requireAuthUserId(ctx)
     await ctx.db.patch(args.bankAccountId, {
+      name: args.name,
       balance: args.balance,
       number: args.number,
       iban: args.iban,
@@ -404,6 +436,7 @@ export const decryptBalanceSnapshot = mutation({
 export const decryptInvestment = mutation({
   args: {
     investmentId: v.id('investments'),
+    code: v.optional(v.string()),
     label: v.string(),
     description: v.optional(v.string()),
     quantity: v.number(),
