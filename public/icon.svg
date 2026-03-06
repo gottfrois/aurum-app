@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg width="200px" height="200px" viewBox="0 0 200 200" version="1.1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+    <title>Group</title>
+    <defs>
+        <linearGradient x1="50%" y1="0%" x2="50%" y2="100%" id="linearGradient-1">
+            <stop stop-color="#D7B2E9" stop-opacity="0.4" offset="0%"></stop>
+            <stop stop-color="#5369DC" stop-opacity="0.4" offset="100%"></stop>
+        </linearGradient>
+        <rect id="path-2" x="0" y="0" width="200" height="200" rx="8"></rect>
+    </defs>
+    <g id="Page-1" stroke="none" stroke-width="1" fill="none" fill-rule="evenodd">
+        <g id="icon-square-gradient" transform="translate(-100.000000, -100.000000)">
+            <g id="Group" transform="translate(100.000000, 100.000000)">
+                <g id="Rectangle">
+                    <use fill="#5268DB" xlink:href="#path-2"></use>
+                    <use fill="url(#linearGradient-1)" xlink:href="#path-2"></use>
+                </g>
+                <path d="M134.996791,158.787879 L120.727273,72.7272727 L120.65979,72.3131259 C118.720606,60.8399191 111.874727,55.0087343 100.122154,54.8195714 C88.368086,55.0084029 81.5218733,60.8395931 79.5826344,72.3131259 L79.5151515,72.7272727 L65.2456333,158.787879 L48,158.787879 L62.5454545,72.7272727 C65.132859,50.9090909 77.6581115,40 100.121212,40 L100.792124,40.0032727 C110.365792,40.0970909 118.101951,42.208 124.000603,46.336 L124.409155,46.6272727 C131.844626,52.0272727 136.273897,60.7272727 137.69697,72.7272727 L152.242424,158.787879 L134.996791,158.787879 Z" id="Combined-Shape" fill="#FFFFFF" fill-rule="nonzero"></path>
+            </g>
+        </g>
+    </g>
+</svg>
