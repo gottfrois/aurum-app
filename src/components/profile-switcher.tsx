@@ -1,5 +1,6 @@
 import * as React from 'react'
-import { ChevronsUpDown, Plus, User, Briefcase, Users } from 'lucide-react'
+import { Link } from '@tanstack/react-router'
+import { ChevronsUpDown, Plus, User, Briefcase, Users, Settings } from 'lucide-react'
 import { useMutation } from 'convex/react'
 import { api } from '../../convex/_generated/api'
 import { useProfile } from '~/contexts/profile-context'
@@ -139,6 +140,16 @@ export function ProfileSwitcher() {
                 <span className="font-medium text-muted-foreground">
                   Add profile
                 </span>
+              </DropdownMenuItem>
+              <DropdownMenuItem className="gap-2 p-2" asChild>
+                <Link to="/profiles">
+                  <div className="flex size-6 items-center justify-center rounded-md border bg-background">
+                    <Settings className="size-4" />
+                  </div>
+                  <span className="font-medium text-muted-foreground">
+                    Manage profiles
+                  </span>
+                </Link>
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
