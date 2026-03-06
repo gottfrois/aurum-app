@@ -15,12 +15,11 @@ import {
   CardHeader,
   CardTitle,
 } from '~/components/ui/card'
-import { ToggleGroup, ToggleGroupItem } from '~/components/ui/toggle-group'
 import { Skeleton } from '~/components/ui/skeleton'
-import { PERIODS } from '~/lib/chart-periods'
 import { computePnL } from '~/lib/pnl'
 import { downsample } from '~/lib/downsample'
 import { PnLBadge } from '~/components/pnl-badge'
+import { PeriodSelector } from '~/components/period-selector'
 import { usePrivacy } from '~/contexts/privacy-context'
 
 const MAX_CHART_POINTS = 300
@@ -53,32 +52,6 @@ const currencyFormatter = (currency: string) => (value: number) =>
     currency,
     maximumFractionDigits: 0,
   }).format(value)
-
-function PeriodSelector({
-  period,
-  onPeriodChange,
-}: {
-  period: Period
-  onPeriodChange: (period: Period) => void
-}) {
-  return (
-    <ToggleGroup
-      type="single"
-      variant="outline"
-      size="sm"
-      value={period}
-      onValueChange={(val) => {
-        if (val) onPeriodChange(val as Period)
-      }}
-    >
-      {PERIODS.map((p) => (
-        <ToggleGroupItem key={p} value={p}>
-          {p}
-        </ToggleGroupItem>
-      ))}
-    </ToggleGroup>
-  )
-}
 
 function ChartArea({
   data,
@@ -211,7 +184,7 @@ export function BalanceChart({
   }
 
   return (
-    <div className="space-y-4">
+    <div className="@container/card space-y-4">
       <div className="flex items-center justify-end">
         <PeriodSelector period={period} onPeriodChange={onPeriodChange} />
       </div>

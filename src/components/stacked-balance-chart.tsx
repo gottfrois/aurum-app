@@ -18,11 +18,10 @@ import {
   CardHeader,
   CardTitle,
 } from '~/components/ui/card'
-import { ToggleGroup, ToggleGroupItem } from '~/components/ui/toggle-group'
 import { Skeleton } from '~/components/ui/skeleton'
-import { PERIODS } from '~/lib/chart-periods'
 import { downsampleRecords } from '~/lib/downsample'
 import { PnLBadge } from '~/components/pnl-badge'
+import { PeriodSelector } from '~/components/period-selector'
 import { usePrivacy } from '~/contexts/privacy-context'
 
 const MAX_CHART_POINTS = 300
@@ -109,32 +108,6 @@ function StackedTooltipContent({
         </div>
       </div>
     </div>
-  )
-}
-
-function PeriodSelector({
-  period,
-  onPeriodChange,
-}: {
-  period: Period
-  onPeriodChange: (period: Period) => void
-}) {
-  return (
-    <ToggleGroup
-      type="single"
-      variant="outline"
-      size="sm"
-      value={period}
-      onValueChange={(val) => {
-        if (val) onPeriodChange(val as Period)
-      }}
-    >
-      {PERIODS.map((p) => (
-        <ToggleGroupItem key={p} value={p}>
-          {p}
-        </ToggleGroupItem>
-      ))}
-    </ToggleGroup>
   )
 }
 
@@ -290,7 +263,7 @@ export function StackedBalanceChart({
   }
 
   return (
-    <div className="space-y-4">
+    <div className="@container/card space-y-4">
       <div className="flex items-center justify-end">
         <PeriodSelector period={period} onPeriodChange={onPeriodChange} />
       </div>
