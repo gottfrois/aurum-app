@@ -1,0 +1,263 @@
+import { v } from 'convex/values'
+import { action, internalMutation, internalQuery, query } from './_generated/server'
+import { internal } from './_generated/api'
+import { getAuthUserId, requireAuthUserId } from './lib/auth'
+
+export const listMembers = query({
+  args: {},
+  handler: async (ctx) => {
+    const userId = await getAuthUserId(ctx)
+    if (!userId) return null
+
+    const membership = await ctx.db
+      .query('workspaceMembers')
+      .withIndex('by_userId', (q) => q.eq('userId', userId))
+      .first()
+
+    if (!membership) return null
+
+    const members = await ctx.db
+      .query('workspaceMembers')
+      .withIndex('by_workspaceId', (q) =>
+        q.eq('workspaceId', membership.workspaceId),
+      )
+      .collect()
+
+    const invitations = await ctx.db
+      .query('workspaceInvitations')
+      .withIndex('by_workspaceId', (q) =>
+        q.eq('workspaceId', membership.workspaceId),
+      )
+      .filter((q) => q.eq(q.field('status'), 'pending'))
+      .collect()
+
+    return {
+      members,
+      invitations,
+      currentUserId: userId,
+      workspaceId: membership.workspaceId,
+    }
+  },
+})
+
+export const sendInvitation = action({
+  args: { emails: v.array(v.string()) },
+  handler: async (ctx, { emails }) => {
+    const userId = await requireAuthUserId(ctx)
+
+    const membership = await ctx.runQuery(
+      internal.members.getMembershipByUserId,
+      { userId },
+    )
+
+    if (!membership || membership.role !== 'owner') {
+      throw new Error('Only workspace owners can invite members')
+    }
+
+    const resendApiKey = process.env.RESEND_API_KEY
+    if (!resendApiKey) {
+      throw new Error('RESEND_API_KEY not configured')
+    }
+
+    const siteUrl = process.env.SITE_URL ?? 'http://localhost:3000'
+
+    const members = await ctx.runQuery(internal.members.getMembersByWorkspace, {
+      workspaceId: membership.workspaceId,
+    })
+
+    const clerkSecretKey = process.env.CLERK_SECRET_KEY
+    const memberEmails = new Set<string>()
+    if (clerkSecretKey) {
+      await Promise.all(
+        members.map(async (m) => {
+          const res = await fetch(`https://api.clerk.com/v1/users/${m.userId}`, {
+            headers: { Authorization: `Bearer ${clerkSecretKey}` },
+          })
+          if (res.ok) {
+            const user = await res.json()
+            const email = user.email_addresses?.find(
+              (e: { id: string }) => e.id === user.primary_email_address_id,
+            )?.email_address
+            if (email) memberEmails.add(email.toLowerCase())
+          }
+        }),
+      )
+    }
+
+    for (const email of emails) {
+      if (memberEmails.has(email.toLowerCase())) continue
+
+      const existing = await ctx.runQuery(
+        internal.members.getPendingInvitation,
+        { workspaceId: membership.workspaceId, email },
+      )
+
+      if (existing) continue
+
+      await ctx.runMutation(internal.members.createInvitation, {
+        workspaceId: membership.workspaceId,
+        email,
+        invitedBy: userId,
+      })
+
+      const res = await fetch('https://api.resend.com/emails', {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${resendApiKey}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          from: process.env.RESEND_FROM_EMAIL ?? 'Aurum <onboarding@resend.dev>',
+          to: [email],
+          subject: 'You have been invited to join a workspace on Aurum',
+          html: `<p>You have been invited to join a workspace on Aurum.</p><p><a href="${siteUrl}">Sign in to accept the invitation</a></p>`,
+        }),
+      })
+
+      if (!res.ok) {
+        const body = await res.text()
+        console.error(`Resend error for ${email}:`, res.status, body)
+        throw new Error(`Failed to send invitation to ${email}`)
+      }
+    }
+  },
+})
+
+export const revokeInvitation = internalMutation({
+  args: { invitationId: v.id('workspaceInvitations') },
+  handler: async (ctx, { invitationId }) => {
+    await ctx.db.patch(invitationId, { status: 'revoked' })
+  },
+})
+
+export const revokeInvitationAction = action({
+  args: { invitationId: v.id('workspaceInvitations') },
+  handler: async (ctx, { invitationId }) => {
+    const userId = await requireAuthUserId(ctx)
+
+    const membership = await ctx.runQuery(
+      internal.members.getMembershipByUserId,
+      { userId },
+    )
+
+    if (!membership || membership.role !== 'owner') {
+      throw new Error('Only workspace owners can revoke invitations')
+    }
+
+    await ctx.runMutation(internal.members.revokeInvitation, { invitationId })
+  },
+})
+
+export const removeMember = action({
+  args: { memberId: v.id('workspaceMembers') },
+  handler: async (ctx, { memberId }) => {
+    const userId = await requireAuthUserId(ctx)
+
+    const membership = await ctx.runQuery(
+      internal.members.getMembershipByUserId,
+      { userId },
+    )
+
+    if (!membership || membership.role !== 'owner') {
+      throw new Error('Only workspace owners can remove members')
+    }
+
+    await ctx.runMutation(internal.members.deleteMember, { memberId })
+  },
+})
+
+export const deleteMember = internalMutation({
+  args: { memberId: v.id('workspaceMembers') },
+  handler: async (ctx, { memberId }) => {
+    await ctx.db.delete(memberId)
+  },
+})
+
+export const resolveUsers = action({
+  args: { userIds: v.array(v.string()) },
+  handler: async (ctx, { userIds }) => {
+    await requireAuthUserId(ctx)
+
+    const clerkSecretKey = process.env.CLERK_SECRET_KEY
+    if (!clerkSecretKey) {
+      throw new Error('CLERK_SECRET_KEY not configured')
+    }
+
+    const results: Record<
+      string,
+      { firstName: string | null; lastName: string | null; imageUrl: string; email: string }
+    > = {}
+
+    await Promise.all(
+      userIds.map(async (id) => {
+        const res = await fetch(`https://api.clerk.com/v1/users/${id}`, {
+          headers: { Authorization: `Bearer ${clerkSecretKey}` },
+        })
+        if (res.ok) {
+          const user = await res.json()
+          results[id] = {
+            firstName: user.first_name,
+            lastName: user.last_name,
+            imageUrl: user.image_url,
+            email:
+              user.email_addresses?.find(
+                (e: { id: string }) => e.id === user.primary_email_address_id,
+              )?.email_address ?? '',
+          }
+        }
+      }),
+    )
+
+    return results
+  },
+})
+
+export const getMembersByWorkspace = internalQuery({
+  args: { workspaceId: v.id('workspaces') },
+  handler: async (ctx, { workspaceId }) => {
+    return await ctx.db
+      .query('workspaceMembers')
+      .withIndex('by_workspaceId', (q) => q.eq('workspaceId', workspaceId))
+      .collect()
+  },
+})
+
+export const getMembershipByUserId = internalQuery({
+  args: { userId: v.string() },
+  handler: async (ctx, { userId }) => {
+    return await ctx.db
+      .query('workspaceMembers')
+      .withIndex('by_userId', (q) => q.eq('userId', userId))
+      .first()
+  },
+})
+
+export const getPendingInvitation = internalQuery({
+  args: { workspaceId: v.id('workspaces'), email: v.string() },
+  handler: async (ctx, { workspaceId, email }) => {
+    return await ctx.db
+      .query('workspaceInvitations')
+      .withIndex('by_workspaceId', (q) => q.eq('workspaceId', workspaceId))
+      .filter((q) =>
+        q.and(
+          q.eq(q.field('email'), email),
+          q.eq(q.field('status'), 'pending'),
+        ),
+      )
+      .first()
+  },
+})
+
+export const createInvitation = internalMutation({
+  args: {
+    workspaceId: v.id('workspaces'),
+    email: v.string(),
+    invitedBy: v.string(),
+  },
+  handler: async (ctx, args) => {
+    return await ctx.db.insert('workspaceInvitations', {
+      ...args,
+      status: 'pending',
+    })
+  },
+})

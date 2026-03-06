@@ -4,7 +4,6 @@ import {
   Palette,
   User,
   Shield,
-  Building2,
   Users,
 } from 'lucide-react'
 import {
@@ -68,20 +67,12 @@ export function SettingsSidebar({
           </SidebarGroupContent>
         </SidebarGroup>
         <SidebarGroup>
-          <SidebarGroupLabel>Administration</SidebarGroupLabel>
+          <SidebarGroupLabel>Workspace</SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu>
               <SidebarMenuItem>
                 <SidebarMenuButton asChild>
-                  <Link to="/settings" disabled>
-                    <Building2 />
-                    <span>Workspace</span>
-                  </Link>
-                </SidebarMenuButton>
-              </SidebarMenuItem>
-              <SidebarMenuItem>
-                <SidebarMenuButton asChild>
-                  <Link to="/settings" disabled>
+                  <Link to="/settings/members">
                     <Users />
                     <span>Members</span>
                   </Link>

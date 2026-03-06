@@ -12,6 +12,7 @@ import type * as balanceSnapshots from "../balanceSnapshots.js";
 import type * as http from "../http.js";
 import type * as investments from "../investments.js";
 import type * as lib_auth from "../lib/auth.js";
+import type * as members from "../members.js";
 import type * as migrations from "../migrations.js";
 import type * as powens from "../powens.js";
 import type * as profiles from "../profiles.js";
@@ -28,6 +29,7 @@ declare const fullApi: ApiFromModules<{
   http: typeof http;
   investments: typeof investments;
   "lib/auth": typeof lib_auth;
+  members: typeof members;
   migrations: typeof migrations;
   powens: typeof powens;
   profiles: typeof profiles;

@@ -20,6 +20,7 @@ import { Route as SettingsSettingsIndexRouteImport } from './routes/_settings/se
 import { Route as AppAccountsIndexRouteImport } from './routes/_app/accounts.index'
 import { Route as SettingsSettingsSecurityRouteImport } from './routes/_settings/settings.security'
 import { Route as SettingsSettingsProfileRouteImport } from './routes/_settings/settings.profile'
+import { Route as SettingsSettingsMembersRouteImport } from './routes/_settings/settings.members'
 import { Route as AppAccountsAccountIdRouteImport } from './routes/_app/accounts.$accountId'
 
 const SettingsRoute = SettingsRouteImport.update({
@@ -76,6 +77,11 @@ const SettingsSettingsProfileRoute = SettingsSettingsProfileRouteImport.update({
   path: '/settings/profile',
   getParentRoute: () => SettingsRoute,
 } as any)
+const SettingsSettingsMembersRoute = SettingsSettingsMembersRouteImport.update({
+  id: '/settings/members',
+  path: '/settings/members',
+  getParentRoute: () => SettingsRoute,
+} as any)
 const AppAccountsAccountIdRoute = AppAccountsAccountIdRouteImport.update({
   id: '/accounts/$accountId',
   path: '/accounts/$accountId',
@@ -89,6 +95,7 @@ export interface FileRoutesByFullPath {
   '/powens/callback': typeof PowensCallbackRoute
   '/sign-in/$': typeof SignInSplatRoute
   '/accounts/$accountId': typeof AppAccountsAccountIdRoute
+  '/settings/members': typeof SettingsSettingsMembersRoute
   '/settings/profile': typeof SettingsSettingsProfileRoute
   '/settings/security': typeof SettingsSettingsSecurityRoute
   '/accounts/': typeof AppAccountsIndexRoute
@@ -101,6 +108,7 @@ export interface FileRoutesByTo {
   '/powens/callback': typeof PowensCallbackRoute
   '/sign-in/$': typeof SignInSplatRoute
   '/accounts/$accountId': typeof AppAccountsAccountIdRoute
+  '/settings/members': typeof SettingsSettingsMembersRoute
   '/settings/profile': typeof SettingsSettingsProfileRoute
   '/settings/security': typeof SettingsSettingsSecurityRoute
   '/accounts': typeof AppAccountsIndexRoute
@@ -116,6 +124,7 @@ export interface FileRoutesById {
   '/sign-in/$': typeof SignInSplatRoute
   '/_app/': typeof AppIndexRoute
   '/_app/accounts/$accountId': typeof AppAccountsAccountIdRoute
+  '/_settings/settings/members': typeof SettingsSettingsMembersRoute
   '/_settings/settings/profile': typeof SettingsSettingsProfileRoute
   '/_settings/settings/security': typeof SettingsSettingsSecurityRoute
   '/_app/accounts/': typeof AppAccountsIndexRoute
@@ -130,6 +139,7 @@ export interface FileRouteTypes {
     | '/powens/callback'
     | '/sign-in/$'
     | '/accounts/$accountId'
+    | '/settings/members'
     | '/settings/profile'
     | '/settings/security'
     | '/accounts/'
@@ -142,6 +152,7 @@ export interface FileRouteTypes {
     | '/powens/callback'
     | '/sign-in/$'
     | '/accounts/$accountId'
+    | '/settings/members'
     | '/settings/profile'
     | '/settings/security'
     | '/accounts'
@@ -156,6 +167,7 @@ export interface FileRouteTypes {
     | '/sign-in/$'
     | '/_app/'
     | '/_app/accounts/$accountId'
+    | '/_settings/settings/members'
     | '/_settings/settings/profile'
     | '/_settings/settings/security'
     | '/_app/accounts/'
@@ -248,6 +260,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof SettingsSettingsProfileRouteImport
       parentRoute: typeof SettingsRoute
     }
+    '/_settings/settings/members': {
+      id: '/_settings/settings/members'
+      path: '/settings/members'
+      fullPath: '/settings/members'
+      preLoaderRoute: typeof SettingsSettingsMembersRouteImport
+      parentRoute: typeof SettingsRoute
+    }
     '/_app/accounts/$accountId': {
       id: '/_app/accounts/$accountId'
       path: '/accounts/$accountId'
@@ -277,12 +296,14 @@ const AppRouteChildren: AppRouteChildren = {
 const AppRouteWithChildren = AppRoute._addFileChildren(AppRouteChildren)
 
 interface SettingsRouteChildren {
+  SettingsSettingsMembersRoute: typeof SettingsSettingsMembersRoute
   SettingsSettingsProfileRoute: typeof SettingsSettingsProfileRoute
   SettingsSettingsSecurityRoute: typeof SettingsSettingsSecurityRoute
   SettingsSettingsIndexRoute: typeof SettingsSettingsIndexRoute
 }
 
 const SettingsRouteChildren: SettingsRouteChildren = {
+  SettingsSettingsMembersRoute: SettingsSettingsMembersRoute,
   SettingsSettingsProfileRoute: SettingsSettingsProfileRoute,
   SettingsSettingsSecurityRoute: SettingsSettingsSecurityRoute,
   SettingsSettingsIndexRoute: SettingsSettingsIndexRoute,
