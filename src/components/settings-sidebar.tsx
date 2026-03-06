@@ -1,5 +1,13 @@
 import { Link } from '@tanstack/react-router'
-import { ArrowLeft, Lock, Palette, Shield, User, Users } from 'lucide-react'
+import {
+  ArrowLeft,
+  Link2,
+  Lock,
+  Palette,
+  Shield,
+  User,
+  Users,
+} from 'lucide-react'
 import {
   Sidebar,
   SidebarContent,
@@ -72,6 +80,14 @@ export function SettingsSidebar({
           <SidebarGroupLabel>Workspace</SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu>
+              <SidebarMenuItem>
+                <SidebarMenuButton asChild>
+                  <Link to="/settings/connections">
+                    <Link2 />
+                    <span>Connections</span>
+                  </Link>
+                </SidebarMenuButton>
+              </SidebarMenuItem>
               <SidebarMenuItem>
                 <SidebarMenuButton asChild>
                   <Link to="/settings/members">

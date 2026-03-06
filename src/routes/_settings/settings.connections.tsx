@@ -12,7 +12,6 @@ import {
   EmptyMedia,
   EmptyTitle,
 } from '~/components/ui/empty'
-import { SiteHeader } from '~/components/site-header'
 import { useProfile } from '~/contexts/profile-context'
 import { useDecryptRecords } from '~/contexts/encryption-context'
 import { AddConnectionDialog } from '~/components/add-connection-dialog'
@@ -45,18 +44,20 @@ import {
   DialogTitle,
 } from '~/components/ui/dialog'
 
-export const Route = createFileRoute('/_app/connections')({
+export const Route = createFileRoute('/_settings/settings/connections')({
   component: ConnectionsPage,
 })
 
 function ConnectionsPage() {
   return (
-    <>
-      <SiteHeader title="Connections" />
-      <div className="mx-auto flex w-full max-w-3xl flex-1 flex-col gap-4 px-4 py-8 md:gap-6 md:px-10 md:py-16">
+    <div className="mx-auto flex w-full max-w-3xl flex-1 flex-col px-10 py-16">
+      <header>
+        <h1 className="text-3xl font-semibold">Connections</h1>
+      </header>
+      <div className="mt-8 space-y-6">
         <ConnectionsList />
       </div>
-    </>
+    </div>
   )
 }
 
@@ -157,37 +158,40 @@ function ConnectionsList() {
   }
 
   return (
-    <ItemCard>
-      <ItemCardHeader>
-        <ItemCardHeaderContent>
-          <ItemCardHeaderTitle>
-            {connections.length}{' '}
-            {connections.length === 1 ? 'connection' : 'connections'}
-          </ItemCardHeaderTitle>
-        </ItemCardHeaderContent>
-        <Button onClick={() => setDialogOpen(true)} size="sm">
-          Add Connection
-        </Button>
-      </ItemCardHeader>
-      <ItemCardItems>
-        {connections.map((connection) => {
-          const numAccounts = accountCountByConnection.get(connection._id) ?? 0
-          const lastSync = connection.lastSync
-            ? formatRelativeDate(connection.lastSync)
-            : null
+    <>
+      <ItemCard>
+        <ItemCardHeader>
+          <ItemCardHeaderContent>
+            <ItemCardHeaderTitle>
+              {connections.length}{' '}
+              {connections.length === 1 ? 'connection' : 'connections'}
+            </ItemCardHeaderTitle>
+          </ItemCardHeaderContent>
+          <Button onClick={() => setDialogOpen(true)} size="sm">
+            Add Connection
+          </Button>
+        </ItemCardHeader>
+        <ItemCardItems>
+          {connections.map((connection) => {
+            const numAccounts =
+              accountCountByConnection.get(connection._id) ?? 0
+            const lastSync = connection.lastSync
+              ? formatRelativeDate(connection.lastSync)
+              : null
 
-          return (
-            <ConnectionItem
-              key={connection._id}
-              connection={connection}
-              numAccounts={numAccounts}
-              lastSync={lastSync}
-            />
-          )
-        })}
-      </ItemCardItems>
+            return (
+              <ConnectionItem
+                key={connection._id}
+                connection={connection}
+                numAccounts={numAccounts}
+                lastSync={lastSync}
+              />
+            )
+          })}
+        </ItemCardItems>
+      </ItemCard>
       <AddConnectionDialog open={dialogOpen} onOpenChange={setDialogOpen} />
-    </ItemCard>
+    </>
   )
 }
 
