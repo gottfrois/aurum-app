@@ -138,4 +138,14 @@ export default defineSchema({
     .index('by_bankAccountId_date', ['bankAccountId', 'date'])
     .index('by_profileId_timestamp', ['profileId', 'timestamp'])
     .index('by_profileId_encrypted', ['profileId', 'encrypted']),
+
+  dailyNetWorth: defineTable({
+    profileId: v.id('profiles'),
+    date: v.string(),
+    timestamp: v.number(),
+    balance: v.number(),
+    currency: v.string(),
+  })
+    .index('by_profileId_timestamp', ['profileId', 'timestamp'])
+    .index('by_profileId_date', ['profileId', 'date']),
 })

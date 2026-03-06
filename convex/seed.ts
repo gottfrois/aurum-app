@@ -431,16 +431,41 @@ export const seedDemoData = internalMutation({
           balance = balance + (account.end - balance) * t
         }
 
+        const snapshotBalance = Math.round(balance * 100) / 100
+
         await ctx.db.insert('balanceSnapshots', {
           bankAccountId: account.id,
           profileId: profile._id,
-          balance: Math.round(balance * 100) / 100,
+          balance: snapshotBalance,
           currency: 'EUR',
           date: dateStr,
           timestamp,
           seed: true,
           encrypted: false,
         })
+
+        // Update dailyNetWorth aggregate
+        const existingDnw = await ctx.db
+          .query('dailyNetWorth')
+          .withIndex('by_profileId_date', (q) =>
+            q.eq('profileId', profile._id).eq('date', dateStr),
+          )
+          .first()
+
+        if (existingDnw) {
+          await ctx.db.patch('dailyNetWorth', existingDnw._id, {
+            balance:
+              Math.round((existingDnw.balance + snapshotBalance) * 100) / 100,
+          })
+        } else {
+          await ctx.db.insert('dailyNetWorth', {
+            profileId: profile._id,
+            date: dateStr,
+            timestamp,
+            balance: snapshotBalance,
+            currency: 'EUR',
+          })
+        }
 
         current.setDate(current.getDate() + 1)
         dayIndex++
@@ -477,6 +502,17 @@ export const clearDemoData = internalMutation({
       .collect()
     for (const s of snapshots) {
       if (s.seed) await ctx.db.delete('balanceSnapshots', s._id)
+    }
+
+    // Delete all dailyNetWorth entries for this profile
+    const dailyNetWorthEntries = await ctx.db
+      .query('dailyNetWorth')
+      .withIndex('by_profileId_timestamp', (q) =>
+        q.eq('profileId', profile._id),
+      )
+      .collect()
+    for (const d of dailyNetWorthEntries) {
+      await ctx.db.delete('dailyNetWorth', d._id)
     }
 
     // Delete all investments for this profile

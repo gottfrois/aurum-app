@@ -78,7 +78,7 @@ export const deleteProfile = mutation({
     }
 
     // Delete all associated data using profileId indexes (flat, no nesting)
-    const [connections, bankAccounts, snapshots, investments] =
+    const [connections, bankAccounts, snapshots, investments, dailyNetWorth] =
       await Promise.all([
         ctx.db
           .query('connections')
@@ -98,12 +98,19 @@ export const deleteProfile = mutation({
           .query('investments')
           .withIndex('by_profileId', (q) => q.eq('profileId', args.profileId))
           .collect(),
+        ctx.db
+          .query('dailyNetWorth')
+          .withIndex('by_profileId_timestamp', (q) =>
+            q.eq('profileId', args.profileId),
+          )
+          .collect(),
       ])
     await Promise.all([
       ...snapshots.map((s) => ctx.db.delete('balanceSnapshots', s._id)),
       ...investments.map((inv) => ctx.db.delete('investments', inv._id)),
       ...bankAccounts.map((ba) => ctx.db.delete('bankAccounts', ba._id)),
       ...connections.map((c) => ctx.db.delete('connections', c._id)),
+      ...dailyNetWorth.map((d) => ctx.db.delete('dailyNetWorth', d._id)),
     ])
 
     await ctx.db.delete('profiles', args.profileId)

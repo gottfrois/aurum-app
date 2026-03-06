@@ -1,4 +1,5 @@
 import { internalMutation } from './_generated/server'
+import type { Id } from './_generated/dataModel'
 
 export const backfillBalanceSnapshots = internalMutation({
   args: {},
@@ -67,6 +68,71 @@ export const seedBalanceSnapshots = internalMutation({
       }
     }
     return { seeded: count }
+  },
+})
+
+export const backfillDailyNetWorth = internalMutation({
+  args: {},
+  handler: async (ctx) => {
+    const snapshots = await ctx.db.query('balanceSnapshots').collect()
+
+    // Group by profileId + date, summing balances
+    const aggregates = new Map<
+      string,
+      {
+        profileId: Id<'profiles'>
+        date: string
+        timestamp: number
+        balance: number
+        currency: string
+      }
+    >()
+
+    for (const s of snapshots) {
+      const key = `${s.profileId}:${s.date}`
+      const existing = aggregates.get(key)
+      if (existing) {
+        existing.balance += s.balance
+        // Keep the latest timestamp
+        if (s.timestamp > existing.timestamp) {
+          existing.timestamp = s.timestamp
+        }
+      } else {
+        aggregates.set(key, {
+          profileId: s.profileId,
+          date: s.date,
+          timestamp: s.timestamp,
+          balance: s.balance,
+          currency: s.currency,
+        })
+      }
+    }
+
+    let count = 0
+    for (const agg of aggregates.values()) {
+      const existing = await ctx.db
+        .query('dailyNetWorth')
+        .withIndex('by_profileId_date', (q) =>
+          q.eq('profileId', agg.profileId).eq('date', agg.date),
+        )
+        .first()
+
+      if (existing) {
+        await ctx.db.patch('dailyNetWorth', existing._id, {
+          balance: Math.round(agg.balance * 100) / 100,
+        })
+      } else {
+        await ctx.db.insert('dailyNetWorth', {
+          profileId: agg.profileId,
+          date: agg.date,
+          timestamp: agg.timestamp,
+          balance: Math.round(agg.balance * 100) / 100,
+          currency: agg.currency,
+        })
+        count++
+      }
+    }
+    return { backfilled: count }
   },
 })
 

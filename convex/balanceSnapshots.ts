@@ -59,3 +59,42 @@ export const listAllSnapshotsByProfiles = query({
     return results.flat()
   },
 })
+
+export const listDailyNetWorth = query({
+  args: {
+    profileId: v.id('profiles'),
+    startTimestamp: v.number(),
+  },
+  handler: async (ctx, args) => {
+    const userId = await getAuthUserId(ctx)
+    if (!userId) return []
+    return await ctx.db
+      .query('dailyNetWorth')
+      .withIndex('by_profileId_timestamp', (q) =>
+        q.eq('profileId', args.profileId).gte('timestamp', args.startTimestamp),
+      )
+      .collect()
+  },
+})
+
+export const listAllDailyNetWorth = query({
+  args: {
+    profileIds: v.array(v.id('profiles')),
+    startTimestamp: v.number(),
+  },
+  handler: async (ctx, args) => {
+    const userId = await getAuthUserId(ctx)
+    if (!userId) return []
+    const results = await Promise.all(
+      args.profileIds.map((profileId) =>
+        ctx.db
+          .query('dailyNetWorth')
+          .withIndex('by_profileId_timestamp', (q) =>
+            q.eq('profileId', profileId).gte('timestamp', args.startTimestamp),
+          )
+          .collect(),
+      ),
+    )
+    return results.flat()
+  },
+})

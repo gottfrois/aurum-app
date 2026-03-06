@@ -91,6 +91,8 @@ async function recordBalanceSnapshot(
     )
     .first()
 
+  const oldBalance = existing?.balance ?? 0
+
   if (existing) {
     await ctx.db.patch('balanceSnapshots', existing._id, {
       balance: params.balance,
@@ -107,6 +109,46 @@ async function recordBalanceSnapshot(
       timestamp,
       encryptedData: params.encryptedData,
       encrypted: !!params.encryptedData,
+    })
+  }
+
+  await updateDailyNetWorth(ctx, {
+    profileId: params.profileId,
+    date,
+    timestamp,
+    balanceDelta: params.balance - oldBalance,
+    currency: params.currency,
+  })
+}
+
+async function updateDailyNetWorth(
+  ctx: MutationCtx,
+  params: {
+    profileId: Id<'profiles'>
+    date: string
+    timestamp: number
+    balanceDelta: number
+    currency: string
+  },
+) {
+  const existing = await ctx.db
+    .query('dailyNetWorth')
+    .withIndex('by_profileId_date', (q) =>
+      q.eq('profileId', params.profileId).eq('date', params.date),
+    )
+    .first()
+
+  if (existing) {
+    await ctx.db.patch('dailyNetWorth', existing._id, {
+      balance: Math.round((existing.balance + params.balanceDelta) * 100) / 100,
+    })
+  } else {
+    await ctx.db.insert('dailyNetWorth', {
+      profileId: params.profileId,
+      date: params.date,
+      timestamp: params.timestamp,
+      balance: Math.round(params.balanceDelta * 100) / 100,
+      currency: params.currency,
     })
   }
 }

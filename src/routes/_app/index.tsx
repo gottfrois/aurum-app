@@ -70,18 +70,17 @@ function BankAccountsSection() {
   const rawBankAccounts = isAllProfiles ? bankAccountsAll : bankAccountsSingle
   const bankAccounts = useDecryptRecords(rawBankAccounts)
 
-  const snapshotsSingle = useQuery(
-    api.balanceSnapshots.listSnapshotsByProfile,
+  const netWorthSingle = useQuery(
+    api.balanceSnapshots.listDailyNetWorth,
     singleProfileId ? { profileId: singleProfileId, startTimestamp } : 'skip',
   )
-  const snapshotsAll = useQuery(
-    api.balanceSnapshots.listAllSnapshotsByProfiles,
+  const netWorthAll = useQuery(
+    api.balanceSnapshots.listAllDailyNetWorth,
     isAllProfiles && allProfileIds.length > 0
       ? { profileIds: allProfileIds, startTimestamp }
       : 'skip',
   )
-  const rawSnapshots = isAllProfiles ? snapshotsAll : snapshotsSingle
-  const snapshots = useDecryptRecords(rawSnapshots)
+  const dailyNetWorth = isAllProfiles ? netWorthAll : netWorthSingle
 
   const investmentsSingle = useQuery(
     api.investments.listInvestmentsByProfile,
@@ -105,16 +104,16 @@ function BankAccountsSection() {
   )
 
   const netWorthData = React.useMemo(() => {
-    if (!snapshots) return []
+    if (!dailyNetWorth) return []
     const dateMap = new Map<string, number>()
-    for (const s of snapshots) {
+    for (const s of dailyNetWorth) {
       dateMap.set(s.date, (dateMap.get(s.date) ?? 0) + s.balance)
     }
     const sorted = [...dateMap.entries()]
       .sort(([a], [b]) => a.localeCompare(b))
       .map(([date, balance]) => ({ date, balance }))
     return fillMissingDates(sorted)
-  }, [snapshots])
+  }, [dailyNetWorth])
 
   const allocationData = React.useMemo(() => {
     const categoryTotals = new Map<string, number>()
@@ -186,7 +185,7 @@ function BankAccountsSection() {
           <BalanceChart
             data={netWorthData}
             currency={currency}
-            isLoading={snapshots === undefined}
+            isLoading={dailyNetWorth === undefined}
             period={period}
             onPeriodChange={setPeriod}
             title="Net Worth"
