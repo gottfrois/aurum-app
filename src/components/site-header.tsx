@@ -27,9 +27,11 @@ export function SiteHeader({ title = 'Dashboard' }: { title?: string }) {
         />
         <h1 className="text-base font-medium">{title}</h1>
         <div className="ml-auto flex items-center gap-1">
-          {isEncryptionEnabled && isUnlocked && (
+          {isEncryptionEnabled && isUnlocked ? (
             <EncryptionStatusButton onLock={lock} />
-          )}
+          ) : !isEncryptionEnabled ? (
+            <EnableEncryptionButton />
+          ) : null}
           <Tooltip>
             <TooltipTrigger asChild>
               <Button
@@ -52,6 +54,26 @@ export function SiteHeader({ title = 'Dashboard' }: { title?: string }) {
         </div>
       </div>
     </header>
+  )
+}
+
+function EnableEncryptionButton() {
+  return (
+    <Tooltip>
+      <TooltipTrigger asChild>
+        <Link
+          to="/settings/encryption"
+          className="inline-flex h-8 items-center gap-1.5 rounded-md border px-2.5 py-1.5 text-xs font-medium text-foreground transition-colors hover:bg-accent"
+        >
+          <ShieldAlert className="size-3.5" />
+          <span className="hidden sm:inline">Enable encryption</span>
+        </Link>
+      </TooltipTrigger>
+      <TooltipContent>
+        Your data is stored without encryption — enable it to protect your
+        financial information
+      </TooltipContent>
+    </Tooltip>
   )
 }
 
