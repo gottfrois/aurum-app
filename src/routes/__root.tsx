@@ -15,6 +15,7 @@ import type { QueryClient } from '@tanstack/react-query'
 import type { ConvexQueryClient } from '@convex-dev/react-query'
 import type { ConvexReactClient } from 'convex/react'
 import { TooltipProvider } from '~/components/ui/tooltip'
+import { ThemeProvider } from 'next-themes'
 import { ProfileProvider } from '~/contexts/profile-context'
 import { PrivacyProvider } from '~/contexts/privacy-context'
 import appCss from '~/styles/app.css?url'
@@ -98,13 +99,15 @@ function RootComponent() {
     <ClerkProvider>
       <ConvexProviderWithClerk client={context.convexClient} useAuth={useAuth}>
         <TooltipProvider>
-          <ProfileProvider>
-            <PrivacyProvider>
-              <RootDocument>
-                <Outlet />
-              </RootDocument>
-            </PrivacyProvider>
-          </ProfileProvider>
+          <ThemeProvider attribute="class" defaultTheme="system" enableSystem disableTransitionOnChange>
+            <ProfileProvider>
+              <PrivacyProvider>
+                <RootDocument>
+                  <Outlet />
+                </RootDocument>
+              </PrivacyProvider>
+            </ProfileProvider>
+          </ThemeProvider>
         </TooltipProvider>
       </ConvexProviderWithClerk>
     </ClerkProvider>
@@ -113,7 +116,7 @@ function RootComponent() {
 
 function RootDocument({ children }: { children: React.ReactNode }) {
   return (
-    <html>
+    <html suppressHydrationWarning>
       <head>
         <HeadContent />
       </head>

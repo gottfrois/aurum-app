@@ -39,8 +39,8 @@ export function PnLBadge({ pnl, currency }: PnLBadgeProps) {
       variant="outline"
       className={
         pnl.isPositive
-          ? 'text-emerald-600 border-emerald-200 dark:text-emerald-400 dark:border-emerald-800'
-          : 'text-red-600 border-red-200 dark:text-red-400 dark:border-red-800'
+          ? 'text-success border-success/30'
+          : 'text-destructive border-destructive/30'
       }
     >
       <Icon className="size-3" />

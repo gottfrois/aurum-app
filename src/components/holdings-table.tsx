@@ -76,7 +76,7 @@ export function HoldingsTable({ investments }: { investments: Investment[] }) {
               {isPrivate ? MASKED : inv.diff != null ? (
                 <span
                   className={cn(
-                    inv.diff >= 0 ? 'text-green-600' : 'text-red-600',
+                    inv.diff >= 0 ? 'text-success' : 'text-destructive',
                   )}
                 >
                   {inv.diff >= 0 ? '+' : ''}
