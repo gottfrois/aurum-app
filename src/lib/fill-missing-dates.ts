@@ -17,9 +17,11 @@ export function fillMissingDates<T extends { date: string; balance: number }>(
   for (let i = 1; i < data.length; i++) {
     const prev = filled[filled.length - 1]
     let nextDate = addDays(prev.date, 1)
-    while (nextDate < data[i].date) {
+    let safety = 0
+    while (nextDate < data[i].date && safety < 1000) {
       filled.push({ ...prev, date: nextDate })
       nextDate = addDays(nextDate, 1)
+      safety++
     }
     filled.push(data[i])
   }
@@ -39,9 +41,11 @@ export function fillMissingDatesStacked(
   for (let i = 1; i < data.length; i++) {
     const prev = filled[filled.length - 1]
     let nextDate = addDays(prev.date as string, 1)
-    while (nextDate < (data[i].date as string)) {
+    let safety = 0
+    while (nextDate < (data[i].date as string) && safety < 1000) {
       filled.push({ ...prev, date: nextDate })
       nextDate = addDays(nextDate, 1)
+      safety++
     }
     filled.push(data[i])
   }

@@ -104,6 +104,12 @@ function BankAccountsSection() {
       .sort(([a], [b]) => a.localeCompare(b))
       .map(([date, balance]) => ({ date, balance }))
     console.log('[debug] unique dates:', sorted.length)
+    console.log(
+      '[debug] date range:',
+      sorted[0]?.date,
+      '→',
+      sorted[sorted.length - 1]?.date,
+    )
     const filled = fillMissingDates(sorted)
     console.log('[debug] after fillMissingDates:', filled.length)
     console.timeEnd('[debug] netWorthData aggregation')
