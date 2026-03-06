@@ -4,7 +4,6 @@ import { useAction, useQuery } from 'convex/react'
 import {
   AlertCircle,
   CheckCircle2,
-  CirclePlus,
   Link2,
   Loader2,
   MoreVertical,
@@ -13,6 +12,14 @@ import {
 } from 'lucide-react'
 import { api } from '../../../convex/_generated/api'
 import type { Doc } from '../../../convex/_generated/dataModel'
+import {
+  Empty,
+  EmptyContent,
+  EmptyDescription,
+  EmptyHeader,
+  EmptyMedia,
+  EmptyTitle,
+} from '~/components/ui/empty'
 import { SiteHeader } from '~/components/site-header'
 import { useProfile } from '~/contexts/profile-context'
 import { useDecryptRecords } from '~/contexts/encryption-context'
@@ -166,21 +173,23 @@ function ConnectionsList() {
   if (connections.length === 0) {
     return (
       <>
-        <div className="flex flex-col items-center justify-center gap-4 rounded-lg border border-dashed p-12 text-center">
-          <div className="flex size-16 items-center justify-center rounded-full bg-muted">
-            <Link2 className="size-8 text-muted-foreground" />
-          </div>
-          <div>
-            <h3 className="text-lg font-semibold">No connections yet</h3>
-            <p className="text-sm text-muted-foreground">
-              Add a connection to start syncing your financial data.
-            </p>
-          </div>
-          <Button onClick={() => setDialogOpen(true)}>
-            <CirclePlus className="mr-2 size-4" />
-            Add Connection
-          </Button>
-        </div>
+        <Empty className="border">
+          <EmptyHeader>
+            <EmptyMedia variant="icon">
+              <Link2 />
+            </EmptyMedia>
+            <EmptyTitle>No Connections Yet</EmptyTitle>
+            <EmptyDescription>
+              You haven&apos;t added any connections yet. Get started by
+              connecting your first financial institution.
+            </EmptyDescription>
+          </EmptyHeader>
+          <EmptyContent>
+            <Button onClick={() => setDialogOpen(true)}>
+              Add Connection
+            </Button>
+          </EmptyContent>
+        </Empty>
         <AddConnectionDialog open={dialogOpen} onOpenChange={setDialogOpen} />
       </>
     )
