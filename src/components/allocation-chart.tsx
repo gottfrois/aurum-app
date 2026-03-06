@@ -182,6 +182,7 @@ function DonutView({
           data={data}
           dataKey="value"
           nameKey="label"
+          isAnimationActive={false}
           innerRadius={60}
           outerRadius={85}
           strokeWidth={2}
@@ -250,6 +251,7 @@ function TreemapView({
           data={treemapData}
           dataKey="value"
           nameKey="name"
+          isAnimationActive={false}
           content={
             <TreemapContent
               x={0}
