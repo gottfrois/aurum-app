@@ -142,6 +142,7 @@ export const backfillDailyNetWorth = internalMutation({
         if (existing) {
           return ctx.db.patch('dailyNetWorth', existing._id, {
             balance: Math.round(agg.balance * 100) / 100,
+            workspaceId: agg.workspaceId,
           })
         } else {
           count++

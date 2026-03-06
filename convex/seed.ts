@@ -355,10 +355,10 @@ export const seedDemoData = internalMutation({
     ]
 
     const now = new Date()
-    const oneYearAgo = new Date(now)
-    oneYearAgo.setFullYear(oneYearAgo.getFullYear() - 1)
+    const threeMonthsAgo = new Date(now)
+    threeMonthsAgo.setMonth(threeMonthsAgo.getMonth() - 3)
     const totalDays = Math.round(
-      (now.getTime() - oneYearAgo.getTime()) / (1000 * 60 * 60 * 24),
+      (now.getTime() - threeMonthsAgo.getTime()) / (1000 * 60 * 60 * 24),
     )
 
     // Pre-fetch bank account types for category aggregation
@@ -375,7 +375,7 @@ export const seedDemoData = internalMutation({
       let balance = account.base
       let seed = Math.round(account.base * 7.13)
       let momentum = 0
-      const current = new Date(oneYearAgo)
+      const current = new Date(threeMonthsAgo)
       let dayIndex = 0
 
       while (current <= now) {
@@ -511,7 +511,7 @@ export const seedDemoData = internalMutation({
       }
     }
 
-    return { success: true, message: 'Demo data seeded (1 year)' }
+    return { success: true, message: 'Demo data seeded (3 months)' }
   },
 })
 
