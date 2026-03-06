@@ -23,7 +23,7 @@ import { downsample } from '~/lib/downsample'
 import { PnLBadge } from '~/components/pnl-badge'
 import { usePrivacy } from '~/contexts/privacy-context'
 
-const MAX_CHART_POINTS = 150
+const MAX_CHART_POINTS = 300
 
 const chartConfig = {
   balance: {

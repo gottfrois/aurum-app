@@ -405,6 +405,13 @@ export const seedDemoData = internalMutation({
         // Floor: never drop below 60% of base
         balance = Math.max(balance, account.base * 0.6)
 
+        // Last 5 days: lerp toward target end balance for guaranteed profit
+        const daysRemaining = totalDays - dayIndex
+        if (daysRemaining <= 5 && daysRemaining >= 0) {
+          const t = 1 - daysRemaining / 5
+          balance = balance + (account.end - balance) * t
+        }
+
         await ctx.db.insert('balanceSnapshots', {
           bankAccountId: account.id,
           profileId: profile._id,
