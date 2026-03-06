@@ -9,15 +9,21 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
+import { Route as SettingsRouteImport } from './routes/_settings'
 import { Route as AppRouteImport } from './routes/_app'
 import { Route as AppIndexRouteImport } from './routes/_app/index'
 import { Route as SignInSplatRouteImport } from './routes/sign-in/$'
 import { Route as PowensCallbackRouteImport } from './routes/powens/callback'
+import { Route as SettingsSettingsRouteImport } from './routes/_settings/settings'
 import { Route as AppProfilesRouteImport } from './routes/_app/profiles'
 import { Route as AppConnectionsRouteImport } from './routes/_app/connections'
 import { Route as AppAccountsIndexRouteImport } from './routes/_app/accounts.index'
 import { Route as AppAccountsAccountIdRouteImport } from './routes/_app/accounts.$accountId'
 
+const SettingsRoute = SettingsRouteImport.update({
+  id: '/_settings',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const AppRoute = AppRouteImport.update({
   id: '/_app',
   getParentRoute: () => rootRouteImport,
@@ -36,6 +42,11 @@ const PowensCallbackRoute = PowensCallbackRouteImport.update({
   id: '/powens/callback',
   path: '/powens/callback',
   getParentRoute: () => rootRouteImport,
+} as any)
+const SettingsSettingsRoute = SettingsSettingsRouteImport.update({
+  id: '/settings',
+  path: '/settings',
+  getParentRoute: () => SettingsRoute,
 } as any)
 const AppProfilesRoute = AppProfilesRouteImport.update({
   id: '/profiles',
@@ -62,25 +73,29 @@ export interface FileRoutesByFullPath {
   '/': typeof AppIndexRoute
   '/connections': typeof AppConnectionsRoute
   '/profiles': typeof AppProfilesRoute
+  '/settings': typeof SettingsSettingsRoute
   '/powens/callback': typeof PowensCallbackRoute
   '/sign-in/$': typeof SignInSplatRoute
   '/accounts/$accountId': typeof AppAccountsAccountIdRoute
   '/accounts/': typeof AppAccountsIndexRoute
 }
 export interface FileRoutesByTo {
+  '/': typeof AppIndexRoute
   '/connections': typeof AppConnectionsRoute
   '/profiles': typeof AppProfilesRoute
+  '/settings': typeof SettingsSettingsRoute
   '/powens/callback': typeof PowensCallbackRoute
   '/sign-in/$': typeof SignInSplatRoute
-  '/': typeof AppIndexRoute
   '/accounts/$accountId': typeof AppAccountsAccountIdRoute
   '/accounts': typeof AppAccountsIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/_app': typeof AppRouteWithChildren
+  '/_settings': typeof SettingsRouteWithChildren
   '/_app/connections': typeof AppConnectionsRoute
   '/_app/profiles': typeof AppProfilesRoute
+  '/_settings/settings': typeof SettingsSettingsRoute
   '/powens/callback': typeof PowensCallbackRoute
   '/sign-in/$': typeof SignInSplatRoute
   '/_app/': typeof AppIndexRoute
@@ -93,24 +108,28 @@ export interface FileRouteTypes {
     | '/'
     | '/connections'
     | '/profiles'
+    | '/settings'
     | '/powens/callback'
     | '/sign-in/$'
     | '/accounts/$accountId'
     | '/accounts/'
   fileRoutesByTo: FileRoutesByTo
   to:
+    | '/'
     | '/connections'
     | '/profiles'
+    | '/settings'
     | '/powens/callback'
     | '/sign-in/$'
-    | '/'
     | '/accounts/$accountId'
     | '/accounts'
   id:
     | '__root__'
     | '/_app'
+    | '/_settings'
     | '/_app/connections'
     | '/_app/profiles'
+    | '/_settings/settings'
     | '/powens/callback'
     | '/sign-in/$'
     | '/_app/'
@@ -120,12 +139,20 @@ export interface FileRouteTypes {
 }
 export interface RootRouteChildren {
   AppRoute: typeof AppRouteWithChildren
+  SettingsRoute: typeof SettingsRouteWithChildren
   PowensCallbackRoute: typeof PowensCallbackRoute
   SignInSplatRoute: typeof SignInSplatRoute
 }
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
+    '/_settings': {
+      id: '/_settings'
+      path: ''
+      fullPath: '/'
+      preLoaderRoute: typeof SettingsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/_app': {
       id: '/_app'
       path: ''
@@ -153,6 +180,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/powens/callback'
       preLoaderRoute: typeof PowensCallbackRouteImport
       parentRoute: typeof rootRouteImport
+    }
+    '/_settings/settings': {
+      id: '/_settings/settings'
+      path: '/settings'
+      fullPath: '/settings'
+      preLoaderRoute: typeof SettingsSettingsRouteImport
+      parentRoute: typeof SettingsRoute
     }
     '/_app/profiles': {
       id: '/_app/profiles'
@@ -203,8 +237,21 @@ const AppRouteChildren: AppRouteChildren = {
 
 const AppRouteWithChildren = AppRoute._addFileChildren(AppRouteChildren)
 
+interface SettingsRouteChildren {
+  SettingsSettingsRoute: typeof SettingsSettingsRoute
+}
+
+const SettingsRouteChildren: SettingsRouteChildren = {
+  SettingsSettingsRoute: SettingsSettingsRoute,
+}
+
+const SettingsRouteWithChildren = SettingsRoute._addFileChildren(
+  SettingsRouteChildren,
+)
+
 const rootRouteChildren: RootRouteChildren = {
   AppRoute: AppRouteWithChildren,
+  SettingsRoute: SettingsRouteWithChildren,
   PowensCallbackRoute: PowensCallbackRoute,
   SignInSplatRoute: SignInSplatRoute,
 }
