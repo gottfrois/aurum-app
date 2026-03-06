@@ -95,3 +95,39 @@ export const listAllDailyNetWorth = query({
       .collect()
   },
 })
+
+export const listDailyCategoryBalance = query({
+  args: {
+    profileId: v.id('profiles'),
+    startTimestamp: v.number(),
+  },
+  handler: async (ctx, args) => {
+    const userId = await getAuthUserId(ctx)
+    if (!userId) return []
+    return await ctx.db
+      .query('dailyCategoryBalance')
+      .withIndex('by_profileId_timestamp', (q) =>
+        q.eq('profileId', args.profileId).gte('timestamp', args.startTimestamp),
+      )
+      .collect()
+  },
+})
+
+export const listAllDailyCategoryBalance = query({
+  args: {
+    workspaceId: v.id('workspaces'),
+    startTimestamp: v.number(),
+  },
+  handler: async (ctx, args) => {
+    const userId = await getAuthUserId(ctx)
+    if (!userId) return []
+    return await ctx.db
+      .query('dailyCategoryBalance')
+      .withIndex('by_workspaceId_timestamp', (q) =>
+        q
+          .eq('workspaceId', args.workspaceId)
+          .gte('timestamp', args.startTimestamp),
+      )
+      .collect()
+  },
+})

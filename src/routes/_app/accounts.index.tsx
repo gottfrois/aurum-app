@@ -68,7 +68,9 @@ function BankAccountsList({ categoryFilter }: { categoryFilter?: string }) {
     isAllProfiles,
     allProfileIds,
     singleProfileId,
+    profiles,
   } = useProfile()
+  const workspaceId = profiles?.[0]?.workspaceId ?? null
   const [period, setPeriod] = React.useState<Period>('1M')
   const startTimestamp = React.useMemo(
     () => getStartTimestamp(period),
@@ -90,18 +92,17 @@ function BankAccountsList({ categoryFilter }: { categoryFilter?: string }) {
     : allBankAccountsSingle
   const allBankAccounts = useDecryptRecords(rawAllBankAccounts)
 
-  const snapshotsSingle = useQuery(
-    api.balanceSnapshots.listSnapshotsByProfile,
+  const categoryBalanceSingle = useQuery(
+    api.balanceSnapshots.listDailyCategoryBalance,
     singleProfileId ? { profileId: singleProfileId, startTimestamp } : 'skip',
   )
-  const snapshotsAll = useQuery(
-    api.balanceSnapshots.listAllSnapshotsByProfiles,
-    isAllProfiles && allProfileIds.length > 0
-      ? { profileIds: allProfileIds, startTimestamp }
-      : 'skip',
+  const categoryBalanceAll = useQuery(
+    api.balanceSnapshots.listAllDailyCategoryBalance,
+    isAllProfiles && workspaceId ? { workspaceId, startTimestamp } : 'skip',
   )
-  const rawSnapshots = isAllProfiles ? snapshotsAll : snapshotsSingle
-  const snapshots = useDecryptRecords(rawSnapshots)
+  const categoryBalances = isAllProfiles
+    ? categoryBalanceAll
+    : categoryBalanceSingle
   const formatCurrency = useFormatCurrency()
   const [dialogOpen, setDialogOpen] = React.useState(false)
 
@@ -130,22 +131,25 @@ function BankAccountsList({ categoryFilter }: { categoryFilter?: string }) {
     )
   }, [bankAccounts])
 
-  // Build a map from bankAccountId -> categoryKey for visible accounts
-  const accountCategoryMap = React.useMemo(() => {
-    if (!bankAccounts) return new Map<string, string>()
-    const map = new Map<string, string>()
-    for (const a of bankAccounts) {
-      map.set(a._id, getCategoryKey(a.type))
-    }
-    return map
+  // Set of active category keys based on visible bank accounts
+  const activeCategoryKeys = React.useMemo(() => {
+    if (!bankAccounts) return new Set<string>()
+    return new Set(bankAccounts.map((a) => getCategoryKey(a.type)))
   }, [bankAccounts])
 
-  // Aggregate chart data across visible accounts (flat, for PnL computation)
+  // Filter category balances to only include visible categories
+  const filteredCategoryBalances = React.useMemo(() => {
+    if (!categoryBalances) return undefined
+    if (!categoryFilter) return categoryBalances
+    return categoryBalances.filter((s) => s.category === categoryFilter)
+  }, [categoryBalances, categoryFilter])
+
+  // Aggregate chart data across visible categories (flat, for PnL computation)
   const chartData = React.useMemo(() => {
-    if (!snapshots || !bankAccounts) return []
+    if (!filteredCategoryBalances) return []
     const dateMap = new Map<string, number>()
-    for (const s of snapshots) {
-      if (accountCategoryMap.has(s.bankAccountId)) {
+    for (const s of filteredCategoryBalances) {
+      if (activeCategoryKeys.has(s.category)) {
         dateMap.set(s.date, (dateMap.get(s.date) ?? 0) + s.balance)
       }
     }
@@ -153,20 +157,18 @@ function BankAccountsList({ categoryFilter }: { categoryFilter?: string }) {
       .sort(([a], [b]) => a.localeCompare(b))
       .map(([date, balance]) => ({ date, balance }))
     return fillMissingDates(sorted)
-  }, [snapshots, bankAccounts, accountCategoryMap])
+  }, [filteredCategoryBalances, activeCategoryKeys])
 
   // Stacked chart data: one key per category
   const stackedChartData = React.useMemo(() => {
-    if (!snapshots || !bankAccounts) return []
+    if (!filteredCategoryBalances) return []
     const dateMap = new Map<string, Record<string, number>>()
-    for (const s of snapshots) {
-      const catKey = accountCategoryMap.get(s.bankAccountId)
-      if (!catKey) continue
+    for (const s of filteredCategoryBalances) {
+      if (!activeCategoryKeys.has(s.category)) continue
       const entry = dateMap.get(s.date) ?? {}
-      entry[catKey] = (entry[catKey] ?? 0) + s.balance
+      entry[s.category] = (entry[s.category] ?? 0) + s.balance
       dateMap.set(s.date, entry)
     }
-    const activeCategoryKeys = new Set(accountCategoryMap.values())
     const sorted = [...dateMap.entries()]
       .sort(([a], [b]) => a.localeCompare(b))
       .map(([date, values]) => {
@@ -177,7 +179,7 @@ function BankAccountsList({ categoryFilter }: { categoryFilter?: string }) {
         return row
       })
     return fillMissingDatesStacked(sorted)
-  }, [snapshots, bankAccounts, accountCategoryMap])
+  }, [filteredCategoryBalances, activeCategoryKeys])
 
   // Category series config for the stacked chart
   const categoryColors: Record<string, string> = {
@@ -188,15 +190,14 @@ function BankAccountsList({ categoryFilter }: { categoryFilter?: string }) {
   }
 
   const activeCategorySeries = React.useMemo(() => {
-    const activeKeys = new Set(accountCategoryMap.values())
     return Object.entries(ACCOUNT_CATEGORIES)
-      .filter(([key]) => activeKeys.has(key))
+      .filter(([key]) => activeCategoryKeys.has(key))
       .map(([key, cat]) => ({
         key,
         label: cat.label,
         color: categoryColors[key] ?? 'var(--color-chart-5)',
       }))
-  }, [accountCategoryMap])
+  }, [activeCategoryKeys])
 
   if (profileLoading || bankAccounts === undefined) {
     return (
@@ -257,7 +258,7 @@ function BankAccountsList({ categoryFilter }: { categoryFilter?: string }) {
         <BalanceChart
           data={chartData}
           currency={currency}
-          isLoading={snapshots === undefined}
+          isLoading={categoryBalances === undefined}
           period={period}
           onPeriodChange={setPeriod}
           title={
@@ -272,7 +273,7 @@ function BankAccountsList({ categoryFilter }: { categoryFilter?: string }) {
           data={stackedChartData}
           categories={activeCategorySeries}
           currency={currency}
-          isLoading={snapshots === undefined}
+          isLoading={categoryBalances === undefined}
           period={period}
           onPeriodChange={setPeriod}
           title="Accounts"

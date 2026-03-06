@@ -8,6 +8,7 @@ import {
 } from './_generated/server'
 import { internal } from './_generated/api'
 import { getAuthUserId, requireAuthUserId } from './lib/auth'
+import { getCategoryKey } from './lib/accountCategories'
 import { encryptForProfile } from './lib/serverCrypto'
 import type { Doc, Id } from './_generated/dataModel'
 import type { MutationCtx } from './_generated/server'
@@ -112,17 +113,33 @@ async function recordBalanceSnapshot(
     })
   }
 
-  const profile = await ctx.db.get('profiles', params.profileId)
+  const [profile, bankAccount] = await Promise.all([
+    ctx.db.get('profiles', params.profileId),
+    ctx.db.get('bankAccounts', params.bankAccountId),
+  ])
   if (!profile) throw new Error('Profile not found')
 
-  await updateDailyNetWorth(ctx, {
-    profileId: params.profileId,
-    workspaceId: profile.workspaceId,
-    date,
-    timestamp,
-    balanceDelta: params.balance - oldBalance,
-    currency: params.currency,
-  })
+  const balanceDelta = params.balance - oldBalance
+
+  await Promise.all([
+    updateDailyNetWorth(ctx, {
+      profileId: params.profileId,
+      workspaceId: profile.workspaceId,
+      date,
+      timestamp,
+      balanceDelta,
+      currency: params.currency,
+    }),
+    updateDailyCategoryBalance(ctx, {
+      profileId: params.profileId,
+      workspaceId: profile.workspaceId,
+      category: getCategoryKey(bankAccount?.type),
+      date,
+      timestamp,
+      balanceDelta,
+      currency: params.currency,
+    }),
+  ])
 }
 
 async function updateDailyNetWorth(
@@ -151,6 +168,45 @@ async function updateDailyNetWorth(
     await ctx.db.insert('dailyNetWorth', {
       profileId: params.profileId,
       workspaceId: params.workspaceId,
+      date: params.date,
+      timestamp: params.timestamp,
+      balance: Math.round(params.balanceDelta * 100) / 100,
+      currency: params.currency,
+    })
+  }
+}
+
+async function updateDailyCategoryBalance(
+  ctx: MutationCtx,
+  params: {
+    profileId: Id<'profiles'>
+    workspaceId: Id<'workspaces'>
+    category: string
+    date: string
+    timestamp: number
+    balanceDelta: number
+    currency: string
+  },
+) {
+  const existing = await ctx.db
+    .query('dailyCategoryBalance')
+    .withIndex('by_profileId_category_date', (q) =>
+      q
+        .eq('profileId', params.profileId)
+        .eq('category', params.category)
+        .eq('date', params.date),
+    )
+    .first()
+
+  if (existing) {
+    await ctx.db.patch('dailyCategoryBalance', existing._id, {
+      balance: Math.round((existing.balance + params.balanceDelta) * 100) / 100,
+    })
+  } else {
+    await ctx.db.insert('dailyCategoryBalance', {
+      profileId: params.profileId,
+      workspaceId: params.workspaceId,
+      category: params.category,
       date: params.date,
       timestamp: params.timestamp,
       balance: Math.round(params.balanceDelta * 100) / 100,

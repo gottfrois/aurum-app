@@ -30,16 +30,7 @@ export const ACCOUNT_CATEGORIES: Record<string, AccountCategory> = {
   },
 }
 
-const typeToCategory = new Map<string, string>()
-for (const [key, cat] of Object.entries(ACCOUNT_CATEGORIES)) {
-  for (const t of cat.types) {
-    typeToCategory.set(t, key)
-  }
-}
-
-export function getCategoryKey(accountType: string | undefined): string {
-  return typeToCategory.get(accountType ?? '') ?? 'checking'
-}
+export { getCategoryKey } from '../../convex/lib/accountCategories'
 
 const INVESTMENT_ACCOUNT_TYPES = new Set(ACCOUNT_CATEGORIES.investments.types)
 

@@ -1,5 +1,6 @@
 import { v } from 'convex/values'
 import { internalMutation } from './_generated/server'
+import { getCategoryKey } from './lib/accountCategories'
 
 // Deterministic pseudo-random based on seed
 function seededRandom(seed: number): number {
@@ -360,7 +361,17 @@ export const seedDemoData = internalMutation({
       (now.getTime() - oneYearAgo.getTime()) / (1000 * 60 * 60 * 24),
     )
 
+    // Pre-fetch bank account types for category aggregation
+    const bankAccountTypes = new Map<string, string>()
+    await Promise.all(
+      accounts.map(async (account) => {
+        const ba = await ctx.db.get('bankAccounts', account.id)
+        if (ba) bankAccountTypes.set(ba._id, getCategoryKey(ba.type))
+      }),
+    )
+
     for (const account of accounts) {
+      const category = bankAccountTypes.get(account.id) ?? 'checking'
       let balance = account.base
       let seed = Math.round(account.base * 7.13)
       let momentum = 0
@@ -444,29 +455,56 @@ export const seedDemoData = internalMutation({
           encrypted: false,
         })
 
-        // Update dailyNetWorth aggregate
-        const existingDnw = await ctx.db
-          .query('dailyNetWorth')
-          .withIndex('by_profileId_date', (q) =>
-            q.eq('profileId', profile._id).eq('date', dateStr),
-          )
-          .first()
+        // Update dailyNetWorth and dailyCategoryBalance aggregates
+        const [existingDnw, existingDcb] = await Promise.all([
+          ctx.db
+            .query('dailyNetWorth')
+            .withIndex('by_profileId_date', (q) =>
+              q.eq('profileId', profile._id).eq('date', dateStr),
+            )
+            .first(),
+          ctx.db
+            .query('dailyCategoryBalance')
+            .withIndex('by_profileId_category_date', (q) =>
+              q
+                .eq('profileId', profile._id)
+                .eq('category', category)
+                .eq('date', dateStr),
+            )
+            .first(),
+        ])
 
-        if (existingDnw) {
-          await ctx.db.patch('dailyNetWorth', existingDnw._id, {
-            balance:
-              Math.round((existingDnw.balance + snapshotBalance) * 100) / 100,
-          })
-        } else {
-          await ctx.db.insert('dailyNetWorth', {
-            profileId: profile._id,
-            workspaceId: profile.workspaceId,
-            date: dateStr,
-            timestamp,
-            balance: snapshotBalance,
-            currency: 'EUR',
-          })
-        }
+        await Promise.all([
+          existingDnw
+            ? ctx.db.patch('dailyNetWorth', existingDnw._id, {
+                balance:
+                  Math.round((existingDnw.balance + snapshotBalance) * 100) /
+                  100,
+              })
+            : ctx.db.insert('dailyNetWorth', {
+                profileId: profile._id,
+                workspaceId: profile.workspaceId,
+                date: dateStr,
+                timestamp,
+                balance: snapshotBalance,
+                currency: 'EUR',
+              }),
+          existingDcb
+            ? ctx.db.patch('dailyCategoryBalance', existingDcb._id, {
+                balance:
+                  Math.round((existingDcb.balance + snapshotBalance) * 100) /
+                  100,
+              })
+            : ctx.db.insert('dailyCategoryBalance', {
+                profileId: profile._id,
+                workspaceId: profile.workspaceId,
+                category,
+                date: dateStr,
+                timestamp,
+                balance: snapshotBalance,
+                currency: 'EUR',
+              }),
+        ])
 
         current.setDate(current.getDate() + 1)
         dayIndex++
@@ -494,26 +532,36 @@ export const clearDemoData = internalMutation({
       .first()
     if (!profile) throw new Error('No profile found')
 
-    // Delete all seeded snapshots and dailyNetWorth entries for this profile
-    const [snapshots, dailyNetWorthEntries] = await Promise.all([
-      ctx.db
-        .query('balanceSnapshots')
-        .withIndex('by_profileId_timestamp', (q) =>
-          q.eq('profileId', profile._id),
-        )
-        .collect(),
-      ctx.db
-        .query('dailyNetWorth')
-        .withIndex('by_profileId_timestamp', (q) =>
-          q.eq('profileId', profile._id),
-        )
-        .collect(),
-    ])
+    // Delete all seeded snapshots and aggregate entries for this profile
+    const [snapshots, dailyNetWorthEntries, dailyCategoryEntries] =
+      await Promise.all([
+        ctx.db
+          .query('balanceSnapshots')
+          .withIndex('by_profileId_timestamp', (q) =>
+            q.eq('profileId', profile._id),
+          )
+          .collect(),
+        ctx.db
+          .query('dailyNetWorth')
+          .withIndex('by_profileId_timestamp', (q) =>
+            q.eq('profileId', profile._id),
+          )
+          .collect(),
+        ctx.db
+          .query('dailyCategoryBalance')
+          .withIndex('by_profileId_timestamp', (q) =>
+            q.eq('profileId', profile._id),
+          )
+          .collect(),
+      ])
     await Promise.all([
       ...snapshots
         .filter((s) => s.seed)
         .map((s) => ctx.db.delete('balanceSnapshots', s._id)),
       ...dailyNetWorthEntries.map((d) => ctx.db.delete('dailyNetWorth', d._id)),
+      ...dailyCategoryEntries.map((d) =>
+        ctx.db.delete('dailyCategoryBalance', d._id),
+      ),
     ])
 
     // Delete all investments for this profile

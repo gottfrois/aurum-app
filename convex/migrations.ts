@@ -1,4 +1,5 @@
 import { internalMutation } from './_generated/server'
+import { getCategoryKey } from './lib/accountCategories'
 import type { Id } from './_generated/dataModel'
 
 export const backfillBalanceSnapshots = internalMutation({
@@ -147,6 +148,101 @@ export const backfillDailyNetWorth = internalMutation({
           return ctx.db.insert('dailyNetWorth', {
             profileId: agg.profileId,
             workspaceId: agg.workspaceId,
+            date: agg.date,
+            timestamp: agg.timestamp,
+            balance: Math.round(agg.balance * 100) / 100,
+            currency: agg.currency,
+          })
+        }
+      }),
+    )
+    return { backfilled: count }
+  },
+})
+
+export const backfillDailyCategoryBalance = internalMutation({
+  args: {},
+  handler: async (ctx) => {
+    const [snapshots, bankAccounts, profiles] = await Promise.all([
+      ctx.db.query('balanceSnapshots').collect(),
+      ctx.db.query('bankAccounts').collect(),
+      ctx.db.query('profiles').collect(),
+    ])
+
+    const bankAccountMap = new Map(bankAccounts.map((ba) => [ba._id, ba]))
+    const profileWorkspaceMap = new Map<string, Id<'workspaces'>>(
+      profiles.map((p) => [p._id, p.workspaceId]),
+    )
+
+    // Group by profileId + category + date
+    const aggregates = new Map<
+      string,
+      {
+        profileId: Id<'profiles'>
+        workspaceId: Id<'workspaces'>
+        category: string
+        date: string
+        timestamp: number
+        balance: number
+        currency: string
+      }
+    >()
+
+    for (const s of snapshots) {
+      const ba = bankAccountMap.get(s.bankAccountId)
+      const workspaceId = profileWorkspaceMap.get(s.profileId)
+      if (!workspaceId) continue
+      const category = getCategoryKey(ba?.type)
+      const key = `${s.profileId}:${category}:${s.date}`
+      const existing = aggregates.get(key)
+      if (existing) {
+        existing.balance += s.balance
+        if (s.timestamp > existing.timestamp) {
+          existing.timestamp = s.timestamp
+        }
+      } else {
+        aggregates.set(key, {
+          profileId: s.profileId,
+          workspaceId,
+          category,
+          date: s.date,
+          timestamp: s.timestamp,
+          balance: s.balance,
+          currency: s.currency,
+        })
+      }
+    }
+
+    const aggValues = [...aggregates.values()]
+
+    const existingEntries = await Promise.all(
+      aggValues.map((agg) =>
+        ctx.db
+          .query('dailyCategoryBalance')
+          .withIndex('by_profileId_category_date', (q) =>
+            q
+              .eq('profileId', agg.profileId)
+              .eq('category', agg.category)
+              .eq('date', agg.date),
+          )
+          .first(),
+      ),
+    )
+
+    let count = 0
+    await Promise.all(
+      aggValues.map((agg, i) => {
+        const existing = existingEntries[i]
+        if (existing) {
+          return ctx.db.patch('dailyCategoryBalance', existing._id, {
+            balance: Math.round(agg.balance * 100) / 100,
+          })
+        } else {
+          count++
+          return ctx.db.insert('dailyCategoryBalance', {
+            profileId: agg.profileId,
+            workspaceId: agg.workspaceId,
+            category: agg.category,
             date: agg.date,
             timestamp: agg.timestamp,
             balance: Math.round(agg.balance * 100) / 100,
