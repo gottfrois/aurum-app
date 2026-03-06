@@ -5,7 +5,7 @@ import { api } from '../../../convex/_generated/api'
 import type { Doc } from '../../../convex/_generated/dataModel'
 import { SiteHeader } from '~/components/site-header'
 import { useProfile } from '~/contexts/profile-context'
-import { User, Briefcase, Users, Pencil, Trash2 } from 'lucide-react'
+import { User, Briefcase, Users, Pencil, Trash2, Copy, Check } from 'lucide-react'
 import { Button } from '~/components/ui/button'
 import { Input } from '~/components/ui/input'
 import { Label } from '~/components/ui/label'
@@ -28,6 +28,7 @@ import {
   DialogTitle,
 } from '~/components/ui/dialog'
 import { Skeleton } from '~/components/ui/skeleton'
+import { Badge } from '~/components/ui/badge'
 
 export const Route = createFileRoute('/_app/profiles')({
   component: ProfilesPage,
@@ -54,6 +55,7 @@ function ProfilesPage() {
   const [deletingProfile, setDeletingProfile] = React.useState<Doc<'profiles'> | null>(null)
   const [deleteConfirmName, setDeleteConfirmName] = React.useState('')
   const [isDeleting, setIsDeleting] = React.useState(false)
+  const [copied, setCopied] = React.useState(false)
 
   function openEdit(profile: Doc<'profiles'>) {
     setEditingProfile(profile)
@@ -69,6 +71,14 @@ function ProfilesPage() {
   function openDelete(profile: Doc<'profiles'>) {
     setDeletingProfile(profile)
     setDeleteConfirmName('')
+    setCopied(false)
+  }
+
+  async function handleCopyName() {
+    if (!deletingProfile) return
+    await navigator.clipboard.writeText(deletingProfile.name)
+    setCopied(true)
+    setTimeout(() => setCopied(false), 2000)
   }
 
   async function handleDelete() {
@@ -190,17 +200,30 @@ function ProfilesPage() {
       <Dialog open={!!deletingProfile} onOpenChange={(open) => { if (!open) setDeletingProfile(null) }}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Delete {deletingProfile?.name}?</DialogTitle>
+            <DialogTitle>Delete Profile</DialogTitle>
             <DialogDescription>
-              This will permanently delete this profile and all associated data
-              including connections, bank accounts, and balance history. This
-              action cannot be undone.
+              Deleting <span className="font-semibold">{deletingProfile?.name}</span> is
+              permanent and cannot be undone. Deleting a profile also deletes
+              all associated accounts & connections.
             </DialogDescription>
           </DialogHeader>
           <div className="grid gap-4 py-4">
             <div className="grid gap-2">
-              <Label htmlFor="delete-confirm">
-                Type <span className="font-semibold">{deletingProfile?.name}</span> to confirm
+              <Label htmlFor="delete-confirm" className="flex flex-wrap items-center gap-1">
+                Type
+                <Badge
+                  variant="secondary"
+                  className="cursor-pointer gap-1 font-mono"
+                  onClick={handleCopyName}
+                >
+                  {deletingProfile?.name}
+                  {copied ? (
+                    <Check className="size-3" />
+                  ) : (
+                    <Copy className="size-3" />
+                  )}
+                </Badge>
+                to confirm
               </Label>
               <Input
                 id="delete-confirm"
@@ -223,7 +246,7 @@ function ProfilesPage() {
               onClick={handleDelete}
               disabled={deleteConfirmName !== deletingProfile?.name || isDeleting}
             >
-              Delete Profile
+              Delete
             </Button>
           </DialogFooter>
         </DialogContent>
