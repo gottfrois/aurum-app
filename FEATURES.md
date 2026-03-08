@@ -106,18 +106,18 @@ Export all data as an encrypted JSON/CSV file. Users own their data — they can
 
 ## Summary
 
-| # | Feature                        | Value | Effort   | Type              |
-|---|--------------------------------|-------|----------|-------------------|
-| 1 | AI Financial Copilot           | 10    | Medium   | AI / Differentiator |
-| 2 | Transactions & Cash Flow       | 10    | Medium   | Must-Have         |
-| 3 | AI Spending Anomaly Detection  | 9     | Low      | AI / Differentiator |
-| 4 | FIRE Calculator                | 9     | Low      | Differentiator    |
-| 5 | Spending Breakdown             | 8     | Low-Med  | Must-Have         |
-| 6 | AI Monthly Report              | 8     | Low      | AI / Differentiator |
-| 7 | Subscription Tracker           | 8     | Low      | Differentiator    |
-| 8 | Multi-Currency & Crypto        | 7     | Medium   | Must-Have         |
-| 9 | Household Finance              | 7     | Low      | Differentiator    |
-| 10| Encrypted Data Export          | 6     | Very Low | Differentiator    |
+| #   | Feature                       | Value | Effort   | Type                |
+| --- | ----------------------------- | ----- | -------- | ------------------- |
+| 1   | AI Financial Copilot          | 10    | Medium   | AI / Differentiator |
+| 2   | Transactions & Cash Flow      | 10    | Medium   | Must-Have           |
+| 3   | AI Spending Anomaly Detection | 9     | Low      | AI / Differentiator |
+| 4   | FIRE Calculator               | 9     | Low      | Differentiator      |
+| 5   | Spending Breakdown            | 8     | Low-Med  | Must-Have           |
+| 6   | AI Monthly Report             | 8     | Low      | AI / Differentiator |
+| 7   | Subscription Tracker          | 8     | Low      | Differentiator      |
+| 8   | Multi-Currency & Crypto       | 7     | Medium   | Must-Have           |
+| 9   | Household Finance             | 7     | Low      | Differentiator      |
+| 10  | Encrypted Data Export         | 6     | Very Low | Differentiator      |
 
 ### Quick wins to ship first
 

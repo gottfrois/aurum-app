@@ -90,7 +90,10 @@ function BankAccountsList({ categoryFilter }: { categoryFilter?: string }) {
   const rawAllBankAccounts = isAllProfiles
     ? allBankAccountsAll
     : allBankAccountsSingle
-  const allBankAccounts = useCachedDecryptRecords('bankAccounts', rawAllBankAccounts)
+  const allBankAccounts = useCachedDecryptRecords(
+    'bankAccounts',
+    rawAllBankAccounts,
+  )
 
   const categoryBalanceSingle = useQuery(
     api.balanceSnapshots.listDailyCategoryBalance,
