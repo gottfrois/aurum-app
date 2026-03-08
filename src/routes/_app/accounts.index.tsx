@@ -36,7 +36,7 @@ import {
   fillMissingDatesStacked,
 } from '~/lib/fill-missing-dates'
 import { useFormatCurrency } from '~/contexts/privacy-context'
-import { useDecryptRecords } from '~/contexts/encryption-context'
+import { useCachedDecryptRecords } from '~/hooks/use-cached-decrypt'
 
 export const Route = createFileRoute('/_app/accounts/')({
   component: AccountsPage,
@@ -90,7 +90,7 @@ function BankAccountsList({ categoryFilter }: { categoryFilter?: string }) {
   const rawAllBankAccounts = isAllProfiles
     ? allBankAccountsAll
     : allBankAccountsSingle
-  const allBankAccounts = useDecryptRecords(rawAllBankAccounts)
+  const allBankAccounts = useCachedDecryptRecords('bankAccounts', rawAllBankAccounts)
 
   const categoryBalanceSingle = useQuery(
     api.balanceSnapshots.listDailyCategoryBalance,

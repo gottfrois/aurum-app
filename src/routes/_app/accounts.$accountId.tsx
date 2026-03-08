@@ -15,9 +15,9 @@ import { fillMissingDates } from '~/lib/fill-missing-dates'
 import { isInvestmentAccount } from '~/lib/account-categories'
 import { useFormatCurrency } from '~/contexts/privacy-context'
 import {
-  useDecryptRecord,
-  useDecryptRecords,
-} from '~/contexts/encryption-context'
+  useCachedDecryptRecord,
+  useCachedDecryptRecords,
+} from '~/hooks/use-cached-decrypt'
 
 export const Route = createFileRoute('/_app/accounts/$accountId')({
   component: AccountDetailPage,
@@ -34,13 +34,13 @@ function AccountDetailPage() {
   const rawBankAccount = useQuery(api.powens.getBankAccount, {
     bankAccountId: accountId as Id<'bankAccounts'>,
   })
-  const bankAccount = useDecryptRecord(rawBankAccount)
+  const bankAccount = useCachedDecryptRecord('bankAccounts', rawBankAccount)
 
   const rawSnapshots = useQuery(api.balanceSnapshots.listSnapshots, {
     bankAccountId: accountId as Id<'bankAccounts'>,
     startTimestamp,
   })
-  const snapshots = useDecryptRecords(rawSnapshots)
+  const snapshots = useCachedDecryptRecords('balanceSnapshots', rawSnapshots)
 
   const isInvestment = isInvestmentAccount(bankAccount?.type ?? undefined)
 
@@ -48,7 +48,7 @@ function AccountDetailPage() {
     api.investments.listInvestments,
     isInvestment ? { bankAccountId: accountId as Id<'bankAccounts'> } : 'skip',
   )
-  const investments = useDecryptRecords(rawInvestments)
+  const investments = useCachedDecryptRecords('investments', rawInvestments)
 
   const formatCurrency = useFormatCurrency()
 

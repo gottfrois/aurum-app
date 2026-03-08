@@ -13,7 +13,7 @@ import {
   EmptyTitle,
 } from '~/components/ui/empty'
 import { useProfile } from '~/contexts/profile-context'
-import { useDecryptRecords } from '~/contexts/encryption-context'
+import { useCachedDecryptRecords } from '~/hooks/use-cached-decrypt'
 import { AddConnectionDialog } from '~/components/add-connection-dialog'
 import { Button } from '~/components/ui/button'
 import {
@@ -106,7 +106,7 @@ function ConnectionsList() {
       : 'skip',
   )
   const rawConnections = isAllProfiles ? connectionsAll : connectionsSingle
-  const connections = useDecryptRecords(rawConnections)
+  const connections = useCachedDecryptRecords('connections', rawConnections)
 
   const bankAccountsSingle = useQuery(
     api.powens.listBankAccounts,

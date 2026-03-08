@@ -24,7 +24,7 @@ import { fillMissingDates } from '~/lib/fill-missing-dates'
 import { AllocationChart, CATEGORY_COLORS } from '~/components/allocation-chart'
 import { ACCOUNT_CATEGORIES, getCategoryKey } from '~/lib/account-categories'
 import { useFormatCurrency } from '~/contexts/privacy-context'
-import { useDecryptRecords } from '~/contexts/encryption-context'
+import { useCachedDecryptRecords } from '~/hooks/use-cached-decrypt'
 import { WinnersLosers } from '~/components/winners-losers'
 
 export const Route = createFileRoute('/_app/')({
@@ -70,7 +70,7 @@ function BankAccountsSection() {
       : 'skip',
   )
   const rawBankAccounts = isAllProfiles ? bankAccountsAll : bankAccountsSingle
-  const bankAccounts = useDecryptRecords(rawBankAccounts)
+  const bankAccounts = useCachedDecryptRecords('bankAccounts', rawBankAccounts)
 
   const netWorthSingle = useQuery(
     api.balanceSnapshots.listDailyNetWorth,
@@ -93,7 +93,7 @@ function BankAccountsSection() {
       : 'skip',
   )
   const rawInvestments = isAllProfiles ? investmentsAll : investmentsSingle
-  const investments = useDecryptRecords(rawInvestments)
+  const investments = useCachedDecryptRecords('investments', rawInvestments)
 
   const formatCurrency = useFormatCurrency()
   const [dialogOpen, setDialogOpen] = React.useState(false)

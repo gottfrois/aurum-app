@@ -11,6 +11,7 @@ import {
   importPrivateKey,
   storePrivateKey,
 } from '~/lib/crypto'
+import { clearCache } from '~/lib/cache-db'
 
 interface EncryptionContextValue {
   isEncryptionEnabled: boolean
@@ -127,6 +128,7 @@ export function EncryptionProvider({
     clearStoredPrivateKey()
     setPrivateKey(null)
     setWorkspacePrivateKeyJwk(null)
+    clearCache()
   }, [])
 
   const value = React.useMemo(
