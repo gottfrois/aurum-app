@@ -1278,6 +1278,16 @@ export const upsertInvestments = internalMutation({
   },
 })
 
+export const listConnectionsByProfile = internalQuery({
+  args: { profileId: v.id('profiles') },
+  handler: async (ctx, args) => {
+    return await ctx.db
+      .query('connections')
+      .withIndex('by_profileId', (q) => q.eq('profileId', args.profileId))
+      .collect()
+  },
+})
+
 export const listBankAccountsByConnection = internalQuery({
   args: { connectionId: v.id('connections') },
   handler: async (ctx, args) => {
@@ -1651,6 +1661,156 @@ export const syncTransactionsFromWebhook = internalAction({
         offset += limit
       }
     }
+  },
+})
+
+export const backfillTransactions = internalAction({
+  args: {
+    profileId: v.id('profiles'),
+    minDate: v.optional(v.string()),
+  },
+  handler: async (ctx, args) => {
+    const { baseUrl } = getPowensConfig()
+
+    const profile = await ctx.runQuery(internal.powens.getProfileInternal, {
+      profileId: args.profileId,
+    })
+    if (!profile?.powensUserToken) {
+      throw new Error('No Powens token found for this profile')
+    }
+
+    const publicKey: string | null = await ctx.runQuery(
+      internal.encryptionKeys.getPublicKeyForProfile,
+      { profileId: args.profileId },
+    )
+
+    const categoryRules = await ctx.runQuery(
+      internal.categoryRules.listRulesForWorkspace,
+      { workspaceId: profile.workspaceId },
+    )
+
+    const connections = await ctx.runQuery(
+      internal.powens.listConnectionsByProfile,
+      { profileId: args.profileId },
+    )
+
+    const bankAccounts = (
+      await Promise.all(
+        connections.map((c) =>
+          ctx.runQuery(internal.powens.listBankAccountsByConnection, {
+            connectionId: c._id,
+          }),
+        ),
+      )
+    ).flat()
+
+    let totalSynced = 0
+
+    for (const ba of bankAccounts) {
+      if (INVESTMENT_TYPES.includes(ba.type ?? '')) continue
+
+      let offset = 0
+      const limit = 1000
+
+      for (;;) {
+        const params = new URLSearchParams({
+          limit: String(limit),
+          offset: String(offset),
+          expand: 'category',
+        })
+        if (args.minDate) {
+          params.set('min_date', args.minDate)
+        }
+
+        const response = await fetch(
+          `${baseUrl}/users/me/accounts/${ba.powensBankAccountId}/transactions?${params.toString()}`,
+          { headers: { Authorization: `Bearer ${profile.powensUserToken}` } },
+        )
+
+        if (!response.ok) break
+
+        const data = (await response.json()) as PowensTransactionResponse
+        const rawTransactions = (data.transactions ?? []).map(
+          mapPowensTransaction,
+        )
+
+        if (rawTransactions.length === 0) break
+
+        for (const txn of rawTransactions) {
+          if (txn.userCategoryKey) continue
+          const text = [txn.wording, txn.originalWording, txn.simplifiedWording]
+            .filter(Boolean)
+            .join(' ')
+          for (const rule of categoryRules) {
+            let matched = false
+            if (rule.matchType === 'contains') {
+              matched = text.toLowerCase().includes(rule.pattern.toLowerCase())
+            } else {
+              try {
+                matched = new RegExp(rule.pattern, 'i').test(text)
+              } catch {
+                // invalid regex, skip
+              }
+            }
+            if (matched) {
+              txn.userCategoryKey = rule.categoryKey
+              break
+            }
+          }
+        }
+
+        let transactions: Array<MappedTransaction> = rawTransactions
+        if (publicKey) {
+          transactions = await Promise.all(
+            rawTransactions.map(async (txn) => {
+              const encData = await encryptForProfile(
+                {
+                  wording: txn.wording,
+                  originalWording: txn.originalWording,
+                  simplifiedWording: txn.simplifiedWording,
+                  value: txn.value,
+                  originalValue: txn.originalValue,
+                  counterparty: txn.counterparty,
+                  card: txn.card,
+                  comment: txn.comment,
+                  category: txn.category,
+                  categoryParent: txn.categoryParent,
+                  userCategoryKey: txn.userCategoryKey,
+                },
+                publicKey,
+              )
+              return {
+                ...txn,
+                wording: 'Encrypted',
+                originalWording: undefined,
+                simplifiedWording: undefined,
+                value: 0,
+                originalValue: undefined,
+                counterparty: undefined,
+                card: undefined,
+                comment: undefined,
+                category: undefined,
+                categoryParent: undefined,
+                userCategoryKey: undefined,
+                encryptedData: encData,
+              }
+            }),
+          )
+        }
+
+        await ctx.runMutation(internal.powens.upsertTransactions, {
+          bankAccountId: ba._id,
+          profileId: args.profileId,
+          transactions,
+        })
+
+        totalSynced += rawTransactions.length
+        if (rawTransactions.length < limit) break
+        offset += limit
+      }
+    }
+
+    return { synced: totalSynced }
   },
 })
 
