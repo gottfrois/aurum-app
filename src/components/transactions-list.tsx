@@ -177,15 +177,6 @@ export function TransactionsList({ data, currency }: TransactionsListProps) {
           )
         },
       },
-      {
-        accessorKey: 'type',
-        header: 'Type',
-        cell: ({ getValue }) => (
-          <span className="text-muted-foreground capitalize">
-            {getValue<string>()}
-          </span>
-        ),
-      },
     ],
     [currency, formatCurrency],
   )
