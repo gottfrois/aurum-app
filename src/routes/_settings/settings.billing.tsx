@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { Link, createFileRoute } from '@tanstack/react-router'
 import { useAction, useQuery } from 'convex/react'
-import { ExternalLink } from 'lucide-react'
+import { ExternalLink, Ticket } from 'lucide-react'
 import { CustomerPortalLink } from '@convex-dev/polar/react'
 import { api } from '../../../convex/_generated/api'
 import {
@@ -61,13 +61,29 @@ interface Order {
 function BillingPage() {
   const subscription = useQuery(api.billing.getSubscriptionStatus)
   const listRecentOrders = useAction(api.billing.listRecentOrders)
+  const getDiscountDetails = useAction(api.billing.getDiscountDetails)
   const [orders, setOrders] = useState<Array<Order> | undefined>(undefined)
+  const [discount, setDiscount] = useState<{
+    name: string
+    type: 'percentage' | 'fixed'
+    amount: number
+    duration: 'once' | 'repeating' | 'forever'
+    durationInMonths: number | null
+  } | null>(null)
 
   useEffect(() => {
     if (subscription?.isActive) {
       void listRecentOrders().then(setOrders)
     }
   }, [subscription?.isActive, listRecentOrders])
+
+  useEffect(() => {
+    if (subscription?.discountId) {
+      void getDiscountDetails({ discountId: subscription.discountId }).then(
+        setDiscount,
+      )
+    }
+  }, [subscription?.discountId, getDiscountDetails])
 
   if (subscription === undefined) {
     return (
@@ -169,12 +185,43 @@ function BillingPage() {
               ) : subscription.renewsAt ? (
                 <p className="mt-1 text-sm text-muted-foreground">
                   {formatDate(subscription.renewsAt)}
-                  {displayPrice !== null && <> — {displayPrice}&#8364;</>}
+                  {displayPrice !== null &&
+                  subscription.amount !== null &&
+                  subscription.amount !== displayPrice * 100 ? (
+                    <>
+                      {' — '}
+                      <span className="line-through">
+                        {displayPrice}&#8364;
+                      </span>{' '}
+                      {formatCurrency(
+                        subscription.amount,
+                        subscription.currency ?? 'eur',
+                      )}
+                    </>
+                  ) : displayPrice !== null ? (
+                    <> — {displayPrice}&#8364;</>
+                  ) : null}
                 </p>
               ) : (
                 <p className="mt-1 text-sm text-muted-foreground">—</p>
               )}
             </div>
+
+            {discount && (
+              <div className="col-span-3 flex items-center gap-1.5 border-t pt-4 text-sm text-muted-foreground">
+                <Ticket className="size-3.5" />
+                <span>
+                  {discount.type === 'percentage'
+                    ? `${discount.amount}% off`
+                    : `${formatCurrency(discount.amount, 'eur')} off`}
+                  {discount.duration === 'forever'
+                    ? ' forever'
+                    : discount.duration === 'once'
+                      ? ' (first payment)'
+                      : ` for ${discount.durationInMonths} months`}
+                </span>
+              </div>
+            )}
           </div>
         ) : (
           <div className="flex items-center justify-between rounded-lg border p-6">

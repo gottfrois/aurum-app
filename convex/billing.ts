@@ -62,6 +62,48 @@ export const getOwnerSubscription = internalQuery({
   },
 })
 
+interface PolarDiscount {
+  id: string
+  name: string
+  type: 'percentage' | 'fixed'
+  amount: number
+  duration: 'once' | 'repeating' | 'forever'
+  duration_in_months: number | null
+}
+
+export const getDiscountDetails = action({
+  args: { discountId: v.string() },
+  handler: async (ctx, { discountId }) => {
+    await requireAuthUserId(ctx)
+
+    const token = process.env.POLAR_ORGANIZATION_TOKEN
+    if (!token) return null
+
+    const server = process.env.POLAR_SERVER ?? 'sandbox'
+    const baseUrl =
+      server === 'production'
+        ? 'https://api.polar.sh'
+        : 'https://sandbox-api.polar.sh'
+
+    const res = await fetch(`${baseUrl}/v1/discounts/${discountId}`, {
+      headers: { Authorization: `Bearer ${token}` },
+    })
+
+    if (!res.ok) return null
+
+    const data = (await res.json()) as PolarDiscount
+
+    return {
+      id: data.id,
+      name: data.name,
+      type: data.type,
+      amount: data.amount,
+      duration: data.duration,
+      durationInMonths: data.duration_in_months,
+    }
+  },
+})
+
 interface PolarOrder {
   id: string
   created_at: string

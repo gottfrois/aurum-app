@@ -12,6 +12,9 @@ export interface SubscriptionStatus {
   tier: PlanTier | null
   interval: 'monthly' | 'yearly' | null
   productKey: string | null
+  discountId: string | null
+  amount: number | null
+  currency: string | null
 }
 
 const NO_SUBSCRIPTION: SubscriptionStatus = {
@@ -23,6 +26,9 @@ const NO_SUBSCRIPTION: SubscriptionStatus = {
   tier: null,
   interval: null,
   productKey: null,
+  discountId: null,
+  amount: null,
+  currency: null,
 }
 
 function getTierFromProductKey(productKey: string): PlanTier | null {
@@ -76,5 +82,8 @@ export async function getWorkspaceSubscription(
     tier: getTierFromProductKey(productKey),
     interval: getIntervalFromProductKey(productKey),
     productKey,
+    discountId: subscription.discountId ?? null,
+    amount: subscription.amount ?? null,
+    currency: subscription.currency ?? null,
   }
 }
