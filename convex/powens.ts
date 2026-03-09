@@ -860,6 +860,34 @@ export const syncConnectionFromWebhook = internalMutation({
   },
 })
 
+export const updateConnectionState = internalMutation({
+  args: {
+    powensConnectionId: v.number(),
+    state: v.optional(v.string()),
+  },
+  handler: async (ctx, args) => {
+    const existing = await ctx.db
+      .query('connections')
+      .withIndex('by_powensConnectionId', (q) =>
+        q.eq('powensConnectionId', args.powensConnectionId),
+      )
+      .first()
+
+    if (existing) {
+      await ctx.db.patch('connections', existing._id, {
+        state: args.state,
+      })
+      console.log(
+        `[powens] Updated connection ${args.powensConnectionId} state to: ${args.state ?? 'null'}`,
+      )
+    } else {
+      console.warn(
+        `[powens] No connection found for powensConnectionId ${args.powensConnectionId} — cannot update state`,
+      )
+    }
+  },
+})
+
 export const deleteConnection = action({
   args: {
     connectionId: v.id('connections'),

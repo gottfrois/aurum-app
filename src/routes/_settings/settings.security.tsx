@@ -2,7 +2,6 @@ import { useCallback, useEffect, useState } from 'react'
 import { createFileRoute } from '@tanstack/react-router'
 import { useSession, useUser } from '@clerk/tanstack-react-start'
 import { toast } from 'sonner'
-import type { SessionWithActivitiesResource } from '@clerk/shared/types'
 import {
   ItemCard,
   ItemCardItem,
@@ -14,6 +13,10 @@ import {
 } from '~/components/item-card'
 import { Button } from '~/components/ui/button'
 import { Skeleton } from '~/components/ui/skeleton'
+
+type SessionWithActivitiesResource = Awaited<
+  ReturnType<NonNullable<ReturnType<typeof useUser>['user']>['getSessions']>
+>[number]
 
 export const Route = createFileRoute('/_settings/settings/security')({
   component: SecurityPage,
