@@ -6,6 +6,7 @@ import {
   Check,
   Clock,
   Copy,
+  KeyRound,
   Lock,
   ShieldCheck,
   TriangleAlert,
@@ -24,6 +25,7 @@ import {
   exportPrivateKey,
   exportPublicKey,
   generateKeyPair,
+  importPrivateKey,
   importPublicKey,
   storePrivateKey,
 } from '~/lib/crypto'
@@ -70,6 +72,7 @@ function EncryptionPage() {
   const [memberSetupOpen, setMemberSetupOpen] = useState(false)
   const [migrateOpen, setMigrateOpen] = useState(false)
   const [disableOpen, setDisableOpen] = useState(false)
+  const [rotateOpen, setRotateOpen] = useState(false)
 
   const shouldQueryMigration =
     isEncryptionEnabled && isUnlocked && allProfileIds.length > 0
@@ -246,6 +249,27 @@ function EncryptionPage() {
                 </ItemCardItemAction>
               </ItemCardItem>
             )}
+
+            {isEncryptionEnabled && isUnlocked && role === 'owner' && (
+              <ItemCardItem>
+                <ItemCardItemContent>
+                  <ItemCardItemTitle>Key rotation</ItemCardItemTitle>
+                  <ItemCardItemDescription>
+                    Generate a new workspace keypair and re-encrypt all data.
+                    Other members will need to be re-granted access.
+                  </ItemCardItemDescription>
+                </ItemCardItemContent>
+                <ItemCardItemAction>
+                  <Button
+                    variant="outline"
+                    onClick={() => setRotateOpen(true)}
+                  >
+                    <KeyRound className="size-4" />
+                    Rotate keys
+                  </Button>
+                </ItemCardItemAction>
+              </ItemCardItem>
+            )}
           </ItemCardItems>
         </ItemCard>
 
@@ -262,6 +286,9 @@ function EncryptionPage() {
       )}
       {disableOpen && (
         <DisableDialog open={disableOpen} onOpenChange={setDisableOpen} />
+      )}
+      {rotateOpen && (
+        <KeyRotationDialog open={rotateOpen} onOpenChange={setRotateOpen} />
       )}
     </div>
   )
@@ -363,16 +390,27 @@ function MembersAccessSection() {
                     </Badge>
                   )}
                   {status === 'pending' && (
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      disabled={
-                        granting === m.userId || !workspacePrivateKeyJwk
-                      }
-                      onClick={() => handleGrantAccess(m.userId, m.publicKey!)}
-                    >
-                      {granting === m.userId ? 'Granting...' : 'Grant access'}
-                    </Button>
+                    <div className="flex flex-col items-end gap-1">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        disabled={
+                          granting === m.userId || !workspacePrivateKeyJwk
+                        }
+                        onClick={() =>
+                          handleGrantAccess(m.userId, m.publicKey!)
+                        }
+                      >
+                        {granting === m.userId
+                          ? 'Granting...'
+                          : 'Grant access'}
+                      </Button>
+                      {!workspacePrivateKeyJwk && (
+                        <p className="text-xs text-muted-foreground">
+                          Re-enter passphrase to grant access
+                        </p>
+                      )}
+                    </div>
                   )}
                   {status === 'no-setup' && (
                     <Badge variant="outline">
@@ -446,8 +484,9 @@ function SetupDialog({
         ownerKeySlotEncryptedPrivateKey: ownerKeySlotEncrypted,
       })
 
-      // Store workspace private key locally for immediate use
-      storePrivateKey(wsPrivateKeyJwk)
+      // Import as non-extractable CryptoKey and store in IndexedDB
+      const wsKey = await importPrivateKey(wsPrivateKeyJwk)
+      await storePrivateKey(wsKey)
 
       toast.success('Encryption enabled')
       onOpenChange(false)
@@ -694,6 +733,7 @@ function MigrateDialog({
       const encrypted = await encryptData(
         { connectorName: conn.connectorName },
         publicKey,
+        conn._id, // AAD
       )
       await migrateConnection({
         connectionId: conn._id,
@@ -714,6 +754,7 @@ function MigrateDialog({
           balance: acct.balance,
         },
         publicKey,
+        acct._id, // AAD
       )
       await migrateAccounts({
         bankAccountId: acct._id,
@@ -734,6 +775,7 @@ function MigrateDialog({
           encryptedData: await encryptData(
             { balance: snap.balance },
             publicKey,
+            snap._id, // AAD
           ),
         })),
       )
@@ -765,6 +807,7 @@ function MigrateDialog({
               diffPercent: inv.diffPercent,
             },
             publicKey,
+            inv._id, // AAD
           ),
         })),
       )
@@ -932,7 +975,7 @@ function DisableDialog({
     // Connections — small count, keep sequential
     for (const conn of encryptedConnections) {
       if (isCancelled()) break
-      const data = await decryptData(conn.encryptedData!, privateKey)
+      const data = await decryptData(conn.encryptedData!, privateKey, conn._id)
       await decryptConn({
         connectionId: conn._id,
         connectorName: (data.connectorName as string | undefined) ?? 'Unknown',
@@ -944,7 +987,7 @@ function DisableDialog({
     // Accounts — small count, keep sequential
     for (const acct of encryptedAccounts) {
       if (isCancelled()) break
-      const data = await decryptData(acct.encryptedData!, privateKey)
+      const data = await decryptData(acct.encryptedData!, privateKey, acct._id)
       await decryptAccount({
         bankAccountId: acct._id,
         name: (data.name as string | undefined) ?? 'Unknown',
@@ -962,7 +1005,11 @@ function DisableDialog({
       const chunk = encryptedSnapshots.slice(i, i + BATCH_SIZE)
       const items = await Promise.all(
         chunk.map(async (snap) => {
-          const data = await decryptData(snap.encryptedData!, privateKey)
+          const data = await decryptData(
+            snap.encryptedData!,
+            privateKey,
+            snap._id,
+          )
           return {
             snapshotId: snap._id,
             balance: (data.balance as number | undefined) ?? 0,
@@ -981,7 +1028,11 @@ function DisableDialog({
       const chunk = encryptedInvestments.slice(i, i + BATCH_SIZE)
       const items = await Promise.all(
         chunk.map(async (inv) => {
-          const data = await decryptData(inv.encryptedData!, privateKey)
+          const data = await decryptData(
+            inv.encryptedData!,
+            privateKey,
+            inv._id,
+          )
           return {
             investmentId: inv._id,
             code: (data.code as string | undefined) ?? undefined,
@@ -1011,7 +1062,7 @@ function DisableDialog({
     }
 
     await disableEncryption()
-    clearStoredPrivateKey()
+    await clearStoredPrivateKey()
 
     toast.success('Encryption disabled')
     setDisabling(false)
@@ -1099,6 +1150,308 @@ function DisableDialog({
                 disabled={!isConfirmed}
               >
                 {progress.done > 0 ? 'Resume decryption' : 'Disable encryption'}
+              </Button>
+            </>
+          )}
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  )
+}
+
+function KeyRotationDialog({
+  open,
+  onOpenChange,
+}: {
+  open: boolean
+  onOpenChange: (open: boolean) => void
+}) {
+  const { privateKey, workspacePublicKey } = useEncryption()
+  const { allProfileIds } = useProfile()
+
+  const allConnections = useQuery(
+    api.powens.listAllConnections,
+    allProfileIds.length > 0 ? { profileIds: allProfileIds } : 'skip',
+  )
+  const allBankAccounts = useQuery(
+    api.powens.listAllBankAccounts,
+    allProfileIds.length > 0 ? { profileIds: allProfileIds } : 'skip',
+  )
+  const allSnapshots = useQuery(
+    api.balanceSnapshots.listAllSnapshotsByProfiles,
+    allProfileIds.length > 0
+      ? { profileIds: allProfileIds, startTimestamp: 0 }
+      : 'skip',
+  )
+  const allInvestments = useQuery(
+    api.investments.listAllInvestmentsByProfiles,
+    allProfileIds.length > 0 ? { profileIds: allProfileIds } : 'skip',
+  )
+
+  const BATCH_SIZE = 50
+
+  const rotateKey = useMutation(api.encryptionKeys.rotateWorkspaceKey)
+  const completeRotation = useMutation(
+    api.encryptionKeys.completeKeyRotation,
+  )
+  const migrateConnection = useMutation(api.encryptionKeys.migrateConnection)
+  const migrateAccounts = useMutation(api.encryptionKeys.migrateBankAccount)
+  const migrateSnapshotBatch = useMutation(
+    api.encryptionKeys.migrateBalanceSnapshotBatch,
+  )
+  const migrateInvestmentBatch = useMutation(
+    api.encryptionKeys.migrateInvestmentBatch,
+  )
+
+  const [passphrase, setPassphrase] = useState('')
+  const [rotating, setRotating] = useState(false)
+  const [progress, setProgress] = useState({ done: 0, total: 0 })
+  const [step, setStep] = useState<'passphrase' | 'rotating'>('passphrase')
+  const cancelRef = useRef(false)
+  const isCancelled = () => cancelRef.current
+
+  const encryptedConnections =
+    allConnections?.filter((c) => c.encryptedData) ?? []
+  const encryptedAccounts =
+    allBankAccounts?.filter((a) => a.encryptedData) ?? []
+  const encryptedSnapshots = allSnapshots?.filter((s) => s.encryptedData) ?? []
+  const encryptedInvestments =
+    allInvestments?.filter((inv) => inv.encryptedData) ?? []
+
+  const totalRecords =
+    encryptedConnections.length +
+    encryptedAccounts.length +
+    encryptedSnapshots.length +
+    encryptedInvestments.length
+
+  function handleCancel() {
+    cancelRef.current = true
+  }
+
+  // Get personal public key from members query (needed to create new owner key slot)
+  const membersStatus = useQuery(api.encryptionKeys.listMembersEncryptionStatus)
+
+  async function handleRotateComplete() {
+    if (!privateKey || !passphrase || !workspacePublicKey || !membersStatus)
+      return
+
+    // Find our own member entry to get personal public key
+    // We need our userId - we can find it by looking for the owner
+    const ownerMember = membersStatus.find((m) => m.role === 'owner')
+    if (!ownerMember?.publicKey) {
+      toast.error('Could not find owner personal public key')
+      return
+    }
+
+    cancelRef.current = false
+    setRotating(true)
+    setStep('rotating')
+
+    try {
+      // Generate new workspace RSA-4096 keypair
+      const newWsKeyPair = await generateKeyPair()
+      const newWsPublicKeyJwk = await exportPublicKey(newWsKeyPair.publicKey)
+      const newWsPrivateKeyJwk = await exportPrivateKey(
+        newWsKeyPair.privateKey,
+      )
+
+      // Encrypt new workspace private key with owner's personal public key
+      const personalPublicKey = await importPublicKey(ownerMember.publicKey)
+      const ownerKeySlotEncrypted = await envelopeEncryptString(
+        newWsPrivateKeyJwk,
+        personalPublicKey,
+      )
+
+      // Step 1: Rotate the key on the server (stores new public key, deletes old slots, creates owner slot)
+      await rotateKey({
+        newWorkspacePublicKey: newWsPublicKeyJwk,
+        ownerKeySlotEncryptedPrivateKey: ownerKeySlotEncrypted,
+      })
+
+      // Step 2: Re-encrypt all records with the new key
+      const newPublicKey = newWsKeyPair.publicKey
+      const total = totalRecords
+      setProgress({ done: 0, total })
+      let done = 0
+
+      // Re-encrypt connections
+      for (const conn of encryptedConnections) {
+        if (isCancelled()) break
+        const data = await decryptData(
+          conn.encryptedData!,
+          privateKey,
+          conn._id,
+        )
+        const encrypted = await encryptData(data, newPublicKey, conn._id)
+        await migrateConnection({
+          connectionId: conn._id,
+          encryptedData: encrypted,
+        })
+        done++
+        setProgress({ done, total })
+      }
+
+      // Re-encrypt bank accounts
+      for (const acct of encryptedAccounts) {
+        if (isCancelled()) break
+        const data = await decryptData(
+          acct.encryptedData!,
+          privateKey,
+          acct._id,
+        )
+        const encrypted = await encryptData(data, newPublicKey, acct._id)
+        await migrateAccounts({
+          bankAccountId: acct._id,
+          encryptedData: encrypted,
+        })
+        done++
+        setProgress({ done, total })
+      }
+
+      // Re-encrypt snapshots in batches
+      for (let i = 0; i < encryptedSnapshots.length; i += BATCH_SIZE) {
+        if (isCancelled()) break
+        const chunk = encryptedSnapshots.slice(i, i + BATCH_SIZE)
+        const items = await Promise.all(
+          chunk.map(async (snap) => {
+            const data = await decryptData(
+              snap.encryptedData!,
+              privateKey,
+              snap._id,
+            )
+            return {
+              snapshotId: snap._id,
+              encryptedData: await encryptData(data, newPublicKey, snap._id),
+            }
+          }),
+        )
+        if (isCancelled()) break
+        await migrateSnapshotBatch({ items })
+        done += chunk.length
+        setProgress({ done, total })
+      }
+
+      // Re-encrypt investments in batches
+      for (let i = 0; i < encryptedInvestments.length; i += BATCH_SIZE) {
+        if (isCancelled()) break
+        const chunk = encryptedInvestments.slice(i, i + BATCH_SIZE)
+        const items = await Promise.all(
+          chunk.map(async (inv) => {
+            const data = await decryptData(
+              inv.encryptedData!,
+              privateKey,
+              inv._id,
+            )
+            return {
+              investmentId: inv._id,
+              encryptedData: await encryptData(data, newPublicKey, inv._id),
+            }
+          }),
+        )
+        if (isCancelled()) break
+        await migrateInvestmentBatch({ items })
+        done += chunk.length
+        setProgress({ done, total })
+      }
+
+      if (isCancelled()) {
+        toast.info(
+          `Key rotation paused — ${done} of ${total} records re-encrypted. Please complete the rotation.`,
+        )
+      } else {
+        // Step 3: Complete rotation (clear previousPublicKey)
+        await completeRotation()
+
+        // Store new workspace private key in IndexedDB
+        const newWsKey = await importPrivateKey(newWsPrivateKeyJwk)
+        await storePrivateKey(newWsKey)
+
+        toast.success(
+          'Key rotation complete. Other members need to be re-granted access.',
+        )
+        onOpenChange(false)
+        window.location.reload()
+      }
+    } catch (err) {
+      toast.error('Key rotation failed')
+      console.error(err)
+    } finally {
+      setRotating(false)
+    }
+  }
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>Rotate encryption keys</DialogTitle>
+          <DialogDescription>
+            Generate a new workspace keypair and re-encrypt all data. All other
+            workspace members will lose access and need to be re-granted.
+          </DialogDescription>
+        </DialogHeader>
+        <div className="space-y-4 py-2">
+          {step === 'passphrase' && (
+            <>
+              <Alert>
+                <TriangleAlert />
+                <AlertTitle>Warning</AlertTitle>
+                <AlertDescription>
+                  All workspace members except you will lose access after
+                  rotation. You will need to re-grant access to each member.
+                </AlertDescription>
+              </Alert>
+              <div className="space-y-2">
+                <label className="text-sm font-medium">
+                  Enter your passphrase
+                </label>
+                <Input
+                  type="password"
+                  placeholder="Your encryption passphrase"
+                  value={passphrase}
+                  onChange={(e) => setPassphrase(e.target.value)}
+                />
+              </div>
+              {totalRecords > 0 && (
+                <p className="text-sm text-muted-foreground">
+                  {totalRecords} encrypted{' '}
+                  {totalRecords === 1 ? 'record' : 'records'} will be
+                  re-encrypted with the new key.
+                </p>
+              )}
+            </>
+          )}
+          {step === 'rotating' && (
+            <div>
+              <div className="h-2 w-full rounded-full bg-muted">
+                <div
+                  className="h-2 rounded-full bg-primary transition-all"
+                  style={{
+                    width: `${progress.total > 0 ? (progress.done / progress.total) * 100 : 0}%`,
+                  }}
+                />
+              </div>
+              <p className="mt-1 text-xs text-muted-foreground">
+                Re-encrypting: {progress.done} / {progress.total}
+              </p>
+            </div>
+          )}
+        </div>
+        <DialogFooter>
+          {rotating ? (
+            <Button variant="outline" onClick={handleCancel}>
+              Stop
+            </Button>
+          ) : (
+            <>
+              <Button variant="outline" onClick={() => onOpenChange(false)}>
+                Cancel
+              </Button>
+              <Button
+                onClick={handleRotateComplete}
+                disabled={!passphrase || rotating}
+              >
+                Rotate keys
               </Button>
             </>
           )}

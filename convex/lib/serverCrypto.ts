@@ -13,6 +13,7 @@ function toBase64(buffer: ArrayBuffer): string {
 export async function encryptForProfile(
   data: Record<string, unknown>,
   publicKeyJwk: string,
+  aad?: string,
 ): Promise<string> {
   const publicKey = await crypto.subtle.importKey(
     'jwk',
@@ -27,8 +28,12 @@ export async function encryptForProfile(
     ['encrypt'],
   )
   const iv = crypto.getRandomValues(new Uint8Array(12))
+  const aesParams: AesGcmParams = { name: 'AES-GCM', iv }
+  if (aad) {
+    aesParams.additionalData = new TextEncoder().encode(aad)
+  }
   const ct = await crypto.subtle.encrypt(
-    { name: 'AES-GCM', iv },
+    aesParams,
     aesKey,
     new TextEncoder().encode(JSON.stringify(data)),
   )
@@ -42,6 +47,6 @@ export async function encryptForProfile(
     ct: toBase64(ct),
     ek: toBase64(ek),
     iv: toBase64(iv.buffer),
-    v: 1,
+    v: aad ? 2 : 1,
   })
 }

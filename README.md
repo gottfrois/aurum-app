@@ -67,6 +67,40 @@ convex/
   *.ts           # Backend functions (queries, mutations, actions)
 ```
 
+## Security
+
+### Encryption Model
+
+Bunkr uses **client-held key encryption at rest** to protect your financial data. This is sometimes called "zero-knowledge encryption" — the server stores only ciphertext and public keys, never decryption keys.
+
+**What this means:**
+- Your financial data (balances, IBANs, transactions, investments) is encrypted before being stored in the database
+- Decryption keys never leave your browser — only you (and workspace members you grant access to) can read your data
+- Even if the database is compromised, the attacker gets only ciphertext
+
+**What this does NOT mean:**
+- This is NOT end-to-end encryption in the traditional sense. When Powens sends webhook data to the server, the data is briefly in plaintext on the Convex runtime before being encrypted with your public key. A compromised server runtime could theoretically intercept data during this window.
+- The server infrastructure (Convex) could theoretically be modified to exfiltrate plaintext during webhook processing. This is an inherent limitation of receiving third-party webhooks — the client isn't online when data arrives.
+
+### Threat Model
+
+| Threat | Protected? | Notes |
+|--------|-----------|-------|
+| Database breach | Yes | All sensitive data encrypted at rest |
+| Server admin reads stored data | Yes | Only ciphertext and public keys stored |
+| Compromised server runtime | Partial | Webhook data briefly in plaintext during processing |
+| XSS attack on client | Partial | Private keys are non-extractable (can't be exfiltrated) but an active XSS session could invoke decryption |
+| User forgets passphrase | No recovery | Zero-knowledge means no password reset |
+
+### Cryptographic Details
+
+- **Asymmetric**: RSA-OAEP 4096-bit with SHA-256
+- **Symmetric**: AES-256-GCM with random 12-byte IV per record
+- **Key derivation**: PBKDF2 with 600,000 iterations (SHA-256)
+- **Envelope encryption**: Each record encrypted with a random AES key, which is wrapped with the workspace RSA public key
+- **Authenticated data**: Record IDs used as AES-GCM Additional Authenticated Data (AAD) to prevent ciphertext swapping
+- **Key hierarchy**: User passphrase → PBKDF2 → personal RSA keypair → workspace RSA keypair → per-record AES keys
+
 ## License
 
 Private — not open source.

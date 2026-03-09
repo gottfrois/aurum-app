@@ -48,7 +48,7 @@ A `/goals` page where users set a target number (e.g., €1M) and Bunkr projects
 
 **Value: 8 | Effort: Low-Medium**
 
-Pie chart / Sankey diagram of spending by category (Housing, Food, Transport, Entertainment, etc.). Powens provides category data on transactions. This is table-stakes for any finance app but combined with E2E encryption it's a differentiator.
+Pie chart / Sankey diagram of spending by category (Housing, Food, Transport, Entertainment, etc.). Powens provides category data on transactions. This is table-stakes for any finance app but combined with zero-knowledge encryption it's a differentiator.
 
 **Implementation**: Leverage Powens transaction categories. Add a spending breakdown chart component to dashboard using Recharts (already a dependency).
 
@@ -88,7 +88,7 @@ Support manual crypto wallet tracking (read-only, via public address) and multi-
 
 **Value: 7 | Effort: Low**
 
-Workspaces + members + encryption key slots already exist. Expose this as a "Household" feature: couples/families share a workspace where each member sees aggregated net worth but only their own transaction details. The E2E encryption makes this uniquely trustworthy vs. competitors.
+Workspaces + members + encryption key slots already exist. Expose this as a "Household" feature: couples/families share a workspace where each member sees aggregated net worth but only their own transaction details. The zero-knowledge encryption makes this uniquely trustworthy vs. competitors.
 
 **Implementation**: Mostly UI work — backend already exists. Add a household dashboard view that aggregates member profiles, a member onboarding flow, and granular visibility controls.
 
@@ -128,4 +128,4 @@ Export all data as an encrypted JSON/CSV file. Users own their data — they can
 
 ### The Privacy Moat
 
-Features 1, 3, 6, 9, and 10 all leverage E2E encryption as a competitive advantage. Finary can't easily replicate this because their architecture doesn't support client-side-only data processing. Every AI feature running on the user's own LLM key with decrypted-only-in-browser data is a story no competitor can tell.
+Features 1, 3, 6, 9, and 10 all leverage zero-knowledge encryption as a competitive advantage. Finary can't easily replicate this because their architecture doesn't support client-side-only data processing. Every AI feature running on the user's own LLM key with decrypted-only-in-browser data is a story no competitor can tell.

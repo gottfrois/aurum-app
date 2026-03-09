@@ -14,6 +14,8 @@ export default defineSchema({
   workspaceEncryption: defineTable({
     workspaceId: v.id('workspaces'),
     publicKey: v.string(),
+    previousPublicKey: v.optional(v.string()),
+    keyVersion: v.optional(v.number()),
     createdBy: v.string(),
     createdAt: v.number(),
   }).index('by_workspaceId', ['workspaceId']),

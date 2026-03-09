@@ -1,5 +1,5 @@
 import { v } from 'convex/values'
-import { internalQuery, mutation, query } from './_generated/server'
+import { internalMutation, internalQuery, mutation, query } from './_generated/server'
 import { getAuthUserId, requireAuthUserId } from './lib/auth'
 
 // Returns workspace encryption status + current user's key slot
@@ -573,6 +573,169 @@ export const decryptInvestmentBatch = mutation({
         ...fields,
         encryptedData: undefined,
         encrypted: false,
+      })
+    }
+  },
+})
+
+// Key rotation: owner generates new workspace keypair, re-encrypts all data
+export const rotateWorkspaceKey = mutation({
+  args: {
+    newWorkspacePublicKey: v.string(),
+    ownerKeySlotEncryptedPrivateKey: v.string(),
+  },
+  handler: async (ctx, args) => {
+    const userId = await requireAuthUserId(ctx)
+
+    const membership = await ctx.db
+      .query('workspaceMembers')
+      .withIndex('by_userId', (q) => q.eq('userId', userId))
+      .first()
+    if (!membership || membership.role !== 'owner') {
+      throw new Error('Only workspace owners can rotate keys')
+    }
+
+    const wsEnc = await ctx.db
+      .query('workspaceEncryption')
+      .withIndex('by_workspaceId', (q) =>
+        q.eq('workspaceId', membership.workspaceId),
+      )
+      .first()
+    if (!wsEnc) {
+      throw new Error('Workspace encryption is not enabled')
+    }
+
+    // Store previous public key for backward compatibility during re-encryption
+    const currentVersion = wsEnc.keyVersion ?? 1
+    await ctx.db.patch('workspaceEncryption', wsEnc._id, {
+      previousPublicKey: wsEnc.publicKey,
+      publicKey: args.newWorkspacePublicKey,
+      keyVersion: currentVersion + 1,
+    })
+
+    // Delete all existing key slots (members need to be re-granted)
+    const slots = await ctx.db
+      .query('workspaceKeySlots')
+      .withIndex('by_workspaceId', (q) =>
+        q.eq('workspaceId', membership.workspaceId),
+      )
+      .collect()
+    for (const slot of slots) {
+      await ctx.db.delete('workspaceKeySlots', slot._id)
+    }
+
+    // Create new owner key slot
+    await ctx.db.insert('workspaceKeySlots', {
+      workspaceId: membership.workspaceId,
+      userId,
+      encryptedPrivateKey: args.ownerKeySlotEncryptedPrivateKey,
+      createdAt: Date.now(),
+    })
+  },
+})
+
+// Called after all records have been re-encrypted with the new key
+export const completeKeyRotation = mutation({
+  args: {},
+  handler: async (ctx) => {
+    const userId = await requireAuthUserId(ctx)
+
+    const membership = await ctx.db
+      .query('workspaceMembers')
+      .withIndex('by_userId', (q) => q.eq('userId', userId))
+      .first()
+    if (!membership || membership.role !== 'owner') {
+      throw new Error('Only workspace owners can complete key rotation')
+    }
+
+    const wsEnc = await ctx.db
+      .query('workspaceEncryption')
+      .withIndex('by_workspaceId', (q) =>
+        q.eq('workspaceId', membership.workspaceId),
+      )
+      .first()
+    if (!wsEnc) {
+      throw new Error('Workspace encryption is not enabled')
+    }
+
+    await ctx.db.patch('workspaceEncryption', wsEnc._id, {
+      previousPublicKey: undefined,
+    })
+  },
+})
+
+// Patch encrypted data on records after server-side creates them (for AAD support)
+export const patchConnectionEncryptedData = internalMutation({
+  args: {
+    items: v.array(
+      v.object({
+        id: v.id('connections'),
+        encryptedData: v.string(),
+      }),
+    ),
+  },
+  handler: async (ctx, args) => {
+    for (const item of args.items) {
+      await ctx.db.patch('connections', item.id, {
+        encryptedData: item.encryptedData,
+        encrypted: true,
+      })
+    }
+  },
+})
+
+export const patchBankAccountEncryptedData = internalMutation({
+  args: {
+    items: v.array(
+      v.object({
+        id: v.id('bankAccounts'),
+        encryptedData: v.string(),
+      }),
+    ),
+  },
+  handler: async (ctx, args) => {
+    for (const item of args.items) {
+      await ctx.db.patch('bankAccounts', item.id, {
+        encryptedData: item.encryptedData,
+        encrypted: true,
+      })
+    }
+  },
+})
+
+export const patchInvestmentEncryptedData = internalMutation({
+  args: {
+    items: v.array(
+      v.object({
+        id: v.id('investments'),
+        encryptedData: v.string(),
+      }),
+    ),
+  },
+  handler: async (ctx, args) => {
+    for (const item of args.items) {
+      await ctx.db.patch('investments', item.id, {
+        encryptedData: item.encryptedData,
+        encrypted: true,
+      })
+    }
+  },
+})
+
+export const patchBalanceSnapshotEncryptedData = internalMutation({
+  args: {
+    items: v.array(
+      v.object({
+        id: v.id('balanceSnapshots'),
+        encryptedData: v.string(),
+      }),
+    ),
+  },
+  handler: async (ctx, args) => {
+    for (const item of args.items) {
+      await ctx.db.patch('balanceSnapshots', item.id, {
+        encryptedData: item.encryptedData,
+        encrypted: true,
       })
     }
   },

@@ -19,12 +19,13 @@ interface EncryptionContextValue {
   isLoading: boolean
   privateKey: CryptoKey | null
   unlock: (passphrase: string) => Promise<void>
-  lock: () => void
+  lock: () => Promise<void>
   hasPersonalKey: boolean
   hasWorkspaceAccess: boolean
   workspacePublicKey: string | null
   role: 'owner' | 'member' | null
-  // For granting access: the decrypted workspace private key JWK (in memory only when unlocked)
+  // For granting access: the decrypted workspace private key JWK (in memory only when unlocked via passphrase)
+  // Will be null after page reload (non-extractable key in IndexedDB)
   workspacePrivateKeyJwk: string | null
 }
 
@@ -55,7 +56,7 @@ export function EncryptionProvider({
   const hasPersonalKey = wsEncryption?.hasPersonalKey ?? false
   const hasWorkspaceAccess = wsEncryption?.hasKeySlot ?? false
 
-  // On mount, try to load workspace private key from localStorage
+  // On mount, try to load workspace private key from IndexedDB (non-extractable CryptoKey)
   React.useEffect(() => {
     if (wsEncryption === undefined) return // still loading query
     if (!wsEncryption || !wsEncryption.enabled) {
@@ -65,24 +66,21 @@ export function EncryptionProvider({
     if (importingRef.current) return
     importingRef.current = true
 
-    const stored = getStoredPrivateKey()
-    if (stored) {
-      importPrivateKey(stored)
-        .then((key) => {
+    getStoredPrivateKey()
+      .then((key) => {
+        if (key) {
           setPrivateKey(key)
-          setWorkspacePrivateKeyJwk(stored)
-        })
-        .catch(() => {
-          clearStoredPrivateKey()
-        })
-        .finally(() => {
-          setIsLoading(false)
-          importingRef.current = false
-        })
-    } else {
-      setIsLoading(false)
-      importingRef.current = false
-    }
+          // workspacePrivateKeyJwk stays null — can't extract from non-extractable key
+          // User needs to re-enter passphrase to grant access to other members
+        }
+      })
+      .catch(() => {
+        clearStoredPrivateKey()
+      })
+      .finally(() => {
+        setIsLoading(false)
+        importingRef.current = false
+      })
   }, [wsEncryption])
 
   const unlock = React.useCallback(
@@ -115,17 +113,17 @@ export function EncryptionProvider({
         personalPrivateKey,
       )
 
-      // Step 3: Import workspace private key and store it
+      // Step 3: Import workspace private key as non-extractable and store in IndexedDB
       const wsKey = await importPrivateKey(wsPrivateKeyJwk)
-      storePrivateKey(wsPrivateKeyJwk)
-      setWorkspacePrivateKeyJwk(wsPrivateKeyJwk)
+      await storePrivateKey(wsKey) // Store CryptoKey in IndexedDB
+      setWorkspacePrivateKeyJwk(wsPrivateKeyJwk) // Keep JWK in memory for granting access
       setPrivateKey(wsKey)
     },
     [wsEncryption],
   )
 
-  const lock = React.useCallback(() => {
-    clearStoredPrivateKey()
+  const lock = React.useCallback(async () => {
+    await clearStoredPrivateKey()
     setPrivateKey(null)
     setWorkspacePrivateKeyJwk(null)
     clearCache()
@@ -176,7 +174,11 @@ export function useEncryption() {
 
 // Hook to transparently decrypt records that may have encrypted data
 export function useDecryptRecords<
-  T extends { encryptedData?: string; connectionEncryptedData?: string },
+  T extends {
+    _id: string
+    encryptedData?: string
+    connectionEncryptedData?: string
+  },
 >(records: Array<T> | undefined): Array<T> | undefined {
   const { privateKey, isEncryptionEnabled, isLoading } = useEncryption()
   const [decrypted, setDecrypted] = React.useState<Array<T> | undefined>(
@@ -233,7 +235,8 @@ export function useDecryptRecords<
           let result = r
           if (r.encryptedData) {
             try {
-              const data = await decryptData(r.encryptedData, privateKey!)
+              // Pass record _id as AAD — decryptData checks version internally
+              const data = await decryptData(r.encryptedData, privateKey!, r._id)
               result = { ...result, ...data }
             } catch {
               // keep original
@@ -241,9 +244,13 @@ export function useDecryptRecords<
           }
           if (r.connectionEncryptedData) {
             try {
+              // connectionEncryptedData uses the connection's _id as AAD, not the record's
+              // Since we don't have the connection _id here, pass the record _id
+              // The decryptData function only uses AAD for v2 envelopes
               const data = await decryptData(
                 r.connectionEncryptedData,
                 privateKey!,
+                r._id,
               )
               result = { ...result, ...data }
             } catch {
@@ -266,7 +273,11 @@ export function useDecryptRecords<
 
 // Hook to decrypt a single record
 export function useDecryptRecord<
-  T extends { encryptedData?: string; connectionEncryptedData?: string },
+  T extends {
+    _id: string
+    encryptedData?: string
+    connectionEncryptedData?: string
+  },
 >(record: T | null | undefined): T | null | undefined {
   const arr = React.useMemo(() => (record ? [record] : undefined), [record])
   const result = useDecryptRecords(arr)

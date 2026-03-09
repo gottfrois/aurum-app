@@ -3,6 +3,7 @@ import { httpAction } from './_generated/server'
 import { internal } from './_generated/api'
 import { encryptForProfile } from './lib/serverCrypto'
 import { polar } from './polar'
+import type { Id } from './_generated/dataModel'
 
 const http = httpRouter()
 
@@ -93,54 +94,118 @@ http.route({
 
       const realConnectorName = payload.connector?.name ?? 'Unknown'
 
-      let connectionEncryptedData: string | undefined
-      if (publicKey) {
-        connectionEncryptedData = await encryptForProfile(
-          { connectorName: realConnectorName },
-          publicKey,
-        )
+      // Step 1: Sync records without encrypted data to get IDs
+      const bankAccounts = (accounts ?? []).map((acct) => {
+        const number = acct.number ?? undefined
+        const iban = acct.iban ?? undefined
+        const balance = acct.balance ?? 0
+        const name = acct.original_name ?? acct.name ?? 'Unnamed Account'
+
+        return {
+          powensBankAccountId: acct.id,
+          name: publicKey ? 'Encrypted' : name,
+          number: publicKey ? undefined : number,
+          iban: publicKey ? undefined : iban,
+          type: acct.type ?? undefined,
+          balance: publicKey ? 0 : balance,
+          currency: acct.currency?.id ?? 'EUR',
+          disabled: acct.disabled ?? false,
+          deleted: acct.deleted != null,
+          lastSync: acct.last_update ?? undefined,
+          encryptedData: undefined,
+          // Keep original values for encryption
+          _rawName: name,
+          _rawNumber: number,
+          _rawIban: iban,
+          _rawBalance: balance,
+        }
+      })
+
+      // Sync without encrypted data first (get record IDs back)
+      const syncResult = (await ctx.runMutation(
+        internal.powens.syncConnectionFromWebhook,
+        {
+          profileId: profile._id,
+          powensConnectionId,
+          connectorName: publicKey ? 'Encrypted' : realConnectorName,
+          state: payload.state ?? undefined,
+          lastSync: payload.last_update ?? undefined,
+          encryptedData: undefined,
+          bankAccounts: bankAccounts.map(
+            ({ _rawName, _rawNumber, _rawIban, _rawBalance, ...acct }) => acct,
+          ),
+        },
+      )) as {
+        connectionId: Id<'connections'>
+        bankAccountIds: Array<{
+          powensBankAccountId: number
+          id: Id<'bankAccounts'>
+        }>
       }
 
-      const bankAccounts = await Promise.all(
-        (accounts ?? []).map(async (acct) => {
-          const number = acct.number ?? undefined
-          const iban = acct.iban ?? undefined
-          const balance = acct.balance ?? 0
-          const name = acct.original_name ?? acct.name ?? 'Unnamed Account'
+      // Step 2: If encryption enabled, encrypt with AAD using record IDs, then patch
+      if (publicKey) {
+        // Encrypt connection data with AAD
+        const connectionEncryptedData = await encryptForProfile(
+          { connectorName: realConnectorName },
+          publicKey,
+          syncResult.connectionId,
+        )
+        await ctx.runMutation(
+          internal.encryptionKeys.patchConnectionEncryptedData,
+          {
+            items: [
+              {
+                id: syncResult.connectionId,
+                encryptedData: connectionEncryptedData,
+              },
+            ],
+          },
+        )
 
-          let encryptedData: string | undefined
-          if (publicKey) {
-            encryptedData = await encryptForProfile(
-              { name, number, iban, balance },
-              publicKey,
-            )
-          }
+        // Encrypt bank account data with AAD
+        const bankAccountPatches: Array<{
+          id: Id<'bankAccounts'>
+          encryptedData: string
+        }> = []
+        const balanceSnapshotPatches: Array<{
+          id: Id<'balanceSnapshots'>
+          encryptedData: string
+        }> = []
 
-          return {
-            powensBankAccountId: acct.id,
-            name: publicKey ? 'Encrypted' : name,
-            number: publicKey ? undefined : number,
-            iban: publicKey ? undefined : iban,
-            type: acct.type ?? undefined,
-            balance: publicKey ? 0 : balance,
-            currency: acct.currency?.id ?? 'EUR',
-            disabled: acct.disabled ?? false,
-            deleted: acct.deleted != null,
-            lastSync: acct.last_update ?? undefined,
-            encryptedData,
-          }
-        }),
-      )
+        for (const acct of bankAccounts) {
+          const idEntry = syncResult.bankAccountIds.find(
+            (ba) => ba.powensBankAccountId === acct.powensBankAccountId,
+          )
+          if (!idEntry) continue
 
-      await ctx.runMutation(internal.powens.syncConnectionFromWebhook, {
-        profileId: profile._id,
-        powensConnectionId,
-        connectorName: publicKey ? 'Encrypted' : realConnectorName,
-        state: payload.state ?? undefined,
-        lastSync: payload.last_update ?? undefined,
-        bankAccounts,
-        encryptedData: connectionEncryptedData,
-      })
+          const encryptedData = await encryptForProfile(
+            {
+              name: acct._rawName,
+              number: acct._rawNumber,
+              iban: acct._rawIban,
+              balance: acct._rawBalance,
+            },
+            publicKey,
+            idEntry.id,
+          )
+          bankAccountPatches.push({ id: idEntry.id, encryptedData })
+        }
+
+        if (bankAccountPatches.length > 0) {
+          await ctx.runMutation(
+            internal.encryptionKeys.patchBankAccountEncryptedData,
+            { items: bankAccountPatches },
+          )
+        }
+
+        if (balanceSnapshotPatches.length > 0) {
+          await ctx.runMutation(
+            internal.encryptionKeys.patchBalanceSnapshotEncryptedData,
+            { items: balanceSnapshotPatches },
+          )
+        }
+      }
 
       await ctx.runAction(internal.powens.syncInvestmentsFromWebhook, {
         profileId: profile._id,

@@ -431,15 +431,8 @@ export const handleConnectionCallback = action({
       { profileId: args.profileId },
     )
 
-    // Store connection
+    // Store connection (without encrypted data first to get ID)
     const realConnectorName = connData.connector?.name ?? 'Unknown'
-    let connectionEncryptedData: string | undefined
-    if (publicKey) {
-      connectionEncryptedData = await encryptForProfile(
-        { connectorName: realConnectorName },
-        publicKey,
-      )
-    }
 
     const connectionDocId: Id<'connections'> = await ctx.runMutation(
       internal.powens.upsertConnection,
@@ -449,9 +442,26 @@ export const handleConnectionCallback = action({
         connectorName: publicKey ? 'Encrypted' : realConnectorName,
         state: connData.state ?? undefined,
         lastSync: connData.last_update ?? undefined,
-        encryptedData: connectionEncryptedData,
+        encryptedData: undefined,
       },
     )
+
+    // Encrypt connection data with AAD using the record ID
+    if (publicKey) {
+      const connectionEncryptedData = await encryptForProfile(
+        { connectorName: realConnectorName },
+        publicKey,
+        connectionDocId,
+      )
+      await ctx.runMutation(
+        internal.encryptionKeys.patchConnectionEncryptedData,
+        {
+          items: [
+            { id: connectionDocId, encryptedData: connectionEncryptedData },
+          ],
+        },
+      )
+    }
 
     // Sync bank accounts for this connection
     const acctResponse = await fetch(
@@ -471,14 +481,7 @@ export const handleConnectionCallback = action({
         const balance = acct.balance ?? 0
         const name = acct.original_name ?? acct.name ?? 'Unnamed Account'
 
-        let encryptedData: string | undefined
-        if (publicKey) {
-          encryptedData = await encryptForProfile(
-            { name, number, iban, balance },
-            publicKey,
-          )
-        }
-
+        // Upsert without encrypted data first to get ID
         const bankAccountId = await ctx.runMutation(
           internal.powens.upsertBankAccount,
           {
@@ -494,9 +497,22 @@ export const handleConnectionCallback = action({
             disabled: acct.disabled ?? false,
             deleted: acct.deleted != null,
             lastSync: acct.last_update ?? undefined,
-            encryptedData,
+            encryptedData: undefined,
           },
         )
+
+        // Encrypt bank account data with AAD
+        if (publicKey) {
+          const encryptedData = await encryptForProfile(
+            { name, number, iban, balance },
+            publicKey,
+            bankAccountId,
+          )
+          await ctx.runMutation(
+            internal.encryptionKeys.patchBankAccountEncryptedData,
+            { items: [{ id: bankAccountId, encryptedData }] },
+          )
+        }
 
         if (INVESTMENT_TYPES.includes(acct.type ?? '')) {
           const investmentsResponse = await fetch(
@@ -510,48 +526,78 @@ export const handleConnectionCallback = action({
               mapPowensInvestment,
             )
 
-            let investments: Array<MappedInvestment> = rawInvestments
             if (publicKey) {
-              investments = await Promise.all(
-                rawInvestments.map(async (inv) => {
-                  const encData = await encryptForProfile(
-                    {
-                      code: inv.code,
-                      label: inv.label,
-                      description: inv.description,
-                      quantity: inv.quantity,
-                      unitprice: inv.unitprice,
-                      unitvalue: inv.unitvalue,
-                      valuation: inv.valuation,
-                      portfolioShare: inv.portfolioShare,
-                      diff: inv.diff,
-                      diffPercent: inv.diffPercent,
-                    },
-                    publicKey,
-                  )
-                  return {
-                    ...inv,
-                    code: undefined,
-                    label: 'Encrypted',
-                    description: undefined,
-                    quantity: 0,
-                    unitprice: 0,
-                    unitvalue: 0,
-                    valuation: 0,
-                    portfolioShare: undefined,
-                    diff: undefined,
-                    diffPercent: undefined,
-                    encryptedData: encData,
-                  }
-                }),
-              )
-            }
+              // Upsert without encrypted data to get IDs
+              const plainInvestments = rawInvestments.map((inv) => ({
+                ...inv,
+                code: undefined,
+                label: 'Encrypted',
+                description: undefined,
+                quantity: 0,
+                unitprice: 0,
+                unitvalue: 0,
+                valuation: 0,
+                portfolioShare: undefined,
+                diff: undefined,
+                diffPercent: undefined,
+                encryptedData: undefined,
+              }))
 
-            await ctx.runMutation(internal.powens.upsertInvestments, {
-              bankAccountId,
-              profileId: args.profileId,
-              investments,
-            })
+              const investmentIds = (await ctx.runMutation(
+                internal.powens.upsertInvestments,
+                {
+                  bankAccountId,
+                  profileId: args.profileId,
+                  investments: plainInvestments,
+                },
+              )) as Array<{
+                powensInvestmentId: number
+                id: Id<'investments'>
+              }>
+
+              // Encrypt with AAD and patch
+              const patches: Array<{
+                id: Id<'investments'>
+                encryptedData: string
+              }> = []
+              for (const inv of rawInvestments) {
+                const idEntry = investmentIds.find(
+                  (e) => e.powensInvestmentId === inv.powensInvestmentId,
+                )
+                if (!idEntry) continue
+
+                const encData = await encryptForProfile(
+                  {
+                    code: inv.code,
+                    label: inv.label,
+                    description: inv.description,
+                    quantity: inv.quantity,
+                    unitprice: inv.unitprice,
+                    unitvalue: inv.unitvalue,
+                    valuation: inv.valuation,
+                    portfolioShare: inv.portfolioShare,
+                    diff: inv.diff,
+                    diffPercent: inv.diffPercent,
+                  },
+                  publicKey,
+                  idEntry.id,
+                )
+                patches.push({ id: idEntry.id, encryptedData: encData })
+              }
+
+              if (patches.length > 0) {
+                await ctx.runMutation(
+                  internal.encryptionKeys.patchInvestmentEncryptedData,
+                  { items: patches },
+                )
+              }
+            } else {
+              await ctx.runMutation(internal.powens.upsertInvestments, {
+                bankAccountId,
+                profileId: args.profileId,
+                investments: rawInvestments,
+              })
+            }
           }
         }
       }
@@ -731,7 +777,11 @@ export const syncConnectionFromWebhook = internalMutation({
       })
     }
 
-    // Upsert bank accounts
+    // Upsert bank accounts and collect IDs
+    const bankAccountIds: Array<{
+      powensBankAccountId: number
+      id: Id<'bankAccounts'>
+    }> = []
     for (const acct of args.bankAccounts) {
       const existing = await ctx.db
         .query('bankAccounts')
@@ -767,6 +817,11 @@ export const syncConnectionFromWebhook = internalMutation({
         })
       }
 
+      bankAccountIds.push({
+        powensBankAccountId: acct.powensBankAccountId,
+        id: bankAccountId,
+      })
+
       await recordBalanceSnapshot(ctx, {
         bankAccountId,
         profileId: args.profileId,
@@ -775,6 +830,8 @@ export const syncConnectionFromWebhook = internalMutation({
         encryptedData: acct.encryptedData,
       })
     }
+
+    return { connectionId, bankAccountIds }
   },
 })
 
@@ -1111,6 +1168,10 @@ export const upsertInvestments = internalMutation({
     ),
   },
   handler: async (ctx, args) => {
+    const investmentIds: Array<{
+      powensInvestmentId: number
+      id: Id<'investments'>
+    }> = []
     for (const inv of args.investments) {
       const existing = await ctx.db
         .query('investments')
@@ -1121,6 +1182,7 @@ export const upsertInvestments = internalMutation({
 
       const { encryptedData, ...invFields } = inv
       const invEncrypted = !!encryptedData
+      let investmentId: Id<'investments'>
       if (existing) {
         await ctx.db.patch('investments', existing._id, {
           ...invFields,
@@ -1129,8 +1191,9 @@ export const upsertInvestments = internalMutation({
           encryptedData,
           encrypted: invEncrypted,
         })
+        investmentId = existing._id
       } else {
-        await ctx.db.insert('investments', {
+        investmentId = await ctx.db.insert('investments', {
           bankAccountId: args.bankAccountId,
           profileId: args.profileId,
           ...invFields,
@@ -1138,7 +1201,12 @@ export const upsertInvestments = internalMutation({
           encrypted: invEncrypted,
         })
       }
+      investmentIds.push({
+        powensInvestmentId: inv.powensInvestmentId,
+        id: investmentId,
+      })
     }
+    return investmentIds
   },
 })
 
@@ -1197,48 +1265,73 @@ export const syncInvestmentsFromWebhook = internalAction({
       const data = (await response.json()) as PowensInvestmentResponse
       const rawInvestments = (data.investments ?? []).map(mapPowensInvestment)
 
-      let investments: Array<MappedInvestment> = rawInvestments
       if (publicKey) {
-        investments = await Promise.all(
-          rawInvestments.map(async (inv) => {
-            const encData = await encryptForProfile(
-              {
-                code: inv.code,
-                label: inv.label,
-                description: inv.description,
-                quantity: inv.quantity,
-                unitprice: inv.unitprice,
-                unitvalue: inv.unitvalue,
-                valuation: inv.valuation,
-                portfolioShare: inv.portfolioShare,
-                diff: inv.diff,
-                diffPercent: inv.diffPercent,
-              },
-              publicKey,
-            )
-            return {
-              ...inv,
-              code: undefined,
-              label: 'Encrypted',
-              description: undefined,
-              quantity: 0,
-              unitprice: 0,
-              unitvalue: 0,
-              valuation: 0,
-              portfolioShare: undefined,
-              diff: undefined,
-              diffPercent: undefined,
-              encryptedData: encData,
-            }
-          }),
-        )
-      }
+        // Step 1: Upsert without encrypted data to get IDs
+        const plainInvestments = rawInvestments.map((inv) => ({
+          ...inv,
+          code: undefined,
+          label: 'Encrypted',
+          description: undefined,
+          quantity: 0,
+          unitprice: 0,
+          unitvalue: 0,
+          valuation: 0,
+          portfolioShare: undefined,
+          diff: undefined,
+          diffPercent: undefined,
+          encryptedData: undefined,
+        }))
 
-      await ctx.runMutation(internal.powens.upsertInvestments, {
-        bankAccountId: ba._id,
-        profileId: args.profileId,
-        investments,
-      })
+        const investmentIds = (await ctx.runMutation(
+          internal.powens.upsertInvestments,
+          {
+            bankAccountId: ba._id,
+            profileId: args.profileId,
+            investments: plainInvestments,
+          },
+        )) as Array<{ powensInvestmentId: number; id: Id<'investments'> }>
+
+        // Step 2: Encrypt with AAD using record IDs, then patch
+        const patches: Array<{ id: Id<'investments'>; encryptedData: string }> =
+          []
+        for (const inv of rawInvestments) {
+          const idEntry = investmentIds.find(
+            (e) => e.powensInvestmentId === inv.powensInvestmentId,
+          )
+          if (!idEntry) continue
+
+          const encData = await encryptForProfile(
+            {
+              code: inv.code,
+              label: inv.label,
+              description: inv.description,
+              quantity: inv.quantity,
+              unitprice: inv.unitprice,
+              unitvalue: inv.unitvalue,
+              valuation: inv.valuation,
+              portfolioShare: inv.portfolioShare,
+              diff: inv.diff,
+              diffPercent: inv.diffPercent,
+            },
+            publicKey,
+            idEntry.id,
+          )
+          patches.push({ id: idEntry.id, encryptedData: encData })
+        }
+
+        if (patches.length > 0) {
+          await ctx.runMutation(
+            internal.encryptionKeys.patchInvestmentEncryptedData,
+            { items: patches },
+          )
+        }
+      } else {
+        await ctx.runMutation(internal.powens.upsertInvestments, {
+          bankAccountId: ba._id,
+          profileId: args.profileId,
+          investments: rawInvestments,
+        })
+      }
     }
   },
 })

@@ -1,6 +1,8 @@
 // Client-side cryptographic utilities for zero-knowledge encryption
 // Uses Web Crypto API (available in all modern browsers)
 
+import Dexie from 'dexie'
+
 function toBase64(buffer: ArrayBuffer): string {
   const bytes = new Uint8Array(buffer)
   let binary = ''
@@ -21,7 +23,7 @@ function fromBase64(str: string): ArrayBuffer {
 
 const RSA_PARAMS: RsaHashedKeyGenParams = {
   name: 'RSA-OAEP',
-  modulusLength: 2048,
+  modulusLength: 4096,
   publicExponent: new Uint8Array([1, 0, 1]),
   hash: 'SHA-256',
 }
@@ -57,7 +59,7 @@ export async function importPrivateKey(jwkStr: string): Promise<CryptoKey> {
     'jwk',
     JSON.parse(jwkStr),
     { name: 'RSA-OAEP', hash: 'SHA-256' },
-    true,
+    false, // non-extractable
     ['decrypt'],
   )
 }
@@ -113,9 +115,11 @@ export async function decryptPrivateKey(
 }
 
 // Envelope encryption: AES-GCM data key wrapped with RSA-OAEP public key
+// With optional AAD (Additional Authenticated Data) for v2 envelopes
 export async function encryptData(
   data: Record<string, unknown>,
   publicKey: CryptoKey,
+  aad?: string,
 ): Promise<string> {
   const aesKey = await crypto.subtle.generateKey(
     { name: 'AES-GCM', length: 256 },
@@ -123,8 +127,12 @@ export async function encryptData(
     ['encrypt'],
   )
   const iv = crypto.getRandomValues(new Uint8Array(12))
+  const aesParams: AesGcmParams = { name: 'AES-GCM', iv: iv as BufferSource }
+  if (aad) {
+    aesParams.additionalData = new TextEncoder().encode(aad)
+  }
   const ct = await crypto.subtle.encrypt(
-    { name: 'AES-GCM', iv: iv as BufferSource },
+    aesParams,
     aesKey,
     new TextEncoder().encode(JSON.stringify(data)),
   )
@@ -138,18 +146,20 @@ export async function encryptData(
     ct: toBase64(ct),
     ek: toBase64(ek),
     iv: toBase64(iv.buffer),
-    v: 1,
+    v: aad ? 2 : 1,
   })
 }
 
 export async function decryptData(
   encryptedStr: string,
   privateKey: CryptoKey,
+  aad?: string,
 ): Promise<Record<string, unknown>> {
-  const { ct, ek, iv } = JSON.parse(encryptedStr) as {
+  const { ct, ek, iv, v } = JSON.parse(encryptedStr) as {
     ct: string
     ek: string
     iv: string
+    v?: number
   }
   const rawAesKey = await crypto.subtle.decrypt(
     { name: 'RSA-OAEP' },
@@ -163,11 +173,11 @@ export async function decryptData(
     false,
     ['decrypt'],
   )
-  const decrypted = await crypto.subtle.decrypt(
-    { name: 'AES-GCM', iv: fromBase64(iv) },
-    aesKey,
-    fromBase64(ct),
-  )
+  const aesParams: AesGcmParams = { name: 'AES-GCM', iv: fromBase64(iv) }
+  if (v === 2 && aad) {
+    aesParams.additionalData = new TextEncoder().encode(aad)
+  }
+  const decrypted = await crypto.subtle.decrypt(aesParams, aesKey, fromBase64(ct))
   return JSON.parse(new TextDecoder().decode(decrypted))
 }
 
@@ -230,21 +240,27 @@ export async function envelopeDecryptString(
   return new TextDecoder().decode(decrypted)
 }
 
-// localStorage persistence for the workspace private key (used for data decryption)
-const PRIVATE_KEY_STORAGE_KEY = 'bunkr-workspace-private-key'
+// IndexedDB-based key storage using Dexie (non-extractable CryptoKey)
+const keyDb = new Dexie('BunkrKeyStore') as Dexie & {
+  keys: Dexie.Table<{ id: string; key: CryptoKey }, string>
+}
+keyDb.version(1).stores({ keys: 'id' })
 
-export function getStoredPrivateKey(): string | null {
+const WS_KEY_ID = 'workspace-private-key'
+
+export async function getStoredPrivateKey(): Promise<CryptoKey | null> {
   try {
-    return localStorage.getItem(PRIVATE_KEY_STORAGE_KEY)
+    const row = await keyDb.keys.get(WS_KEY_ID)
+    return row?.key ?? null
   } catch {
     return null
   }
 }
 
-export function storePrivateKey(jwk: string): void {
-  localStorage.setItem(PRIVATE_KEY_STORAGE_KEY, jwk)
+export async function storePrivateKey(key: CryptoKey): Promise<void> {
+  await keyDb.keys.put({ id: WS_KEY_ID, key })
 }
 
-export function clearStoredPrivateKey(): void {
-  localStorage.removeItem(PRIVATE_KEY_STORAGE_KEY)
+export async function clearStoredPrivateKey(): Promise<void> {
+  await keyDb.keys.delete(WS_KEY_ID)
 }

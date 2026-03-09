@@ -11,6 +11,7 @@ import {
   exportPrivateKey,
   exportPublicKey,
   generateKeyPair,
+  importPrivateKey,
   storePrivateKey,
 } from '~/lib/crypto'
 import {
@@ -90,7 +91,9 @@ export function EncryptionSetupDialog() {
         ownerKeySlotEncryptedPrivateKey: ownerKeySlotEncrypted,
       })
 
-      storePrivateKey(wsPrivateKeyJwk)
+      // Import as non-extractable CryptoKey and store in IndexedDB
+      const wsKey = await importPrivateKey(wsPrivateKeyJwk)
+      await storePrivateKey(wsKey)
 
       toast.success('Encryption enabled')
       window.location.reload()
@@ -113,7 +116,7 @@ export function EncryptionSetupDialog() {
               </div>
               <DialogTitle>Protect your financial data</DialogTitle>
               <DialogDescription>
-                Enable end-to-end encryption so that only you can read your
+                Enable zero-knowledge encryption so that only you can read your
                 financial data. Not even we can access it. You can always enable
                 this later from settings.
               </DialogDescription>
