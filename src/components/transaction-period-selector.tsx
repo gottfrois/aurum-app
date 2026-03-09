@@ -327,11 +327,6 @@ export function useTransactionPeriod() {
     return computeRange(periodType, offset)
   }, [periodType, offset, customRange])
 
-  const startTimestamp = React.useMemo(
-    () => new Date(range.start).getTime(),
-    [range.start],
-  )
-
   const handlePeriodTypeChange = React.useCallback(
     (type: TransactionPeriodType) => {
       setPeriodType(type)
@@ -359,7 +354,6 @@ export function useTransactionPeriod() {
   return {
     periodType,
     range,
-    startTimestamp,
     canGoNext,
     onPeriodTypeChange: handlePeriodTypeChange,
     onNavigate: handleNavigate,

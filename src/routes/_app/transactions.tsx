@@ -73,28 +73,28 @@ function TransactionsContent() {
   const transactionsSingle = useQuery(
     api.transactions.listTransactionsByProfile,
     singleProfileId
-      ? { profileId: singleProfileId, startTimestamp: period.startTimestamp }
+      ? {
+          profileId: singleProfileId,
+          startDate: period.range.start,
+          endDate: period.range.end,
+        }
       : 'skip',
   )
   const transactionsAll = useQuery(
     api.transactions.listAllTransactionsByProfiles,
     isAllProfiles && allProfileIds.length > 0
-      ? { profileIds: allProfileIds, startTimestamp: period.startTimestamp }
+      ? {
+          profileIds: allProfileIds,
+          startDate: period.range.start,
+          endDate: period.range.end,
+        }
       : 'skip',
   )
   const rawTransactions = isAllProfiles ? transactionsAll : transactionsSingle
-  const allTransactions = useCachedDecryptRecords(
+  const transactions = useCachedDecryptRecords(
     'transactions',
     rawTransactions as Array<TransactionRecord> | undefined,
   )
-
-  // Client-side filter by end date (startTimestamp handles the start on the server)
-  const transactions = React.useMemo(() => {
-    if (!allTransactions) return undefined
-    return allTransactions.filter(
-      (t) => t.date >= period.range.start && t.date <= period.range.end,
-    )
-  }, [allTransactions, period.range.start, period.range.end])
 
   const currency = 'EUR'
 

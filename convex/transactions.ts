@@ -5,35 +5,30 @@ import { getAuthUserId } from './lib/auth'
 export const listTransactionsByProfile = query({
   args: {
     profileId: v.id('profiles'),
-    startTimestamp: v.optional(v.number()),
+    startDate: v.string(),
+    endDate: v.string(),
   },
   handler: async (ctx, args) => {
     const userId = await getAuthUserId(ctx)
     if (!userId) return []
 
-    const q = ctx.db
+    const results = await ctx.db
       .query('transactions')
-      .withIndex('by_profileId_date', (qb) =>
-        qb.eq('profileId', args.profileId),
+      .withIndex('by_profileId_date', (q) =>
+        q
+          .eq('profileId', args.profileId)
+          .gte('date', args.startDate)
+          .lte('date', args.endDate),
       )
+      .collect()
 
-    const results = await q.collect()
-
-    let filtered = results.filter((t) => !t.deleted)
-
-    if (args.startTimestamp) {
-      const startDate = new Date(args.startTimestamp).toISOString().slice(0, 10)
-      filtered = filtered.filter((t) => t.date >= startDate)
-    }
-
-    return filtered
+    return results.filter((t) => !t.deleted)
   },
 })
 
-export const listAllTransactionsByProfiles = query({
+export const listAllTransactions = query({
   args: {
     profileIds: v.array(v.id('profiles')),
-    startTimestamp: v.optional(v.number()),
   },
   handler: async (ctx, args) => {
     const userId = await getAuthUserId(ctx)
@@ -43,18 +38,39 @@ export const listAllTransactionsByProfiles = query({
       args.profileIds.map((profileId) =>
         ctx.db
           .query('transactions')
-          .withIndex('by_profileId_date', (q) => q.eq('profileId', profileId))
+          .withIndex('by_profileId', (q) => q.eq('profileId', profileId))
           .collect(),
       ),
     )
 
-    let filtered = results.flat().filter((t) => !t.deleted)
+    return results.flat().filter((t) => !t.deleted)
+  },
+})
 
-    if (args.startTimestamp) {
-      const startDate = new Date(args.startTimestamp).toISOString().slice(0, 10)
-      filtered = filtered.filter((t) => t.date >= startDate)
-    }
+export const listAllTransactionsByProfiles = query({
+  args: {
+    profileIds: v.array(v.id('profiles')),
+    startDate: v.string(),
+    endDate: v.string(),
+  },
+  handler: async (ctx, args) => {
+    const userId = await getAuthUserId(ctx)
+    if (!userId) return []
 
-    return filtered
+    const results = await Promise.all(
+      args.profileIds.map((profileId) =>
+        ctx.db
+          .query('transactions')
+          .withIndex('by_profileId_date', (q) =>
+            q
+              .eq('profileId', profileId)
+              .gte('date', args.startDate)
+              .lte('date', args.endDate),
+          )
+          .collect(),
+      ),
+    )
+
+    return results.flat().filter((t) => !t.deleted)
   },
 })

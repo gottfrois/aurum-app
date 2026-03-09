@@ -92,7 +92,7 @@ function EncryptionPage() {
     shouldQueryMigration ? { profileIds: allProfileIds } : 'skip',
   )
   const allTransactions = useQuery(
-    api.transactions.listAllTransactionsByProfiles,
+    api.transactions.listAllTransactions,
     shouldQueryMigration ? { profileIds: allProfileIds } : 'skip',
   )
 
@@ -646,7 +646,7 @@ function MigrateDialog({
     allProfileIds.length > 0 ? { profileIds: allProfileIds } : 'skip',
   )
   const allTransactions = useQuery(
-    api.transactions.listAllTransactionsByProfiles,
+    api.transactions.listAllTransactions,
     allProfileIds.length > 0 ? { profileIds: allProfileIds } : 'skip',
   )
 
@@ -922,7 +922,7 @@ function DisableDialog({
     allProfileIds.length > 0 ? { profileIds: allProfileIds } : 'skip',
   )
   const allTransactions = useQuery(
-    api.transactions.listAllTransactionsByProfiles,
+    api.transactions.listAllTransactions,
     allProfileIds.length > 0 ? { profileIds: allProfileIds } : 'skip',
   )
 
