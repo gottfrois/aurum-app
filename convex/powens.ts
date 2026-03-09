@@ -66,9 +66,9 @@ interface PowensRawTransaction {
   coming?: boolean
   active?: boolean
   deleted?: unknown
-  counterparty?: string
-  card?: string
-  comment?: string
+  counterparty?: string | null
+  card?: string | null
+  comment?: string | null
 }
 
 interface PowensInvestmentResponse {
@@ -1456,9 +1456,9 @@ function mapPowensTransaction(raw: PowensRawTransaction): MappedTransaction {
     coming: raw.coming ?? false,
     active: raw.active ?? true,
     deleted: raw.deleted != null,
-    counterparty: raw.counterparty,
-    card: raw.card,
-    comment: raw.comment,
+    counterparty: raw.counterparty ?? undefined,
+    card: raw.card ?? undefined,
+    comment: raw.comment ?? undefined,
   }
 }
 
