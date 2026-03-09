@@ -1,5 +1,10 @@
 import * as React from 'react'
-import { Landmark, LayoutDashboard, Settings } from 'lucide-react'
+import {
+  ArrowLeftRight,
+  Landmark,
+  LayoutDashboard,
+  Settings,
+} from 'lucide-react'
 
 import { ProfileSwitcher } from '~/components/profile-switcher'
 import { NavMain } from '~/components/nav-main'
@@ -18,6 +23,11 @@ const data = {
       title: 'Dashboard',
       url: '/',
       icon: LayoutDashboard,
+    },
+    {
+      title: 'Transactions',
+      url: '/transactions',
+      icon: ArrowLeftRight,
     },
     {
       title: 'Accounts',

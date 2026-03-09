@@ -15,6 +15,7 @@ import { Route as AppRouteImport } from './routes/_app'
 import { Route as AppIndexRouteImport } from './routes/_app/index'
 import { Route as SignInSplatRouteImport } from './routes/sign-in/$'
 import { Route as PowensCallbackRouteImport } from './routes/powens/callback'
+import { Route as AppTransactionsRouteImport } from './routes/_app/transactions'
 import { Route as AppProfilesRouteImport } from './routes/_app/profiles'
 import { Route as SettingsSettingsIndexRouteImport } from './routes/_settings/settings.index'
 import { Route as AppAccountsIndexRouteImport } from './routes/_app/accounts.index'
@@ -53,6 +54,11 @@ const PowensCallbackRoute = PowensCallbackRouteImport.update({
   id: '/powens/callback',
   path: '/powens/callback',
   getParentRoute: () => rootRouteImport,
+} as any)
+const AppTransactionsRoute = AppTransactionsRouteImport.update({
+  id: '/transactions',
+  path: '/transactions',
+  getParentRoute: () => AppRoute,
 } as any)
 const AppProfilesRoute = AppProfilesRouteImport.update({
   id: '/profiles',
@@ -112,6 +118,7 @@ export interface FileRoutesByFullPath {
   '/': typeof AppIndexRoute
   '/checkout': typeof CheckoutRoute
   '/profiles': typeof AppProfilesRoute
+  '/transactions': typeof AppTransactionsRoute
   '/powens/callback': typeof PowensCallbackRoute
   '/sign-in/$': typeof SignInSplatRoute
   '/accounts/$accountId': typeof AppAccountsAccountIdRoute
@@ -128,6 +135,7 @@ export interface FileRoutesByTo {
   '/': typeof AppIndexRoute
   '/checkout': typeof CheckoutRoute
   '/profiles': typeof AppProfilesRoute
+  '/transactions': typeof AppTransactionsRoute
   '/powens/callback': typeof PowensCallbackRoute
   '/sign-in/$': typeof SignInSplatRoute
   '/accounts/$accountId': typeof AppAccountsAccountIdRoute
@@ -146,6 +154,7 @@ export interface FileRoutesById {
   '/_settings': typeof SettingsRouteWithChildren
   '/checkout': typeof CheckoutRoute
   '/_app/profiles': typeof AppProfilesRoute
+  '/_app/transactions': typeof AppTransactionsRoute
   '/powens/callback': typeof PowensCallbackRoute
   '/sign-in/$': typeof SignInSplatRoute
   '/_app/': typeof AppIndexRoute
@@ -165,6 +174,7 @@ export interface FileRouteTypes {
     | '/'
     | '/checkout'
     | '/profiles'
+    | '/transactions'
     | '/powens/callback'
     | '/sign-in/$'
     | '/accounts/$accountId'
@@ -181,6 +191,7 @@ export interface FileRouteTypes {
     | '/'
     | '/checkout'
     | '/profiles'
+    | '/transactions'
     | '/powens/callback'
     | '/sign-in/$'
     | '/accounts/$accountId'
@@ -198,6 +209,7 @@ export interface FileRouteTypes {
     | '/_settings'
     | '/checkout'
     | '/_app/profiles'
+    | '/_app/transactions'
     | '/powens/callback'
     | '/sign-in/$'
     | '/_app/'
@@ -263,6 +275,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/powens/callback'
       preLoaderRoute: typeof PowensCallbackRouteImport
       parentRoute: typeof rootRouteImport
+    }
+    '/_app/transactions': {
+      id: '/_app/transactions'
+      path: '/transactions'
+      fullPath: '/transactions'
+      preLoaderRoute: typeof AppTransactionsRouteImport
+      parentRoute: typeof AppRoute
     }
     '/_app/profiles': {
       id: '/_app/profiles'
@@ -339,6 +358,7 @@ declare module '@tanstack/react-router' {
 
 interface AppRouteChildren {
   AppProfilesRoute: typeof AppProfilesRoute
+  AppTransactionsRoute: typeof AppTransactionsRoute
   AppIndexRoute: typeof AppIndexRoute
   AppAccountsAccountIdRoute: typeof AppAccountsAccountIdRoute
   AppAccountsIndexRoute: typeof AppAccountsIndexRoute
@@ -346,6 +366,7 @@ interface AppRouteChildren {
 
 const AppRouteChildren: AppRouteChildren = {
   AppProfilesRoute: AppProfilesRoute,
+  AppTransactionsRoute: AppTransactionsRoute,
   AppIndexRoute: AppIndexRoute,
   AppAccountsAccountIdRoute: AppAccountsAccountIdRoute,
   AppAccountsIndexRoute: AppAccountsIndexRoute,

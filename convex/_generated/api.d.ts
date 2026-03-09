@@ -23,6 +23,7 @@ import type * as polar from "../polar.js";
 import type * as powens from "../powens.js";
 import type * as profiles from "../profiles.js";
 import type * as seed from "../seed.js";
+import type * as transactions from "../transactions.js";
 import type * as workspaces from "../workspaces.js";
 
 import type {
@@ -47,6 +48,7 @@ declare const fullApi: ApiFromModules<{
   powens: typeof powens;
   profiles: typeof profiles;
   seed: typeof seed;
+  transactions: typeof transactions;
   workspaces: typeof workspaces;
 }>;
 

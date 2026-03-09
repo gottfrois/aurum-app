@@ -322,6 +322,190 @@ export const seedDemoData = internalMutation({
       encrypted: false,
     })
 
+    // --- Transactions (3 months for checking accounts) ---
+    const now = new Date()
+    const threeMonthsAgo = new Date(now)
+    threeMonthsAgo.setMonth(threeMonthsAgo.getMonth() - 3)
+    const transactionCategories = [
+      { parent: 'food_and_restaurants', name: 'Restaurants', min: 12, max: 45 },
+      { parent: 'food_and_restaurants', name: 'Groceries', min: 30, max: 120 },
+      {
+        parent: 'housing',
+        name: 'Rent',
+        min: 950,
+        max: 950,
+        monthly: true,
+        day: 1,
+      },
+      {
+        parent: 'housing',
+        name: 'Electricity',
+        min: 65,
+        max: 85,
+        monthly: true,
+        day: 5,
+      },
+      {
+        parent: 'housing',
+        name: 'Water',
+        min: 30,
+        max: 40,
+        monthly: true,
+        day: 5,
+      },
+      {
+        parent: 'travel_and_transport',
+        name: 'Metro',
+        min: 75,
+        max: 75,
+        monthly: true,
+        day: 1,
+      },
+      { parent: 'travel_and_transport', name: 'Fuel', min: 40, max: 80 },
+      { parent: 'shopping', name: 'Clothing', min: 30, max: 150 },
+      { parent: 'shopping', name: 'Amazon', min: 15, max: 90 },
+      { parent: 'leisure', name: 'Cinema', min: 10, max: 15 },
+      {
+        parent: 'leisure',
+        name: 'Spotify',
+        min: 10,
+        max: 10,
+        monthly: true,
+        day: 15,
+      },
+      {
+        parent: 'leisure',
+        name: 'Netflix',
+        min: 14,
+        max: 14,
+        monthly: true,
+        day: 20,
+      },
+      { parent: 'healthcare', name: 'Pharmacy', min: 8, max: 35 },
+      {
+        parent: 'media_and_telecommunications',
+        name: 'Mobile',
+        min: 20,
+        max: 20,
+        monthly: true,
+        day: 10,
+      },
+      {
+        parent: 'media_and_telecommunications',
+        name: 'Internet',
+        min: 30,
+        max: 30,
+        monthly: true,
+        day: 10,
+      },
+      {
+        parent: 'bank_insurances',
+        name: 'Home Insurance',
+        min: 25,
+        max: 25,
+        monthly: true,
+        day: 8,
+      },
+    ]
+
+    const checkingAccounts = [
+      { id: bnpChecking, salaryDay: 25, salary: 3400 },
+      { id: boursoChecking, salaryDay: 28, salary: 1800 },
+    ]
+
+    let txnSeed = 50000
+    let txnPowensId = 60001
+
+    for (const checking of checkingAccounts) {
+      const txnStart = new Date(now)
+      txnStart.setMonth(txnStart.getMonth() - 3)
+      const txnCurrent = new Date(txnStart)
+
+      while (txnCurrent <= now) {
+        const dateStr = txnCurrent.toISOString().split('T')[0]
+        const dayOfMonth = txnCurrent.getDate()
+
+        // Salary
+        if (dayOfMonth === checking.salaryDay) {
+          await ctx.db.insert('transactions', {
+            bankAccountId: checking.id,
+            profileId: profile._id,
+            powensTransactionId: txnPowensId++,
+            date: dateStr,
+            value: checking.salary,
+            type: 'transfer',
+            wording: 'Salary',
+            category: 'Salary',
+            categoryParent: 'revenue',
+            coming: false,
+            active: true,
+            deleted: false,
+            encrypted: false,
+          })
+        }
+
+        // Monthly recurring expenses
+        for (const cat of transactionCategories) {
+          if (cat.monthly && dayOfMonth === cat.day) {
+            await ctx.db.insert('transactions', {
+              bankAccountId: checking.id,
+              profileId: profile._id,
+              powensTransactionId: txnPowensId++,
+              date: dateStr,
+              value: -(
+                cat.min +
+                (cat.max > cat.min
+                  ? seededRandom(txnSeed++) * (cat.max - cat.min)
+                  : 0)
+              ),
+              type: 'deferred_card',
+              wording: cat.name,
+              category: cat.name,
+              categoryParent: cat.parent,
+              coming: false,
+              active: true,
+              deleted: false,
+              encrypted: false,
+            })
+          }
+        }
+
+        // Random daily expenses (1-3 per day)
+        const dailyExpenseCategories = transactionCategories.filter(
+          (c) => !c.monthly,
+        )
+        txnSeed++
+        const numExpenses = Math.floor(seededRandom(txnSeed) * 3) + 1
+        for (let e = 0; e < numExpenses; e++) {
+          txnSeed++
+          const catIdx = Math.floor(
+            seededRandom(txnSeed) * dailyExpenseCategories.length,
+          )
+          const cat = dailyExpenseCategories[catIdx]
+          txnSeed++
+          const amount = cat.min + seededRandom(txnSeed) * (cat.max - cat.min)
+
+          await ctx.db.insert('transactions', {
+            bankAccountId: checking.id,
+            profileId: profile._id,
+            powensTransactionId: txnPowensId++,
+            date: dateStr,
+            value: -Math.round(amount * 100) / 100,
+            type: 'card',
+            wording: cat.name,
+            category: cat.name,
+            categoryParent: cat.parent,
+            coming: false,
+            active: true,
+            deleted: false,
+            encrypted: false,
+          })
+        }
+
+        txnCurrent.setDate(txnCurrent.getDate() + 1)
+      }
+    }
+
     // --- Balance Snapshots (1 year of daily data) ---
     // More volatile and interesting curves:
     // - Checking accounts: salary spikes + spending dips (sawtooth pattern)
@@ -354,9 +538,6 @@ export const seedDemoData = internalMutation({
       { id: boursoAV, base: 44000, end: 52340, volatility: 0.006 },
     ]
 
-    const now = new Date()
-    const threeMonthsAgo = new Date(now)
-    threeMonthsAgo.setMonth(threeMonthsAgo.getMonth() - 3)
     const totalDays = Math.round(
       (now.getTime() - threeMonthsAgo.getTime()) / (1000 * 60 * 60 * 24),
     )
@@ -563,6 +744,15 @@ export const clearDemoData = internalMutation({
         ctx.db.delete('dailyCategoryBalance', d._id),
       ),
     ])
+
+    // Delete all transactions for this profile
+    const transactions = await ctx.db
+      .query('transactions')
+      .withIndex('by_profileId', (q) => q.eq('profileId', profile._id))
+      .collect()
+    for (const txn of transactions) {
+      await ctx.db.delete('transactions', txn._id)
+    }
 
     // Delete all investments for this profile
     const investments = await ctx.db

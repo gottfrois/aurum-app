@@ -152,6 +152,37 @@ export default defineSchema({
     .index('by_profileId_date', ['profileId', 'date'])
     .index('by_workspaceId_timestamp', ['workspaceId', 'timestamp']),
 
+  transactions: defineTable({
+    bankAccountId: v.id('bankAccounts'),
+    profileId: v.id('profiles'),
+    powensTransactionId: v.number(),
+    date: v.string(),
+    rdate: v.optional(v.string()),
+    vdate: v.optional(v.string()),
+    value: v.number(),
+    originalValue: v.optional(v.number()),
+    originalCurrency: v.optional(v.string()),
+    type: v.optional(v.string()),
+    wording: v.string(),
+    originalWording: v.optional(v.string()),
+    simplifiedWording: v.optional(v.string()),
+    category: v.optional(v.string()),
+    categoryParent: v.optional(v.string()),
+    coming: v.boolean(),
+    active: v.boolean(),
+    deleted: v.boolean(),
+    counterparty: v.optional(v.string()),
+    card: v.optional(v.string()),
+    comment: v.optional(v.string()),
+    encryptedData: v.optional(v.string()),
+    encrypted: v.optional(v.boolean()),
+  })
+    .index('by_bankAccountId', ['bankAccountId'])
+    .index('by_profileId', ['profileId'])
+    .index('by_profileId_date', ['profileId', 'date'])
+    .index('by_powensTransactionId', ['powensTransactionId'])
+    .index('by_profileId_encrypted', ['profileId', 'encrypted']),
+
   dailyCategoryBalance: defineTable({
     profileId: v.id('profiles'),
     workspaceId: v.id('workspaces'),

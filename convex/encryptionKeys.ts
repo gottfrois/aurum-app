@@ -547,6 +547,67 @@ export const decryptInvestment = mutation({
   },
 })
 
+export const migrateTransactionBatch = mutation({
+  args: {
+    items: v.array(
+      v.object({
+        transactionId: v.id('transactions'),
+        encryptedData: v.string(),
+      }),
+    ),
+  },
+  handler: async (ctx, args) => {
+    await requireAuthUserId(ctx)
+    for (const item of args.items) {
+      await ctx.db.patch('transactions', item.transactionId, {
+        encryptedData: item.encryptedData,
+        wording: 'Encrypted',
+        originalWording: undefined,
+        simplifiedWording: undefined,
+        value: 0,
+        originalValue: undefined,
+        counterparty: undefined,
+        card: undefined,
+        comment: undefined,
+        category: undefined,
+        categoryParent: undefined,
+        encrypted: true,
+      })
+    }
+  },
+})
+
+export const decryptTransactionBatch = mutation({
+  args: {
+    items: v.array(
+      v.object({
+        transactionId: v.id('transactions'),
+        wording: v.string(),
+        originalWording: v.optional(v.string()),
+        simplifiedWording: v.optional(v.string()),
+        value: v.number(),
+        originalValue: v.optional(v.number()),
+        counterparty: v.optional(v.string()),
+        card: v.optional(v.string()),
+        comment: v.optional(v.string()),
+        category: v.optional(v.string()),
+        categoryParent: v.optional(v.string()),
+      }),
+    ),
+  },
+  handler: async (ctx, args) => {
+    await requireAuthUserId(ctx)
+    for (const item of args.items) {
+      const { transactionId, ...fields } = item
+      await ctx.db.patch('transactions', transactionId, {
+        ...fields,
+        encryptedData: undefined,
+        encrypted: false,
+      })
+    }
+  },
+})
+
 export const decryptInvestmentBatch = mutation({
   args: {
     items: v.array(

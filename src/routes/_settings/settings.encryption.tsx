@@ -91,6 +91,10 @@ function EncryptionPage() {
     api.investments.listAllInvestmentsByProfiles,
     shouldQueryMigration ? { profileIds: allProfileIds } : 'skip',
   )
+  const allTransactions = useQuery(
+    api.transactions.listAllTransactionsByProfiles,
+    shouldQueryMigration ? { profileIds: allProfileIds } : 'skip',
+  )
 
   const unencryptedCount =
     (allConnections?.filter((c) => !c.encryptedData).length ?? 0) +
@@ -102,7 +106,10 @@ function EncryptionPage() {
     (allSnapshots?.filter((s) => !s.encryptedData && s.balance !== 0).length ??
       0) +
     (allInvestments?.filter((inv) => !inv.encryptedData && inv.valuation !== 0)
-      .length ?? 0)
+      .length ?? 0) +
+    (allTransactions?.filter(
+      (t) => !t.encryptedData && (t.value !== 0 || t.wording !== 'Encrypted'),
+    ).length ?? 0)
 
   if (isLoading) {
     return (
@@ -638,6 +645,10 @@ function MigrateDialog({
     api.investments.listAllInvestmentsByProfiles,
     allProfileIds.length > 0 ? { profileIds: allProfileIds } : 'skip',
   )
+  const allTransactions = useQuery(
+    api.transactions.listAllTransactionsByProfiles,
+    allProfileIds.length > 0 ? { profileIds: allProfileIds } : 'skip',
+  )
 
   const BATCH_SIZE = 50
 
@@ -648,6 +659,9 @@ function MigrateDialog({
   )
   const migrateInvestmentBatch = useMutation(
     api.encryptionKeys.migrateInvestmentBatch,
+  )
+  const migrateTransactionBatch = useMutation(
+    api.encryptionKeys.migrateTransactionBatch,
   )
 
   const [migrating, setMigrating] = useState(false)
@@ -667,12 +681,16 @@ function MigrateDialog({
   const unencryptedInvestments = allInvestments?.filter(
     (inv) => !inv.encryptedData && inv.valuation !== 0,
   )
+  const unencryptedTransactions = allTransactions?.filter(
+    (t) => !t.encryptedData && (t.value !== 0 || t.wording !== 'Encrypted'),
+  )
 
   const totalUnencrypted =
     (unencryptedConnections?.length ?? 0) +
     (unencryptedAccounts?.length ?? 0) +
     (unencryptedSnapshots?.length ?? 0) +
-    (unencryptedInvestments?.length ?? 0)
+    (unencryptedInvestments?.length ?? 0) +
+    (unencryptedTransactions?.length ?? 0)
 
   function handleCancel() {
     cancelRef.current = true
@@ -774,6 +792,37 @@ function MigrateDialog({
       setProgress({ done, total })
     }
 
+    // Transactions — bulk: encrypt in parallel, write in batches
+    const txns = unencryptedTransactions ?? []
+    for (let i = 0; i < txns.length; i += BATCH_SIZE) {
+      if (isCancelled()) break
+      const chunk = txns.slice(i, i + BATCH_SIZE)
+      const items = await Promise.all(
+        chunk.map(async (txn) => ({
+          transactionId: txn._id,
+          encryptedData: await encryptData(
+            {
+              wording: txn.wording,
+              originalWording: txn.originalWording,
+              simplifiedWording: txn.simplifiedWording,
+              value: txn.value,
+              originalValue: txn.originalValue,
+              counterparty: txn.counterparty,
+              card: txn.card,
+              comment: txn.comment,
+              category: txn.category,
+              categoryParent: txn.categoryParent,
+            },
+            publicKey,
+          ),
+        })),
+      )
+      if (isCancelled()) break
+      await migrateTransactionBatch({ items })
+      done += chunk.length
+      setProgress({ done, total })
+    }
+
     if (isCancelled()) {
       toast.info(`Migration paused — ${done} of ${total} records encrypted`)
     } else {
@@ -803,7 +852,8 @@ function MigrateDialog({
               <span className="font-medium">{totalUnencrypted}</span> records
               need encryption ({unencryptedAccounts?.length ?? 0} accounts,{' '}
               {unencryptedSnapshots?.length ?? 0} snapshots,{' '}
-              {unencryptedInvestments?.length ?? 0} investments).
+              {unencryptedInvestments?.length ?? 0} investments,{' '}
+              {unencryptedTransactions?.length ?? 0} transactions).
             </p>
           )}
           {migrating && (
@@ -871,6 +921,10 @@ function DisableDialog({
     api.investments.listAllInvestmentsByProfiles,
     allProfileIds.length > 0 ? { profileIds: allProfileIds } : 'skip',
   )
+  const allTransactions = useQuery(
+    api.transactions.listAllTransactionsByProfiles,
+    allProfileIds.length > 0 ? { profileIds: allProfileIds } : 'skip',
+  )
 
   const BATCH_SIZE = 50
 
@@ -881,6 +935,9 @@ function DisableDialog({
   )
   const decryptInvestmentBatch = useMutation(
     api.encryptionKeys.decryptInvestmentBatch,
+  )
+  const decryptTransactionBatch = useMutation(
+    api.encryptionKeys.decryptTransactionBatch,
   )
   const disableEncryption = useMutation(
     api.encryptionKeys.disableWorkspaceEncryption,
@@ -909,12 +966,15 @@ function DisableDialog({
   const encryptedSnapshots = allSnapshots?.filter((s) => s.encryptedData) ?? []
   const encryptedInvestments =
     allInvestments?.filter((inv) => inv.encryptedData) ?? []
+  const encryptedTransactions =
+    allTransactions?.filter((t) => t.encryptedData) ?? []
 
   const totalEncrypted =
     encryptedConnections.length +
     encryptedAccounts.length +
     encryptedSnapshots.length +
-    encryptedInvestments.length
+    encryptedInvestments.length +
+    encryptedTransactions.length
 
   function handleCancel() {
     cancelRef.current = true
@@ -1000,6 +1060,39 @@ function DisableDialog({
       )
       if (isCancelled()) break
       await decryptInvestmentBatch({ items })
+      done += chunk.length
+      setProgress({ done, total })
+    }
+
+    // Transactions — bulk: decrypt in parallel, write in batches
+    for (let i = 0; i < encryptedTransactions.length; i += BATCH_SIZE) {
+      if (isCancelled()) break
+      const chunk = encryptedTransactions.slice(i, i + BATCH_SIZE)
+      const items = await Promise.all(
+        chunk.map(async (txn) => {
+          const data = await decryptData(txn.encryptedData!, privateKey)
+          return {
+            transactionId: txn._id,
+            wording: (data.wording as string | undefined) ?? 'Unknown',
+            originalWording:
+              (data.originalWording as string | undefined) ?? undefined,
+            simplifiedWording:
+              (data.simplifiedWording as string | undefined) ?? undefined,
+            value: (data.value as number | undefined) ?? 0,
+            originalValue:
+              (data.originalValue as number | undefined) ?? undefined,
+            counterparty:
+              (data.counterparty as string | undefined) ?? undefined,
+            card: (data.card as string | undefined) ?? undefined,
+            comment: (data.comment as string | undefined) ?? undefined,
+            category: (data.category as string | undefined) ?? undefined,
+            categoryParent:
+              (data.categoryParent as string | undefined) ?? undefined,
+          }
+        }),
+      )
+      if (isCancelled()) break
+      await decryptTransactionBatch({ items })
       done += chunk.length
       setProgress({ done, total })
     }

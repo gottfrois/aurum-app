@@ -46,6 +46,31 @@ interface PowensAccount {
   last_update?: string | null
 }
 
+interface PowensTransactionResponse {
+  transactions?: Array<PowensRawTransaction>
+}
+
+interface PowensRawTransaction {
+  id: number
+  date?: string
+  rdate?: string
+  vdate?: string
+  value?: number
+  original_value?: number
+  original_currency?: { id?: string }
+  type?: string
+  original_wording?: string
+  simplified_wording?: string
+  wording?: string
+  category?: { id?: number; name?: string; parent?: { name?: string } }
+  coming?: boolean
+  active?: boolean
+  deleted?: unknown
+  counterparty?: string
+  card?: string
+  comment?: string
+}
+
 interface PowensInvestmentResponse {
   investments?: Array<PowensRawInvestment>
 }
@@ -841,30 +866,44 @@ export const deleteConnectionData = internalMutation({
       )
       .collect()
 
-    // Query snapshots and investments per bank account using indexed lookups
-    const [snapshotsByAccount, investmentsByAccount] = await Promise.all([
-      Promise.all(
-        bankAccounts.map((ba) =>
-          ctx.db
-            .query('balanceSnapshots')
-            .withIndex('by_bankAccountId_timestamp', (q) =>
-              q.eq('bankAccountId', ba._id),
-            )
-            .collect(),
+    // Query snapshots, investments, and transactions per bank account using indexed lookups
+    const [snapshotsByAccount, investmentsByAccount, transactionsByAccount] =
+      await Promise.all([
+        Promise.all(
+          bankAccounts.map((ba) =>
+            ctx.db
+              .query('balanceSnapshots')
+              .withIndex('by_bankAccountId_timestamp', (q) =>
+                q.eq('bankAccountId', ba._id),
+              )
+              .collect(),
+          ),
         ),
-      ),
-      Promise.all(
-        bankAccounts.map((ba) =>
-          ctx.db
-            .query('investments')
-            .withIndex('by_bankAccountId', (q) => q.eq('bankAccountId', ba._id))
-            .collect(),
+        Promise.all(
+          bankAccounts.map((ba) =>
+            ctx.db
+              .query('investments')
+              .withIndex('by_bankAccountId', (q) =>
+                q.eq('bankAccountId', ba._id),
+              )
+              .collect(),
+          ),
         ),
-      ),
-    ])
+        Promise.all(
+          bankAccounts.map((ba) =>
+            ctx.db
+              .query('transactions')
+              .withIndex('by_bankAccountId', (q) =>
+                q.eq('bankAccountId', ba._id),
+              )
+              .collect(),
+          ),
+        ),
+      ])
 
     const snapshots = snapshotsByAccount.flat()
     const investments = investmentsByAccount.flat()
+    const transactions = transactionsByAccount.flat()
 
     // Compute deltas per date and per category+date to subtract from aggregates
     const dateDeltas = new Map<string, number>()
@@ -887,6 +926,7 @@ export const deleteConnectionData = internalMutation({
     await Promise.all([
       ...snapshots.map((s) => ctx.db.delete('balanceSnapshots', s._id)),
       ...investments.map((i) => ctx.db.delete('investments', i._id)),
+      ...transactions.map((t) => ctx.db.delete('transactions', t._id)),
       ...bankAccounts.map((ba) => ctx.db.delete('bankAccounts', ba._id)),
       ctx.db.delete('connections', args.connectionId),
     ])
@@ -1239,6 +1279,215 @@ export const syncInvestmentsFromWebhook = internalAction({
         profileId: args.profileId,
         investments,
       })
+    }
+  },
+})
+
+interface MappedTransaction {
+  powensTransactionId: number
+  date: string
+  rdate: string | undefined
+  vdate: string | undefined
+  value: number
+  originalValue: number | undefined
+  originalCurrency: string | undefined
+  type: string | undefined
+  wording: string
+  originalWording: string | undefined
+  simplifiedWording: string | undefined
+  category: string | undefined
+  categoryParent: string | undefined
+  coming: boolean
+  active: boolean
+  deleted: boolean
+  counterparty: string | undefined
+  card: string | undefined
+  comment: string | undefined
+  encryptedData?: string
+}
+
+function mapPowensTransaction(raw: PowensRawTransaction): MappedTransaction {
+  return {
+    powensTransactionId: raw.id,
+    date: raw.date ?? new Date().toISOString().slice(0, 10),
+    rdate: raw.rdate,
+    vdate: raw.vdate,
+    value: raw.value ?? 0,
+    originalValue: raw.original_value,
+    originalCurrency: raw.original_currency?.id,
+    type: raw.type,
+    wording: raw.wording ?? raw.original_wording ?? 'Unknown',
+    originalWording: raw.original_wording,
+    simplifiedWording: raw.simplified_wording,
+    category: raw.category?.name,
+    categoryParent: raw.category?.parent?.name,
+    coming: raw.coming ?? false,
+    active: raw.active ?? true,
+    deleted: raw.deleted != null,
+    counterparty: raw.counterparty,
+    card: raw.card,
+    comment: raw.comment,
+  }
+}
+
+export const upsertTransactions = internalMutation({
+  args: {
+    bankAccountId: v.id('bankAccounts'),
+    profileId: v.id('profiles'),
+    transactions: v.array(
+      v.object({
+        powensTransactionId: v.number(),
+        date: v.string(),
+        rdate: v.optional(v.string()),
+        vdate: v.optional(v.string()),
+        value: v.number(),
+        originalValue: v.optional(v.number()),
+        originalCurrency: v.optional(v.string()),
+        type: v.optional(v.string()),
+        wording: v.string(),
+        originalWording: v.optional(v.string()),
+        simplifiedWording: v.optional(v.string()),
+        category: v.optional(v.string()),
+        categoryParent: v.optional(v.string()),
+        coming: v.boolean(),
+        active: v.boolean(),
+        deleted: v.boolean(),
+        counterparty: v.optional(v.string()),
+        card: v.optional(v.string()),
+        comment: v.optional(v.string()),
+        encryptedData: v.optional(v.string()),
+      }),
+    ),
+  },
+  handler: async (ctx, args) => {
+    for (const txn of args.transactions) {
+      const existing = await ctx.db
+        .query('transactions')
+        .withIndex('by_powensTransactionId', (q) =>
+          q.eq('powensTransactionId', txn.powensTransactionId),
+        )
+        .first()
+
+      const { encryptedData, ...txnFields } = txn
+      const txnEncrypted = !!encryptedData
+      if (existing) {
+        await ctx.db.patch('transactions', existing._id, {
+          ...txnFields,
+          bankAccountId: args.bankAccountId,
+          profileId: args.profileId,
+          encryptedData,
+          encrypted: txnEncrypted,
+        })
+      } else {
+        await ctx.db.insert('transactions', {
+          bankAccountId: args.bankAccountId,
+          profileId: args.profileId,
+          ...txnFields,
+          encryptedData,
+          encrypted: txnEncrypted,
+        })
+      }
+    }
+  },
+})
+
+export const syncTransactionsFromWebhook = internalAction({
+  args: {
+    profileId: v.id('profiles'),
+    powensConnectionId: v.number(),
+  },
+  handler: async (ctx, args) => {
+    const { baseUrl } = getPowensConfig()
+
+    const profile = await ctx.runQuery(internal.powens.getProfileInternal, {
+      profileId: args.profileId,
+    })
+    if (!profile?.powensUserToken) return
+
+    const publicKey: string | null = await ctx.runQuery(
+      internal.encryptionKeys.getPublicKeyForProfile,
+      { profileId: args.profileId },
+    )
+
+    const connection = await ctx.runQuery(
+      internal.powens.findConnectionByPowensId,
+      { powensConnectionId: args.powensConnectionId },
+    )
+    if (!connection) return
+
+    const bankAccounts = await ctx.runQuery(
+      internal.powens.listBankAccountsByConnection,
+      { connectionId: connection._id },
+    )
+
+    for (const ba of bankAccounts) {
+      // Skip investment-type accounts — they don't have transactions
+      if (INVESTMENT_TYPES.includes(ba.type ?? '')) continue
+
+      let offset = 0
+      const limit = 1000
+
+      for (;;) {
+        const response = await fetch(
+          `${baseUrl}/users/me/accounts/${ba.powensBankAccountId}/transactions?limit=${limit}&offset=${offset}&expand=category`,
+          { headers: { Authorization: `Bearer ${profile.powensUserToken}` } },
+        )
+
+        if (!response.ok) break
+
+        const data = (await response.json()) as PowensTransactionResponse
+        const rawTransactions = (data.transactions ?? []).map(
+          mapPowensTransaction,
+        )
+
+        if (rawTransactions.length === 0) break
+
+        let transactions: Array<MappedTransaction> = rawTransactions
+        if (publicKey) {
+          transactions = await Promise.all(
+            rawTransactions.map(async (txn) => {
+              const encData = await encryptForProfile(
+                {
+                  wording: txn.wording,
+                  originalWording: txn.originalWording,
+                  simplifiedWording: txn.simplifiedWording,
+                  value: txn.value,
+                  originalValue: txn.originalValue,
+                  counterparty: txn.counterparty,
+                  card: txn.card,
+                  comment: txn.comment,
+                  category: txn.category,
+                  categoryParent: txn.categoryParent,
+                },
+                publicKey,
+              )
+              return {
+                ...txn,
+                wording: 'Encrypted',
+                originalWording: undefined,
+                simplifiedWording: undefined,
+                value: 0,
+                originalValue: undefined,
+                counterparty: undefined,
+                card: undefined,
+                comment: undefined,
+                category: undefined,
+                categoryParent: undefined,
+                encryptedData: encData,
+              }
+            }),
+          )
+        }
+
+        await ctx.runMutation(internal.powens.upsertTransactions, {
+          bankAccountId: ba._id,
+          profileId: args.profileId,
+          transactions,
+        })
+
+        if (rawTransactions.length < limit) break
+        offset += limit
+      }
     }
   },
 })
