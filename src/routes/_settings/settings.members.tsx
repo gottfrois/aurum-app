@@ -44,6 +44,7 @@ type ResolvedUser = {
 
 function MembersPage() {
   const data = useQuery(api.members.listMembers)
+  const subscription = useQuery(api.billing.getSubscriptionStatus)
   const resolveUsers = useAction(api.members.resolveUsers)
   const [users, setUsers] = useState<Record<string, ResolvedUser>>({})
   const [usersLoading, setUsersLoading] = useState(true)
@@ -93,6 +94,12 @@ function MembersPage() {
               <ItemCardHeaderTitle>
                 {data.members.length}{' '}
                 {data.members.length === 1 ? 'member' : 'members'}
+                {subscription?.isActive && (
+                  <span className="text-sm font-normal text-muted-foreground">
+                    / {subscription.seats} seat
+                    {subscription.seats !== 1 ? 's' : ''}
+                  </span>
+                )}
               </ItemCardHeaderTitle>
             </ItemCardHeaderContent>
             <InviteDialog
@@ -102,6 +109,13 @@ function MembersPage() {
                   .filter(Boolean),
                 ...data.invitations.map((i) => i.email.toLowerCase()),
               ]}
+              atSeatLimit={
+                subscription?.isActive
+                  ? subscription.currentSeats +
+                      subscription.pendingInvitations >=
+                    subscription.seats
+                  : false
+              }
             />
           </ItemCardHeader>
           <ItemCardItems>
@@ -226,8 +240,10 @@ function PendingInvitationItem({
 
 function InviteDialog({
   existingEmails = [],
+  atSeatLimit = false,
 }: {
   existingEmails?: Array<string>
+  atSeatLimit?: boolean
 }) {
   const sendInvitation = useAction(api.members.sendInvitation)
   const [open, setOpen] = useState(false)
@@ -279,7 +295,9 @@ function InviteDialog({
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
-        <Button size="sm">Invite</Button>
+        <Button size="sm" disabled={atSeatLimit}>
+          {atSeatLimit ? 'Seat limit reached' : 'Invite'}
+        </Button>
       </DialogTrigger>
       <DialogContent>
         <DialogHeader>

@@ -1,6 +1,7 @@
 import { Link } from '@tanstack/react-router'
 import {
   ArrowLeft,
+  CreditCard,
   Link2,
   Lock,
   Palette,
@@ -93,6 +94,14 @@ export function SettingsSidebar({
                   <Link to="/settings/members">
                     <Users />
                     <span>Members</span>
+                  </Link>
+                </SidebarMenuButton>
+              </SidebarMenuItem>
+              <SidebarMenuItem>
+                <SidebarMenuButton asChild>
+                  <Link to="/settings/billing">
+                    <CreditCard />
+                    <span>Billing</span>
                   </Link>
                 </SidebarMenuButton>
               </SidebarMenuItem>

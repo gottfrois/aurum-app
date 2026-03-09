@@ -2,8 +2,12 @@ import { httpRouter } from 'convex/server'
 import { httpAction } from './_generated/server'
 import { internal } from './_generated/api'
 import { encryptForProfile } from './lib/serverCrypto'
+import { polar } from './polar'
 
 const http = httpRouter()
+
+// Polar webhook routes (POST /polar/events)
+polar.registerRoutes(http)
 
 interface WebhookPayload {
   type?: string | null

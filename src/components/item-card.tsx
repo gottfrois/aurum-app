@@ -147,3 +147,19 @@ export function ItemCardItemAction({
     />
   )
 }
+
+export function ItemCardFooter({
+  className,
+  ...props
+}: React.ComponentProps<'div'>) {
+  return (
+    <div
+      className={cn(
+        'relative flex min-h-12 items-center justify-center px-4 py-2.5',
+        "before:absolute before:right-0 before:top-0 before:left-0 before:block before:h-px before:bg-border before:content-['']",
+        className,
+      )}
+      {...props}
+    />
+  )
+}

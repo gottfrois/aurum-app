@@ -59,6 +59,28 @@ export const sendInvitation = action({
       throw new Error('Only workspace owners can invite members')
     }
 
+    // Check seat limits before sending invitations
+    const subscription = await ctx.runQuery(
+      internal.billing.getOwnerSubscription,
+      { ownerUserId: userId },
+    )
+    if (subscription.isActive) {
+      const currentMembers = await ctx.runQuery(
+        internal.members.getMembersByWorkspace,
+        { workspaceId: membership.workspaceId },
+      )
+      const pendingInvites = await ctx.runQuery(
+        internal.members.countPendingInvitations,
+        { workspaceId: membership.workspaceId },
+      )
+      const totalSeats = currentMembers.length + pendingInvites + emails.length
+      if (totalSeats > subscription.seats) {
+        throw new Error(
+          `Seat limit reached. Your plan allows ${subscription.seats} seat${subscription.seats !== 1 ? 's' : ''}. You currently have ${currentMembers.length} member${currentMembers.length !== 1 ? 's' : ''} and ${pendingInvites} pending invitation${pendingInvites !== 1 ? 's' : ''}.`,
+        )
+      }
+    }
+
     const resendApiKey = process.env.RESEND_API_KEY
     if (!resendApiKey) {
       throw new Error('RESEND_API_KEY not configured')
@@ -288,6 +310,18 @@ export const getPendingInvitation = internalQuery({
         ),
       )
       .first()
+  },
+})
+
+export const countPendingInvitations = internalQuery({
+  args: { workspaceId: v.id('workspaces') },
+  handler: async (ctx, { workspaceId }) => {
+    const invitations = await ctx.db
+      .query('workspaceInvitations')
+      .withIndex('by_workspaceId', (q) => q.eq('workspaceId', workspaceId))
+      .filter((q) => q.eq(q.field('status'), 'pending'))
+      .collect()
+    return invitations.length
   },
 })
 

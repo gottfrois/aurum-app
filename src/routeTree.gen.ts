@@ -9,6 +9,7 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
+import { Route as CheckoutRouteImport } from './routes/checkout'
 import { Route as SettingsRouteImport } from './routes/_settings'
 import { Route as AppRouteImport } from './routes/_app'
 import { Route as AppIndexRouteImport } from './routes/_app/index'
@@ -22,8 +23,14 @@ import { Route as SettingsSettingsProfileRouteImport } from './routes/_settings/
 import { Route as SettingsSettingsMembersRouteImport } from './routes/_settings/settings.members'
 import { Route as SettingsSettingsEncryptionRouteImport } from './routes/_settings/settings.encryption'
 import { Route as SettingsSettingsConnectionsRouteImport } from './routes/_settings/settings.connections'
+import { Route as SettingsSettingsBillingRouteImport } from './routes/_settings/settings.billing'
 import { Route as AppAccountsAccountIdRouteImport } from './routes/_app/accounts.$accountId'
 
+const CheckoutRoute = CheckoutRouteImport.update({
+  id: '/checkout',
+  path: '/checkout',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const SettingsRoute = SettingsRouteImport.update({
   id: '/_settings',
   getParentRoute: () => rootRouteImport,
@@ -90,6 +97,11 @@ const SettingsSettingsConnectionsRoute =
     path: '/settings/connections',
     getParentRoute: () => SettingsRoute,
   } as any)
+const SettingsSettingsBillingRoute = SettingsSettingsBillingRouteImport.update({
+  id: '/settings/billing',
+  path: '/settings/billing',
+  getParentRoute: () => SettingsRoute,
+} as any)
 const AppAccountsAccountIdRoute = AppAccountsAccountIdRouteImport.update({
   id: '/accounts/$accountId',
   path: '/accounts/$accountId',
@@ -98,10 +110,12 @@ const AppAccountsAccountIdRoute = AppAccountsAccountIdRouteImport.update({
 
 export interface FileRoutesByFullPath {
   '/': typeof AppIndexRoute
+  '/checkout': typeof CheckoutRoute
   '/profiles': typeof AppProfilesRoute
   '/powens/callback': typeof PowensCallbackRoute
   '/sign-in/$': typeof SignInSplatRoute
   '/accounts/$accountId': typeof AppAccountsAccountIdRoute
+  '/settings/billing': typeof SettingsSettingsBillingRoute
   '/settings/connections': typeof SettingsSettingsConnectionsRoute
   '/settings/encryption': typeof SettingsSettingsEncryptionRoute
   '/settings/members': typeof SettingsSettingsMembersRoute
@@ -112,10 +126,12 @@ export interface FileRoutesByFullPath {
 }
 export interface FileRoutesByTo {
   '/': typeof AppIndexRoute
+  '/checkout': typeof CheckoutRoute
   '/profiles': typeof AppProfilesRoute
   '/powens/callback': typeof PowensCallbackRoute
   '/sign-in/$': typeof SignInSplatRoute
   '/accounts/$accountId': typeof AppAccountsAccountIdRoute
+  '/settings/billing': typeof SettingsSettingsBillingRoute
   '/settings/connections': typeof SettingsSettingsConnectionsRoute
   '/settings/encryption': typeof SettingsSettingsEncryptionRoute
   '/settings/members': typeof SettingsSettingsMembersRoute
@@ -128,11 +144,13 @@ export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/_app': typeof AppRouteWithChildren
   '/_settings': typeof SettingsRouteWithChildren
+  '/checkout': typeof CheckoutRoute
   '/_app/profiles': typeof AppProfilesRoute
   '/powens/callback': typeof PowensCallbackRoute
   '/sign-in/$': typeof SignInSplatRoute
   '/_app/': typeof AppIndexRoute
   '/_app/accounts/$accountId': typeof AppAccountsAccountIdRoute
+  '/_settings/settings/billing': typeof SettingsSettingsBillingRoute
   '/_settings/settings/connections': typeof SettingsSettingsConnectionsRoute
   '/_settings/settings/encryption': typeof SettingsSettingsEncryptionRoute
   '/_settings/settings/members': typeof SettingsSettingsMembersRoute
@@ -145,10 +163,12 @@ export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
     | '/'
+    | '/checkout'
     | '/profiles'
     | '/powens/callback'
     | '/sign-in/$'
     | '/accounts/$accountId'
+    | '/settings/billing'
     | '/settings/connections'
     | '/settings/encryption'
     | '/settings/members'
@@ -159,10 +179,12 @@ export interface FileRouteTypes {
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
+    | '/checkout'
     | '/profiles'
     | '/powens/callback'
     | '/sign-in/$'
     | '/accounts/$accountId'
+    | '/settings/billing'
     | '/settings/connections'
     | '/settings/encryption'
     | '/settings/members'
@@ -174,11 +196,13 @@ export interface FileRouteTypes {
     | '__root__'
     | '/_app'
     | '/_settings'
+    | '/checkout'
     | '/_app/profiles'
     | '/powens/callback'
     | '/sign-in/$'
     | '/_app/'
     | '/_app/accounts/$accountId'
+    | '/_settings/settings/billing'
     | '/_settings/settings/connections'
     | '/_settings/settings/encryption'
     | '/_settings/settings/members'
@@ -191,12 +215,20 @@ export interface FileRouteTypes {
 export interface RootRouteChildren {
   AppRoute: typeof AppRouteWithChildren
   SettingsRoute: typeof SettingsRouteWithChildren
+  CheckoutRoute: typeof CheckoutRoute
   PowensCallbackRoute: typeof PowensCallbackRoute
   SignInSplatRoute: typeof SignInSplatRoute
 }
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
+    '/checkout': {
+      id: '/checkout'
+      path: '/checkout'
+      fullPath: '/checkout'
+      preLoaderRoute: typeof CheckoutRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/_settings': {
       id: '/_settings'
       path: ''
@@ -288,6 +320,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof SettingsSettingsConnectionsRouteImport
       parentRoute: typeof SettingsRoute
     }
+    '/_settings/settings/billing': {
+      id: '/_settings/settings/billing'
+      path: '/settings/billing'
+      fullPath: '/settings/billing'
+      preLoaderRoute: typeof SettingsSettingsBillingRouteImport
+      parentRoute: typeof SettingsRoute
+    }
     '/_app/accounts/$accountId': {
       id: '/_app/accounts/$accountId'
       path: '/accounts/$accountId'
@@ -315,6 +354,7 @@ const AppRouteChildren: AppRouteChildren = {
 const AppRouteWithChildren = AppRoute._addFileChildren(AppRouteChildren)
 
 interface SettingsRouteChildren {
+  SettingsSettingsBillingRoute: typeof SettingsSettingsBillingRoute
   SettingsSettingsConnectionsRoute: typeof SettingsSettingsConnectionsRoute
   SettingsSettingsEncryptionRoute: typeof SettingsSettingsEncryptionRoute
   SettingsSettingsMembersRoute: typeof SettingsSettingsMembersRoute
@@ -324,6 +364,7 @@ interface SettingsRouteChildren {
 }
 
 const SettingsRouteChildren: SettingsRouteChildren = {
+  SettingsSettingsBillingRoute: SettingsSettingsBillingRoute,
   SettingsSettingsConnectionsRoute: SettingsSettingsConnectionsRoute,
   SettingsSettingsEncryptionRoute: SettingsSettingsEncryptionRoute,
   SettingsSettingsMembersRoute: SettingsSettingsMembersRoute,
@@ -339,6 +380,7 @@ const SettingsRouteWithChildren = SettingsRoute._addFileChildren(
 const rootRouteChildren: RootRouteChildren = {
   AppRoute: AppRouteWithChildren,
   SettingsRoute: SettingsRouteWithChildren,
+  CheckoutRoute: CheckoutRoute,
   PowensCallbackRoute: PowensCallbackRoute,
   SignInSplatRoute: SignInSplatRoute,
 }
