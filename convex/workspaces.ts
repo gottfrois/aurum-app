@@ -1,4 +1,5 @@
 import { mutation, query } from './_generated/server'
+import { internal } from './_generated/api'
 import { getAuthUserId, requireAuthUserId } from './lib/auth'
 
 export const ensureWorkspace = mutation({
@@ -30,6 +31,10 @@ export const ensureWorkspace = mutation({
       workspaceId,
       name: 'Personal',
       icon: 'User',
+    })
+
+    await ctx.scheduler.runAfter(0, internal.categories.seedDefaultCategories, {
+      workspaceId,
     })
 
     return workspaceId

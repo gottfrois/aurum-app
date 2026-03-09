@@ -10,6 +10,8 @@
 
 import type * as balanceSnapshots from "../balanceSnapshots.js";
 import type * as billing from "../billing.js";
+import type * as categories from "../categories.js";
+import type * as categoryRules from "../categoryRules.js";
 import type * as encryptionKeys from "../encryptionKeys.js";
 import type * as http from "../http.js";
 import type * as investments from "../investments.js";
@@ -23,6 +25,7 @@ import type * as polar from "../polar.js";
 import type * as powens from "../powens.js";
 import type * as profiles from "../profiles.js";
 import type * as seed from "../seed.js";
+import type * as transactions from "../transactions.js";
 import type * as workspaces from "../workspaces.js";
 
 import type {
@@ -34,6 +37,8 @@ import type {
 declare const fullApi: ApiFromModules<{
   balanceSnapshots: typeof balanceSnapshots;
   billing: typeof billing;
+  categories: typeof categories;
+  categoryRules: typeof categoryRules;
   encryptionKeys: typeof encryptionKeys;
   http: typeof http;
   investments: typeof investments;
@@ -47,6 +52,7 @@ declare const fullApi: ApiFromModules<{
   powens: typeof powens;
   profiles: typeof profiles;
   seed: typeof seed;
+  transactions: typeof transactions;
   workspaces: typeof workspaces;
 }>;
 

@@ -211,6 +211,11 @@ http.route({
         profileId: profile._id,
         powensConnectionId,
       })
+
+      await ctx.runAction(internal.powens.syncTransactionsFromWebhook, {
+        profileId: profile._id,
+        powensConnectionId,
+      })
     }
 
     return new Response('OK', { status: 200 })
