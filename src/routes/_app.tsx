@@ -6,6 +6,7 @@ import { AppSidebar } from '~/components/app-sidebar'
 import { SidebarInset, SidebarProvider } from '~/components/ui/sidebar'
 import { EncryptionSetupDialog } from '~/components/encryption-setup-dialog'
 import { TrialBanner } from '~/components/trial-banner'
+import { ConnectionAlertBanner } from '~/components/connection-alert-banner'
 
 export const Route = createFileRoute('/_app')({
   component: AppLayout,
@@ -35,6 +36,7 @@ function AppLayout() {
         {subscription?.isTrial && subscription.trialEndsAt && (
           <TrialBanner trialEndsAt={subscription.trialEndsAt} />
         )}
+        <ConnectionAlertBanner />
         <Outlet />
       </SidebarInset>
       <EncryptionSetupDialog />

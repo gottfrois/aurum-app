@@ -17,13 +17,17 @@ import {
   SidebarGroupLabel,
   SidebarHeader,
   SidebarMenu,
+  SidebarMenuBadge,
   SidebarMenuButton,
   SidebarMenuItem,
 } from '~/components/ui/sidebar'
+import { useConnectionsNeedingAttention } from '~/hooks/use-connections-needing-attention'
 
 export function SettingsSidebar({
   ...props
 }: React.ComponentProps<typeof Sidebar>) {
+  const { count: connectionIssueCount } = useConnectionsNeedingAttention()
+
   return (
     <Sidebar collapsible="offcanvas" {...props}>
       <SidebarHeader>
@@ -88,6 +92,11 @@ export function SettingsSidebar({
                     <span>Connections</span>
                   </Link>
                 </SidebarMenuButton>
+                {connectionIssueCount > 0 && (
+                  <SidebarMenuBadge className="bg-amber-500 text-white">
+                    {connectionIssueCount}
+                  </SidebarMenuBadge>
+                )}
               </SidebarMenuItem>
               <SidebarMenuItem>
                 <SidebarMenuButton asChild>
