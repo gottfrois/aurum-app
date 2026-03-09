@@ -66,12 +66,25 @@ http.route({
 
     const type = payload.type
 
+    console.log('[powens/webhook] Received webhook:', {
+      type,
+      id_user: payload.id_user,
+      id: payload.id,
+      state: payload.state,
+      last_update: payload.last_update,
+      connector: payload.connector?.name,
+      accountCount: payload.accounts?.length ?? 0,
+    })
+
     if (type === 'CONNECTION_SYNCED') {
       const powensUserId = payload.id_user
       const powensConnectionId = payload.id
       const accounts = payload.accounts
 
       if (!powensUserId || !powensConnectionId) {
+        console.warn(
+          '[powens/webhook] Missing id_user or id in CONNECTION_SYNCED',
+        )
         return new Response('Missing id_user or id', { status: 400 })
       }
 
@@ -216,6 +229,32 @@ http.route({
         profileId: profile._id,
         powensConnectionId,
       })
+
+      console.log('[powens/webhook] CONNECTION_SYNCED processed successfully', {
+        powensConnectionId,
+        state: payload.state,
+        accountCount: (accounts ?? []).length,
+      })
+    } else {
+      // For any other webhook type, check if it carries connection state info
+      // Powens may send webhooks for state changes (e.g. SCARequired, wrongpass)
+      // that are not CONNECTION_SYNCED
+      const powensConnectionId = payload.id
+      const state = payload.state
+
+      if (powensConnectionId && state !== undefined) {
+        console.log(
+          `[powens/webhook] Non-sync event "${type}" with state "${state}" for connection ${powensConnectionId} — updating connection state`,
+        )
+        await ctx.runMutation(internal.powens.updateConnectionState, {
+          powensConnectionId,
+          state: state ?? undefined,
+        })
+      } else {
+        console.log(
+          `[powens/webhook] Unhandled event type "${type}" — no connection state to update`,
+        )
+      }
     }
 
     return new Response('OK', { status: 200 })
