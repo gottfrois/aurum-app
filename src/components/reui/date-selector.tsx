@@ -24,7 +24,7 @@ import {
   XIcon,
 } from 'lucide-react'
 import type { ChangeEvent, ComponentProps } from 'react'
-import type { DateRange, DayButton  } from 'react-day-picker'
+import type { DateRange, DayButton } from 'react-day-picker'
 
 import { useIsMobile } from '~/hooks/use-mobile'
 import { cn } from '~/lib/utils'
@@ -785,7 +785,8 @@ function DateSelectorDayPicker({
         <CalendarDayButton
           {...props}
           onMouseEnter={() => {
-            if (isRange && onDayHover && props.day) { // eslint-disable-line @typescript-eslint/no-unnecessary-condition
+            // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
+            if (isRange && onDayHover && props.day) {
               onDayHover(props.day.date)
             }
           }}
