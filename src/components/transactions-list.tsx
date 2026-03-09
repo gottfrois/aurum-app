@@ -133,7 +133,7 @@ export function TransactionsList({ data, currency }: TransactionsListProps) {
         accessorKey: 'wording',
         header: 'Description',
         cell: ({ row }) => (
-          <div className="flex items-center gap-2">
+          <div className="flex max-w-[150px] items-center gap-2 sm:max-w-[250px] md:max-w-[350px] lg:max-w-[450px]">
             <span className="truncate">{row.original.wording}</span>
             {row.original.coming && (
               <Badge variant="outline" className="shrink-0 text-[10px]">
