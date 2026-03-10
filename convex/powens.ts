@@ -1037,7 +1037,7 @@ function mapPowensInvestment(raw: PowensRawInvestment): MappedInvestment {
     diff: raw.diff,
     diffPercent: raw.diff_percent,
     originalCurrency: raw.original_currency?.id,
-    originalValuation: raw.original_valuation,
+    originalValuation: raw.original_valuation ?? undefined,
     vdate: raw.vdate,
     deleted: raw.deleted != null,
   }
@@ -1434,6 +1434,7 @@ export const syncTransactionsFromWebhook = internalAction({
         }
 
         const data = (await response.json()) as PowensTransactionResponse
+
         const rawTransactions = (data.transactions ?? []).map(
           mapPowensTransaction,
         )
@@ -1572,7 +1573,7 @@ export const backfillTransactions = internalAction({
         const params = new URLSearchParams({
           limit: String(limit),
           offset: String(offset),
-          expand: 'category',
+          expand: 'categories',
         })
         if (args.minDate) {
           params.set('min_date', args.minDate)

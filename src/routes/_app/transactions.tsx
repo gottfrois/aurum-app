@@ -129,6 +129,17 @@ function TransactionsContent() {
     return map
   }, [bankAccounts])
 
+  const accountNumberMap = React.useMemo(() => {
+    const map = new Map<string, string>()
+    if (!bankAccounts) return map
+    for (const ba of bankAccounts) {
+      const acct = ba as { iban?: string; number?: string }
+      const num = acct.iban ?? acct.number
+      if (num) map.set(ba._id, num)
+    }
+    return map
+  }, [bankAccounts])
+
   const currency = 'EUR'
 
   const cashFlowData = React.useMemo<Array<CashFlowData>>(() => {
@@ -271,8 +282,9 @@ function TransactionsContent() {
       card: t.card,
       comment: t.comment,
       accountName: accountNameMap.get(t.bankAccountId),
+      accountNumber: accountNumberMap.get(t.bankAccountId),
     }))
-  }, [transactions, accountNameMap])
+  }, [transactions, accountNameMap, accountNumberMap])
 
   if (profileLoading || transactions === undefined) {
     return (

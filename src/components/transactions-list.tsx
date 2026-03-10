@@ -79,6 +79,7 @@ export interface TransactionRow {
   rdate?: string
   vdate?: string
   accountName?: string
+  accountNumber?: string
 }
 
 export interface AccountOption {
@@ -193,13 +194,22 @@ export function TransactionsList({
       {
         accessorKey: 'accountName',
         header: 'Account',
-        cell: ({ getValue }) => {
-          const name = getValue<string | undefined>()
-          return name ? (
-            <span className="max-w-[120px] truncate text-muted-foreground">
-              {name}
-            </span>
-          ) : null
+        cell: ({ row }) => {
+          const name = row.original.accountName
+          const number = row.original.accountNumber
+          if (!name && !number) return null
+          return (
+            <div className="flex max-w-[160px] flex-col gap-0.5">
+              {name && (
+                <span className="truncate text-muted-foreground">{name}</span>
+              )}
+              {number && (
+                <span className="truncate font-mono text-xs text-muted-foreground/70">
+                  {number}
+                </span>
+              )}
+            </div>
+          )
         },
       },
       {
@@ -558,6 +568,7 @@ function TransactionDetailSheet({
       value: transaction.rdate ? formatDate(transaction.rdate) : undefined,
     },
     { label: 'Account', value: transaction.accountName },
+    { label: 'Account number', value: transaction.accountNumber },
     { label: 'Type', value: transaction.type },
     { label: 'Counterparty', value: transaction.counterparty },
     { label: 'Card', value: transaction.card },
