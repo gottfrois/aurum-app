@@ -637,6 +637,12 @@ export const handleConnectionCallback = action({
       }
     }
 
+    // Sync transactions for all non-investment accounts
+    await ctx.runAction(internal.powens.syncTransactionsFromWebhook, {
+      profileId: args.profileId,
+      powensConnectionId: args.connectionId,
+    })
+
     return connectionDocId
   },
 })
