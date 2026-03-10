@@ -5,7 +5,11 @@ import { ArrowLeftRight } from 'lucide-react'
 import { api } from '../../../convex/_generated/api'
 import type { CashFlowData } from '~/components/cash-flow-chart'
 import type { TransactionRow } from '~/components/transactions-list'
-import type { EnumOption, FilterConfig } from '~/lib/filters/types'
+import type {
+  EnumOption,
+  FilterCondition,
+  FilterConfig,
+} from '~/lib/filters/types'
 import {
   Empty,
   EmptyDescription,
@@ -30,6 +34,7 @@ import { resolveTransactionCategoryKey, useCategories } from '~/lib/categories'
 import { useFilters } from '~/hooks/use-filters'
 import { createTransactionFilterConfig } from '~/lib/filters/transactions'
 import { ActiveFilters, FilterActions } from '~/components/filters/filter-bar'
+import { deserializeFilters, serializeFilters } from '~/lib/filters/serialize'
 
 interface TransactionRecord {
   _id: string
@@ -53,6 +58,8 @@ interface TransactionRecord {
   comment?: string
   encryptedData?: string
 }
+
+const STORAGE_KEY = 'bunkr:filters:transactions'
 
 export const Route = createFileRoute('/_app/transactions')({
   component: TransactionsPage,
@@ -180,6 +187,30 @@ function TransactionsContent() {
     [accountOptions, categoryOptions, transactionTypeOptions],
   )
 
+  const initialConditions = React.useMemo(() => {
+    try {
+      const stored = localStorage.getItem(STORAGE_KEY)
+      return stored ? deserializeFilters(stored) : []
+    } catch {
+      return []
+    }
+  }, [])
+
+  const handleConditionsChange = React.useCallback(
+    (next: Array<FilterCondition>) => {
+      try {
+        if (next.length > 0) {
+          localStorage.setItem(STORAGE_KEY, serializeFilters(next))
+        } else {
+          localStorage.removeItem(STORAGE_KEY)
+        }
+      } catch {
+        // Storage full or unavailable
+      }
+    },
+    [],
+  )
+
   const {
     conditions,
     filteredData: filteredTransactions,
@@ -192,6 +223,7 @@ function TransactionsContent() {
   } = useFilters<string, TransactionRecord>(
     transactions,
     transactionConfig as FilterConfig<string>,
+    { initialConditions, onConditionsChange: handleConditionsChange },
   )
 
   const currency = 'EUR'

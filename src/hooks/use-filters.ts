@@ -1,6 +1,11 @@
-import { useCallback, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import type { FilterCondition, FilterConfig } from '~/lib/filters/types'
 import { applyFilters } from '~/lib/filters/engine'
+
+export interface UseFiltersOptions<TField extends string> {
+  initialConditions?: Array<FilterCondition<TField>>
+  onConditionsChange?: (conditions: Array<FilterCondition<TField>>) => void
+}
 
 export interface UseFiltersReturn<TField extends string, TRecord> {
   conditions: Array<FilterCondition<TField>>
@@ -19,10 +24,18 @@ export interface UseFiltersReturn<TField extends string, TRecord> {
 export function useFilters<TField extends string, TRecord>(
   data: Array<TRecord> | undefined,
   config: FilterConfig<TField>,
+  options?: UseFiltersOptions<TField>,
 ): UseFiltersReturn<TField, TRecord> {
   const [conditions, setConditions] = useState<Array<FilterCondition<TField>>>(
-    [],
+    () => options?.initialConditions ?? [],
   )
+
+  const onChangeRef = useRef(options?.onConditionsChange)
+  onChangeRef.current = options?.onConditionsChange
+
+  useEffect(() => {
+    onChangeRef.current?.(conditions)
+  }, [conditions])
 
   const addCondition = useCallback((condition: FilterCondition<TField>) => {
     setConditions((prev) => [...prev, condition])
