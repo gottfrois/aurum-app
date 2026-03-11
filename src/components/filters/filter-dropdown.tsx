@@ -1,5 +1,5 @@
 import * as React from 'react'
-import { ChevronLeft, ListFilter } from 'lucide-react'
+import { ChevronRight, ListFilter } from 'lucide-react'
 import { FilterValueInput } from './filter-value-input'
 import type {
   FilterCondition,
@@ -9,6 +9,7 @@ import type {
 import { Button } from '~/components/ui/button'
 import {
   Popover,
+  PopoverAnchor,
   PopoverContent,
   PopoverTrigger,
 } from '~/components/ui/popover'
@@ -21,8 +22,6 @@ import {
   CommandList,
 } from '~/components/ui/command'
 import { VALUELESS_OPERATORS } from '~/lib/filters/operators'
-
-type Stage = 'field' | 'value'
 
 interface FilterDropdownProps {
   config: FilterConfig
@@ -40,37 +39,112 @@ export function FilterDropdown({
   trigger,
 }: FilterDropdownProps) {
   const [open, setOpen] = React.useState(false)
-  const [stage, setStage] = React.useState<Stage>('field')
-  const [selectedField, setSelectedField] =
+  const [hoveredField, setHoveredField] =
     React.useState<FilterFieldDescriptor | null>(null)
-  const [pendingId, setPendingId] = React.useState<string | null>(null)
-  const [value, setValue] = React.useState<unknown>(undefined)
+  const [pendingValue, setPendingValue] = React.useState<unknown>(undefined)
+  const [subSide, setSubSide] = React.useState<'right' | 'left'>('right')
+  // Tracks a live condition created by enum checkbox toggling
+  const [liveConditionId, setLiveConditionId] = React.useState<string | null>(
+    null,
+  )
+  const closeTimeoutRef = React.useRef<ReturnType<typeof setTimeout>>(null)
+  const triggerRef = React.useRef<HTMLSpanElement>(null)
+  const [anchorRect, setAnchorRect] = React.useState<{
+    top: number
+    left: number
+  } | null>(null)
 
   const reset = () => {
-    setStage('field')
-    setSelectedField(null)
-    setPendingId(null)
-    setValue(undefined)
+    setHoveredField(null)
+    setPendingValue(undefined)
+    setLiveConditionId(null)
   }
 
   const handleOpenChange = (nextOpen: boolean) => {
-    if (!nextOpen && pendingId) {
-      // Remove the condition if user closes without selecting a meaningful value
+    if (nextOpen && triggerRef.current) {
+      const rect = triggerRef.current.getBoundingClientRect()
+      setAnchorRect({ top: rect.bottom + 4, left: rect.left })
+    }
+    if (!nextOpen && liveConditionId) {
       const isEmpty =
-        value === undefined ||
-        value === null ||
-        value === '' ||
-        (Array.isArray(value) && value.length === 0)
+        pendingValue === undefined ||
+        pendingValue === null ||
+        (Array.isArray(pendingValue) && pendingValue.length === 0)
       if (isEmpty) {
-        onRemove(pendingId)
+        onRemove(liveConditionId)
       }
     }
     setOpen(nextOpen)
-    if (!nextOpen) reset()
+    if (!nextOpen) {
+      reset()
+      setAnchorRect(null)
+    }
   }
 
-  const handleFieldSelect = (field: FilterFieldDescriptor) => {
-    setSelectedField(field)
+  const handleFieldHover = (
+    field: FilterFieldDescriptor,
+    e: React.MouseEvent,
+  ) => {
+    if (closeTimeoutRef.current) {
+      clearTimeout(closeTimeoutRef.current)
+      closeTimeoutRef.current = null
+    }
+
+    // Determine which side has more space
+    const rect = (e.currentTarget as HTMLElement).getBoundingClientRect()
+    const spaceRight = window.innerWidth - rect.right
+    const spaceLeft = rect.left
+    setSubSide(
+      spaceRight >= 280 ? 'right' : spaceLeft >= 280 ? 'left' : 'right',
+    )
+
+    if (hoveredField?.name !== field.name) {
+      // Clean up live condition from previous field if empty
+      if (liveConditionId) {
+        const isEmpty =
+          pendingValue === undefined ||
+          pendingValue === null ||
+          (Array.isArray(pendingValue) && pendingValue.length === 0)
+        if (isEmpty) {
+          onRemove(liveConditionId)
+        }
+        setLiveConditionId(null)
+      }
+      setHoveredField(field)
+      setPendingValue(field.valueType === 'enum' ? [] : undefined)
+    }
+  }
+
+  const handleFieldLeave = () => {
+    closeTimeoutRef.current = setTimeout(() => {
+      // Clean up live condition if empty
+      if (liveConditionId) {
+        const isEmpty =
+          pendingValue === undefined ||
+          pendingValue === null ||
+          (Array.isArray(pendingValue) && pendingValue.length === 0)
+        if (isEmpty) {
+          onRemove(liveConditionId)
+        }
+        setLiveConditionId(null)
+      }
+      setHoveredField(null)
+      setPendingValue(undefined)
+    }, 150)
+  }
+
+  const handleSubEnter = () => {
+    if (closeTimeoutRef.current) {
+      clearTimeout(closeTimeoutRef.current)
+      closeTimeoutRef.current = null
+    }
+  }
+
+  const handleSubLeave = () => {
+    handleFieldLeave()
+  }
+
+  const handleFieldClick = (field: FilterFieldDescriptor) => {
     const op = field.defaultOperator
     if (VALUELESS_OPERATORS.has(op)) {
       onAdd({
@@ -81,99 +155,172 @@ export function FilterDropdown({
       })
       reset()
       setOpen(false)
-      return
     }
-    // Create the condition immediately so filtering is live
-    const id = crypto.randomUUID()
-    const initialValue = field.valueType === 'enum' ? [] : undefined
-    onAdd({
-      id,
-      field: field.name,
-      operator: op,
-      value: initialValue,
-    })
-    setPendingId(id)
-    setStage('value')
-    setValue(initialValue)
   }
 
   const handleValueChange = (newValue: unknown) => {
-    setValue(newValue)
-    if (pendingId) {
-      onUpdate(pendingId, { value: newValue })
-    }
+    setPendingValue(newValue)
   }
 
-  const handleApply = () => {
-    // Close — the condition is already live
+  const handleAutoApply = (value: unknown) => {
+    if (!hoveredField) return
+    onAdd({
+      id: crypto.randomUUID(),
+      field: hoveredField.name,
+      operator: hoveredField.defaultOperator,
+      value,
+    })
     reset()
     setOpen(false)
+  }
+
+  const handleToggle = (newValue: unknown) => {
+    if (!hoveredField) return
+    setPendingValue(newValue)
+
+    if (liveConditionId) {
+      // Update existing condition
+      onUpdate(liveConditionId, { value: newValue })
+    } else {
+      // Create condition on first toggle
+      const id = crypto.randomUUID()
+      onAdd({
+        id,
+        field: hoveredField.name,
+        operator: hoveredField.defaultOperator,
+        value: newValue,
+      })
+      setLiveConditionId(id)
+    }
   }
 
   return (
     <Popover open={open} onOpenChange={handleOpenChange}>
       <PopoverTrigger asChild>
-        {trigger ?? (
-          <Button variant="ghost" size="sm" className="gap-1.5">
-            <ListFilter className="size-3.5" />
-            Filter
-          </Button>
-        )}
+        <span ref={triggerRef} className="inline-flex">
+          {trigger ?? (
+            <Button variant="ghost" size="sm" className="gap-1.5">
+              <ListFilter className="size-3.5" />
+              Filter
+            </Button>
+          )}
+        </span>
       </PopoverTrigger>
-      <PopoverContent className="w-[260px] p-0" align="start">
-        {stage === 'field' && (
+      {anchorRect && (
+        <PopoverAnchor
+          style={{
+            position: 'fixed',
+            top: anchorRect.top,
+            left: anchorRect.left,
+            width: 0,
+            height: 0,
+            pointerEvents: 'none',
+          }}
+        />
+      )}
+      <PopoverContent className="w-[220px] p-0" align="start">
+        <div className="relative">
           <Command>
             <CommandInput placeholder="Filter by..." />
             <CommandList>
               <CommandEmpty>No fields found.</CommandEmpty>
               <CommandGroup>
-                {config.fields.map((field) => (
-                  <CommandItem
-                    key={field.name}
-                    value={field.label}
-                    onSelect={() => handleFieldSelect(field)}
-                  >
-                    {field.icon && (
-                      <field.icon className="size-4 text-muted-foreground" />
-                    )}
-                    {field.label}
-                  </CommandItem>
-                ))}
+                {config.fields.map((field) => {
+                  const isValueless = VALUELESS_OPERATORS.has(
+                    field.defaultOperator,
+                  )
+                  return (
+                    <CommandItem
+                      key={field.name}
+                      value={field.label}
+                      onSelect={() => handleFieldClick(field)}
+                      onMouseEnter={(e) => handleFieldHover(field, e)}
+                      onMouseLeave={handleFieldLeave}
+                      className="justify-between"
+                    >
+                      <span className="flex items-center gap-2">
+                        {field.icon && (
+                          <field.icon className="size-4 text-muted-foreground" />
+                        )}
+                        {field.label}
+                      </span>
+                      {!isValueless && (
+                        <ChevronRight className="size-3.5 text-muted-foreground" />
+                      )}
+                    </CommandItem>
+                  )
+                })}
               </CommandGroup>
             </CommandList>
           </Command>
-        )}
 
-        {stage === 'value' && selectedField && (
-          <div>
-            <div className="border-b px-1 py-1.5">
-              <button
-                className="flex items-center gap-1 rounded-sm px-2 py-1 text-sm text-muted-foreground hover:text-foreground"
-                onClick={() => {
-                  // Going back — remove the pending condition
-                  if (pendingId) {
-                    onRemove(pendingId)
-                  }
-                  setStage('field')
-                  setSelectedField(null)
-                  setPendingId(null)
-                  setValue(undefined)
-                }}
-              >
-                <ChevronLeft className="size-3.5" />
-                {selectedField.label}
-              </button>
-            </div>
-            <FilterValueInput
-              field={selectedField}
-              operator={selectedField.defaultOperator}
-              value={value}
-              onChange={handleValueChange}
-              onApply={handleApply}
-            />
-          </div>
-        )}
+          {hoveredField &&
+            !VALUELESS_OPERATORS.has(hoveredField.defaultOperator) && (
+              <SubPanel
+                field={hoveredField}
+                value={pendingValue}
+                side={subSide}
+                onChange={handleValueChange}
+                onAutoApply={handleAutoApply}
+                onToggle={handleToggle}
+                onMouseEnter={handleSubEnter}
+                onMouseLeave={handleSubLeave}
+              />
+            )}
+        </div>
       </PopoverContent>
     </Popover>
+  )
+}
+
+function SubPanel({
+  field,
+  value,
+  side,
+  onChange,
+  onAutoApply,
+  onToggle,
+  onMouseEnter,
+  onMouseLeave,
+}: {
+  field: FilterFieldDescriptor
+  value: unknown
+  side: 'right' | 'left'
+  onChange: (value: unknown) => void
+  onAutoApply: (value: unknown) => void
+  onToggle: (value: unknown) => void
+  onMouseEnter: () => void
+  onMouseLeave: () => void
+}) {
+  const positionClass =
+    side === 'right' ? 'left-full top-0 ml-1' : 'right-full top-0 mr-1'
+
+  const latestValueRef = React.useRef(value)
+  latestValueRef.current = value
+
+  const autoApplyOnChange = (newValue: unknown) => {
+    onChange(newValue)
+    latestValueRef.current = newValue
+  }
+
+  const autoApplyOnApply = () => {
+    onAutoApply(latestValueRef.current)
+  }
+
+  return (
+    <div
+      className={`absolute ${positionClass} z-50 w-[280px] rounded-md border bg-popover shadow-md`}
+      onMouseEnter={onMouseEnter}
+      onMouseLeave={onMouseLeave}
+    >
+      <FilterValueInput
+        field={field}
+        operator={field.defaultOperator}
+        value={value}
+        onChange={autoApplyOnChange}
+        onApply={autoApplyOnApply}
+        onToggle={onToggle}
+      />
+    </div>
   )
 }

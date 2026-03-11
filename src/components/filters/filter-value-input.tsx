@@ -45,6 +45,8 @@ interface FilterValueInputProps {
   value: unknown
   onChange: (value: unknown) => void
   onApply?: () => void
+  /** Called when an enum checkbox is toggled (distinct from label click) */
+  onToggle?: (value: unknown) => void
 }
 
 export function FilterValueInput({
@@ -53,6 +55,7 @@ export function FilterValueInput({
   value,
   onChange,
   onApply,
+  onToggle,
 }: FilterValueInputProps) {
   switch (field.valueType) {
     case 'enum':
@@ -65,6 +68,8 @@ export function FilterValueInput({
           }
           value={(value as Array<string> | undefined) ?? []}
           onChange={onChange}
+          onApply={onApply}
+          onToggle={onToggle}
         />
       )
     case 'string':
@@ -129,16 +134,26 @@ function EnumInput({
   options,
   value,
   onChange,
+  onApply,
+  onToggle,
 }: {
   options: Array<EnumOption>
   value: Array<string>
   onChange: (value: unknown) => void
+  onApply?: () => void
+  onToggle?: (value: unknown) => void
 }) {
   const toggle = (optionValue: string) => {
     const next = value.includes(optionValue)
       ? value.filter((v) => v !== optionValue)
       : [...value, optionValue]
-    onChange(next)
+    const callback = onToggle ?? onChange
+    callback(next)
+  }
+
+  const selectOnly = (optionValue: string) => {
+    onChange([optionValue])
+    onApply?.()
   }
 
   return (
@@ -152,12 +167,19 @@ function EnumInput({
             return (
               <CommandItem
                 key={opt.value}
-                value={opt.label}
-                onSelect={() => toggle(opt.value)}
+                value={`${opt.label} ${opt.value}`}
+                keywords={[opt.label]}
+                onSelect={() => selectOnly(opt.value)}
               >
                 <div
+                  role="checkbox"
+                  aria-checked={selected}
+                  onClick={(e) => {
+                    e.stopPropagation()
+                    toggle(opt.value)
+                  }}
                   className={cn(
-                    'flex size-4 shrink-0 items-center justify-center rounded-sm border',
+                    'flex size-4 shrink-0 cursor-pointer items-center justify-center rounded-sm border',
                     selected
                       ? 'border-primary bg-primary text-primary-foreground'
                       : 'border-muted-foreground/30',
