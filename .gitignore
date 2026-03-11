@@ -31,3 +31,6 @@ app.config.timestamp_*.js
 
 # wrangler
 .wrangler/
+
+# claude code
+.claude/
