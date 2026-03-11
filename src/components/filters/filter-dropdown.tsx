@@ -29,6 +29,7 @@ interface FilterDropdownProps {
   onAdd: (condition: FilterCondition) => void
   onUpdate: (id: string, updates: Partial<Omit<FilterCondition, 'id'>>) => void
   onRemove: (id: string) => void
+  trigger?: React.ReactNode
 }
 
 export function FilterDropdown({
@@ -36,6 +37,7 @@ export function FilterDropdown({
   onAdd,
   onUpdate,
   onRemove,
+  trigger,
 }: FilterDropdownProps) {
   const [open, setOpen] = React.useState(false)
   const [stage, setStage] = React.useState<Stage>('field')
@@ -111,10 +113,12 @@ export function FilterDropdown({
   return (
     <Popover open={open} onOpenChange={handleOpenChange}>
       <PopoverTrigger asChild>
-        <Button variant="ghost" size="sm" className="gap-1.5">
-          <ListFilter className="size-3.5" />
-          Filter
-        </Button>
+        {trigger ?? (
+          <Button variant="ghost" size="sm" className="gap-1.5">
+            <ListFilter className="size-3.5" />
+            Filter
+          </Button>
+        )}
       </PopoverTrigger>
       <PopoverContent className="w-[260px] p-0" align="start">
         {stage === 'field' && (

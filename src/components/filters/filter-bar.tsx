@@ -1,5 +1,6 @@
 import * as React from 'react'
 import { useMutation } from 'convex/react'
+import { Plus } from 'lucide-react'
 import { toast } from 'sonner'
 import { api } from '../../../convex/_generated/api'
 import { FilterChip } from './filter-chip'
@@ -56,6 +57,7 @@ export function FilterActions({
 interface ActiveFiltersProps {
   config: FilterConfig
   conditions: Array<FilterCondition>
+  onAdd: (condition: FilterCondition) => void
   onUpdate: (id: string, updates: Partial<Omit<FilterCondition, 'id'>>) => void
   onRemove: (id: string) => void
   onClearAll: () => void
@@ -65,6 +67,7 @@ interface ActiveFiltersProps {
 export function ActiveFilters({
   config,
   conditions,
+  onAdd,
   onUpdate,
   onRemove,
   onClearAll,
@@ -87,6 +90,17 @@ export function ActiveFilters({
           />
         )
       })}
+      <FilterDropdown
+        config={config}
+        onAdd={onAdd}
+        onUpdate={onUpdate}
+        onRemove={onRemove}
+        trigger={
+          <Button variant="ghost" size="icon" className="h-8 w-8 rounded-md">
+            <Plus className="size-4" />
+          </Button>
+        }
+      />
       <div className="ml-auto flex items-center gap-2">
         <Button
           variant="ghost"

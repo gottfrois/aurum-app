@@ -437,6 +437,7 @@ function TransactionsContent() {
           <ActiveFilters
             config={transactionConfig}
             conditions={conditions}
+            onAdd={addCondition}
             onUpdate={updateCondition}
             onRemove={removeCondition}
             onClearAll={clearAll}
