@@ -7,6 +7,7 @@ import { SidebarInset, SidebarProvider } from '~/components/ui/sidebar'
 import { EncryptionSetupDialog } from '~/components/encryption-setup-dialog'
 import { TrialBanner } from '~/components/trial-banner'
 import { ConnectionAlertBanner } from '~/components/connection-alert-banner'
+import { CommandPalette } from '~/components/command-palette'
 
 export const Route = createFileRoute('/_app')({
   component: AppLayout,
@@ -40,6 +41,7 @@ function AppLayout() {
         <Outlet />
       </SidebarInset>
       <EncryptionSetupDialog />
+      <CommandPalette />
     </SidebarProvider>
   )
 }

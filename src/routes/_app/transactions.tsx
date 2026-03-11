@@ -34,6 +34,7 @@ import { resolveTransactionCategoryKey, useCategories } from '~/lib/categories'
 import { useFilters } from '~/hooks/use-filters'
 import { createTransactionFilterConfig } from '~/lib/filters/transactions'
 import { ActiveFilters, FilterActions } from '~/components/filters/filter-bar'
+import { useAIFilterListener } from '~/components/command-palette'
 import { deserializeFilters, serializeFilters } from '~/lib/filters/serialize'
 
 interface TransactionRecord {
@@ -225,6 +226,8 @@ function TransactionsContent() {
     transactionConfig as FilterConfig<string>,
     { initialConditions, onConditionsChange: handleConditionsChange },
   )
+
+  useAIFilterListener(loadConditions)
 
   const currency = 'EUR'
 

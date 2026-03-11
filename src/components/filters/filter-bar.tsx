@@ -4,6 +4,7 @@ import { Bookmark, X } from 'lucide-react'
 import { toast } from 'sonner'
 import { api } from '../../../convex/_generated/api'
 import { FilterChip } from './filter-chip'
+import { AskAIFilter } from './ask-ai-filter'
 import { FilterDropdown } from './filter-dropdown'
 import { SavedViews } from './saved-views'
 import type { FilterCondition, FilterConfig } from '~/lib/filters/types'
@@ -37,6 +38,7 @@ export function FilterActions({
 }: FilterActionsProps) {
   return (
     <div className="ml-auto flex items-center gap-2">
+      <AskAIFilter config={config} onLoadConditions={onLoadConditions} />
       <FilterDropdown
         config={config}
         onAdd={onAdd}
