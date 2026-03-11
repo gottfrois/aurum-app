@@ -45,7 +45,7 @@ export function SavedViews({ entityType, onLoadConditions }: SavedViewsProps) {
         <Button
           variant="ghost"
           size="sm"
-          className="gap-1.5 text-muted-foreground"
+          className="gap-1.5"
         >
           <Bookmark className="size-3.5" />
           Views

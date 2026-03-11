@@ -18,7 +18,7 @@ import {
   CommandList,
 } from '~/components/ui/command'
 import {
-  OPERATOR_LABELS,
+  getOperatorLabel,
   RANGE_OPERATORS,
   VALUELESS_OPERATORS,
 } from '~/lib/filters/operators'
@@ -31,7 +31,7 @@ interface FilterChipProps {
 }
 
 const segmentBase =
-  'flex h-8 items-center gap-1.5 border-y px-2.5 text-sm first:rounded-l-md first:border-l last:rounded-r-md last:border-r'
+  'flex h-8 items-center gap-1.5 border-y border-r px-2.5 text-sm first:rounded-l-md first:border-l last:rounded-r-md'
 const segmentInteractive = 'cursor-pointer hover:bg-accent transition-colors'
 
 export function FilterChip({
@@ -43,14 +43,14 @@ export function FilterChip({
   const [operatorOpen, setOperatorOpen] = React.useState(false)
   const [valueOpen, setValueOpen] = React.useState(false)
 
-  const operatorLabel = OPERATOR_LABELS[condition.operator]
+  const operatorLabel = getOperatorLabel(condition.operator, field.valueType)
   const valueLabel = formatValueLabel(condition, field)
   const Icon = field.icon
 
   return (
     <div className="inline-flex items-center">
       {/* Segment 1: Field with icon */}
-      <div className={`${segmentBase} bg-muted/50 font-medium`}>
+      <div className={`${segmentBase} font-medium`}>
         {Icon && <Icon className="size-3.5 text-muted-foreground" />}
         <span>{field.label}</span>
       </div>
@@ -71,12 +71,36 @@ export function FilterChip({
                 {field.operators.map((op) => (
                   <CommandItem
                     key={op}
-                    value={OPERATOR_LABELS[op]}
+                    value={getOperatorLabel(op, field.valueType)}
                     onSelect={() => {
                       if (VALUELESS_OPERATORS.has(op)) {
                         onUpdate({ operator: op, value: null })
                       } else {
-                        onUpdate({ operator: op })
+                        const currentValue = condition.value
+                        const switchingToRange = RANGE_OPERATORS.has(op)
+                        const currentIsRange = RANGE_OPERATORS.has(
+                          condition.operator,
+                        )
+
+                        if (currentIsRange && !switchingToRange) {
+                          // Range → scalar: use the "from" value
+                          const range = currentValue as {
+                            from: unknown
+                            to: unknown
+                          } | null
+                          onUpdate({
+                            operator: op,
+                            value: range?.from ?? undefined,
+                          })
+                        } else if (!currentIsRange && switchingToRange) {
+                          // Scalar → range: use value as "from", leave "to" empty
+                          onUpdate({
+                            operator: op,
+                            value: { from: currentValue ?? '', to: '' },
+                          })
+                        } else {
+                          onUpdate({ operator: op })
+                        }
                       }
                       setOperatorOpen(false)
                     }}
@@ -84,7 +108,7 @@ export function FilterChip({
                     <span
                       className={condition.operator === op ? 'font-medium' : ''}
                     >
-                      {OPERATOR_LABELS[op]}
+                      {getOperatorLabel(op, field.valueType)}
                     </span>
                   </CommandItem>
                 ))}
@@ -122,10 +146,10 @@ export function FilterChip({
 
       {/* Segment 4: Remove */}
       <button
-        className={`${segmentBase} ${segmentInteractive} text-muted-foreground hover:text-destructive`}
+        className={`${segmentBase} ${segmentInteractive} text-muted-foreground`}
         onClick={onRemove}
       >
-        <X className="size-3" />
+        <X className="size-4" />
       </button>
     </div>
   )

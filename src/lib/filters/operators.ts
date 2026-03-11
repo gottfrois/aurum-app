@@ -70,13 +70,29 @@ export const OPERATOR_LABELS: Record<FilterOperator, string> = {
   is_none_of: 'is none of',
   is_empty: 'is empty',
   is_not_empty: 'is not empty',
-  eq: '=',
-  neq: '\u2260',
-  gt: '>',
-  lt: '<',
-  gte: '\u2265',
-  lte: '\u2264',
+  eq: 'is',
+  neq: 'is not',
+  gt: 'greater than',
+  lt: 'less than',
+  gte: 'greater than or equal',
+  lte: 'less than or equal',
   between: 'between',
+}
+
+const DATE_OPERATOR_LABELS: Partial<Record<FilterOperator, string>> = {
+  gt: 'after',
+  lt: 'before',
+}
+
+export function getOperatorLabel(
+  operator: FilterOperator,
+  valueType?: FilterValueType,
+): string {
+  if (valueType === 'date') {
+    const dateLabel = DATE_OPERATOR_LABELS[operator]
+    if (dateLabel) return dateLabel
+  }
+  return OPERATOR_LABELS[operator]
 }
 
 export const VALUELESS_OPERATORS = new Set<FilterOperator>([

@@ -1,6 +1,5 @@
 import * as React from 'react'
 import { useMutation } from 'convex/react'
-import { Bookmark, X } from 'lucide-react'
 import { toast } from 'sonner'
 import { api } from '../../../convex/_generated/api'
 import { FilterChip } from './filter-chip'
@@ -92,10 +91,9 @@ export function ActiveFilters({
         <Button
           variant="ghost"
           size="sm"
-          className="gap-1.5 text-muted-foreground"
+          className="gap-1.5"
           onClick={onClearAll}
         >
-          <X className="size-3.5" />
           Clear
         </Button>
         <SaveFilterButton entityType={entityType} conditions={conditions} />
@@ -137,9 +135,8 @@ function SaveFilterButton({
         <Button
           variant="ghost"
           size="sm"
-          className="gap-1.5 text-muted-foreground"
+          className="gap-1.5"
         >
-          <Bookmark className="size-3.5" />
           Save
         </Button>
       </PopoverTrigger>

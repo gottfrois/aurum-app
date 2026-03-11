@@ -1,5 +1,5 @@
 import * as React from 'react'
-import { ChevronLeft, Plus } from 'lucide-react'
+import { ChevronLeft, ListFilter } from 'lucide-react'
 import { FilterValueInput } from './filter-value-input'
 import type {
   FilterCondition,
@@ -111,8 +111,8 @@ export function FilterDropdown({
   return (
     <Popover open={open} onOpenChange={handleOpenChange}>
       <PopoverTrigger asChild>
-        <Button variant="outline" size="sm" className="gap-1.5">
-          <Plus className="size-3.5" />
+        <Button variant="ghost" size="sm" className="gap-1.5">
+          <ListFilter className="size-3.5" />
           Filter
         </Button>
       </PopoverTrigger>
