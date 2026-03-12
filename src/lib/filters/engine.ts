@@ -100,6 +100,24 @@ function evaluateEnum(
   operator: string,
   filterValue: unknown,
 ): boolean {
+  // Handle array raw values (e.g. labelIds)
+  if (Array.isArray(rawValue)) {
+    switch (operator) {
+      case 'is_any_of':
+        if (!Array.isArray(filterValue) || filterValue.length === 0) return true
+        return rawValue.some((v) => filterValue.includes(String(v)))
+      case 'is_none_of':
+        if (!Array.isArray(filterValue)) return true
+        return rawValue.every((v) => !filterValue.includes(String(v)))
+      case 'is_empty':
+        return rawValue.length === 0
+      case 'is_not_empty':
+        return rawValue.length > 0
+      default:
+        return true
+    }
+  }
+
   const value = rawValue == null ? '' : String(rawValue)
 
   switch (operator) {

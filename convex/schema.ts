@@ -177,6 +177,7 @@ export default defineSchema({
     card: v.optional(v.string()),
     comment: v.optional(v.string()),
     userCategoryKey: v.optional(v.string()),
+    labelIds: v.optional(v.array(v.id('labels'))),
     encryptedData: v.optional(v.string()),
     encrypted: v.optional(v.boolean()),
   })
@@ -216,6 +217,13 @@ export default defineSchema({
     createdBy: v.string(),
     createdAt: v.number(),
   }).index('by_workspaceId_entityType', ['workspaceId', 'entityType']),
+
+  labels: defineTable({
+    workspaceId: v.id('workspaces'),
+    name: v.string(),
+    color: v.string(),
+    createdAt: v.number(),
+  }).index('by_workspaceId', ['workspaceId']),
 
   dailyCategoryBalance: defineTable({
     profileId: v.id('profiles'),

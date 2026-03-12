@@ -17,6 +17,7 @@ import type * as encryptionKeys from "../encryptionKeys.js";
 import type * as filterViews from "../filterViews.js";
 import type * as http from "../http.js";
 import type * as investments from "../investments.js";
+import type * as labels from "../labels.js";
 import type * as lib_accountCategories from "../lib/accountCategories.js";
 import type * as lib_auth from "../lib/auth.js";
 import type * as lib_billing from "../lib/billing.js";
@@ -46,6 +47,7 @@ declare const fullApi: ApiFromModules<{
   filterViews: typeof filterViews;
   http: typeof http;
   investments: typeof investments;
+  labels: typeof labels;
   "lib/accountCategories": typeof lib_accountCategories;
   "lib/auth": typeof lib_auth;
   "lib/billing": typeof lib_billing;

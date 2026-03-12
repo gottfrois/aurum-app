@@ -8,6 +8,7 @@ import { EncryptionSetupDialog } from '~/components/encryption-setup-dialog'
 import { TrialBanner } from '~/components/trial-banner'
 import { ConnectionAlertBanner } from '~/components/connection-alert-banner'
 import { CommandPalette } from '~/components/command-palette'
+import { CommandProvider } from '~/contexts/command-context'
 
 export const Route = createFileRoute('/_app')({
   component: AppLayout,
@@ -31,17 +32,19 @@ function AppLayout() {
   // While loading subscription status, render the layout without blocking
   // to avoid a flash of blank screen
   return (
-    <SidebarProvider>
-      <AppSidebar variant="inset" />
-      <SidebarInset>
-        {subscription?.isTrial && subscription.trialEndsAt && (
-          <TrialBanner trialEndsAt={subscription.trialEndsAt} />
-        )}
-        <ConnectionAlertBanner />
-        <Outlet />
-      </SidebarInset>
-      <EncryptionSetupDialog />
-      <CommandPalette />
-    </SidebarProvider>
+    <CommandProvider>
+      <SidebarProvider>
+        <AppSidebar variant="inset" />
+        <SidebarInset>
+          {subscription?.isTrial && subscription.trialEndsAt && (
+            <TrialBanner trialEndsAt={subscription.trialEndsAt} />
+          )}
+          <ConnectionAlertBanner />
+          <Outlet />
+        </SidebarInset>
+        <EncryptionSetupDialog />
+        <CommandPalette />
+      </SidebarProvider>
+    </CommandProvider>
   )
 }

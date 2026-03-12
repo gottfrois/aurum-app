@@ -6,6 +6,7 @@ import {
   DollarSign,
   FileType,
   Tag,
+  Tags,
   Text,
   Users,
 } from 'lucide-react'
@@ -15,6 +16,7 @@ import { resolveTransactionCategoryKey } from '~/lib/categories'
 export type TransactionFilterField =
   | 'account'
   | 'category'
+  | 'labels'
   | 'amount'
   | 'date'
   | 'flow'
@@ -26,6 +28,7 @@ export type TransactionFilterField =
 interface TransactionFilterDeps {
   accountOptions: Array<EnumOption>
   categoryOptions: Array<EnumOption>
+  labelOptions: Array<EnumOption>
   transactionTypeOptions: Array<EnumOption>
 }
 
@@ -59,6 +62,16 @@ export function createTransactionFilterConfig(
           },
         ),
       icon: Tag,
+    },
+    {
+      name: 'labels',
+      label: 'Labels',
+      valueType: 'enum',
+      operators: ['is_any_of', 'is_none_of', 'is_empty', 'is_not_empty'],
+      defaultOperator: 'is_any_of',
+      enumOptions: deps.labelOptions,
+      accessor: (r) => (r.labelIds ?? []) as Array<string>,
+      icon: Tags,
     },
     {
       name: 'amount',

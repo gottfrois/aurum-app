@@ -12,6 +12,7 @@ const deps = {
     { value: 'food_and_restaurants', label: 'Food & Restaurants' },
     { value: 'housing', label: 'Housing' },
   ],
+  labelOptions: [],
   transactionTypeOptions: [
     { value: 'card', label: 'Card' },
     { value: 'transfer', label: 'Transfer' },
@@ -76,7 +77,7 @@ function cond(
 
 describe('createTransactionFilterConfig', () => {
   it('produces correct number of fields', () => {
-    expect(config.fields).toHaveLength(9)
+    expect(config.fields).toHaveLength(10)
   })
 
   it('has all fields in fieldMap', () => {

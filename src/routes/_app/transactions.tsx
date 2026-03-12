@@ -49,6 +49,7 @@ interface TransactionRecord {
   category?: string
   categoryParent?: string
   userCategoryKey?: string
+  labelIds?: Array<string>
   value: number
   originalValue?: number
   originalCurrency?: string
@@ -84,7 +85,10 @@ function TransactionsContent() {
     isAllProfiles,
     allProfileIds,
     singleProfileId,
+    profiles,
   } = useProfile()
+
+  const workspaceId = profiles?.[0]?.workspaceId ?? null
 
   const period = useTransactionPeriod()
   const { categories, getCategory } = useCategories()
@@ -128,6 +132,12 @@ function TransactionsContent() {
   const rawBankAccounts = isAllProfiles ? bankAccountsAll : bankAccountsSingle
   const bankAccounts = useCachedDecryptRecords('bankAccounts', rawBankAccounts)
 
+  const labelsData = useQuery(
+    api.labels.listLabels,
+    workspaceId ? { workspaceId } : 'skip',
+  )
+  const labels = labelsData ?? []
+
   const accountNameMap = React.useMemo(() => {
     const map = new Map<string, string>()
     if (!bankAccounts) return map
@@ -170,6 +180,16 @@ function TransactionsContent() {
     [categories],
   )
 
+  const labelOptions = React.useMemo<Array<EnumOption>>(
+    () =>
+      labels.map((l) => ({
+        value: l._id,
+        label: l.name,
+        color: l.color,
+      })),
+    [labels],
+  )
+
   const transactionTypeOptions = React.useMemo<Array<EnumOption>>(() => {
     if (!transactions) return []
     const types = new Set(
@@ -183,9 +203,10 @@ function TransactionsContent() {
       createTransactionFilterConfig({
         accountOptions,
         categoryOptions,
+        labelOptions,
         transactionTypeOptions,
       }),
-    [accountOptions, categoryOptions, transactionTypeOptions],
+    [accountOptions, categoryOptions, labelOptions, transactionTypeOptions],
   )
 
   const initialConditions = React.useMemo(() => {
@@ -352,6 +373,7 @@ function TransactionsContent() {
       category: t.category,
       categoryParent: t.categoryParent,
       userCategoryKey: t.userCategoryKey,
+      labelIds: t.labelIds,
       value: t.value,
       originalValue: t.originalValue,
       originalCurrency: t.originalCurrency,
@@ -475,7 +497,12 @@ function TransactionsContent() {
             <CardTitle>Transactions</CardTitle>
           </CardHeader>
           <CardContent>
-            <TransactionsList data={tableData} currency={currency} />
+            <TransactionsList
+              data={tableData}
+              currency={currency}
+              labels={labels}
+              workspaceId={workspaceId ?? undefined}
+            />
           </CardContent>
         </Card>
       </div>

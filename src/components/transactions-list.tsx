@@ -7,6 +7,7 @@ import {
   getSortedRowModel,
   useReactTable,
 } from '@tanstack/react-table'
+import { useMutation } from 'convex/react'
 import {
   ArrowDown,
   ArrowUp,
@@ -15,9 +16,20 @@ import {
   ChevronRight,
   ChevronsLeft,
   ChevronsRight,
+  Plus,
   Search,
+  Tags,
 } from 'lucide-react'
-import type { ColumnDef, SortingState } from '@tanstack/react-table'
+import { toast } from 'sonner'
+import { api } from '../../convex/_generated/api'
+import type {
+  ColumnDef,
+  RowSelectionState,
+  SortingState,
+} from '@tanstack/react-table'
+import type { Id } from '../../convex/_generated/dataModel'
+import type { LabelData } from '~/components/label-picker'
+import type { CommandEntry } from '~/contexts/command-context'
 import {
   Table,
   TableBody,
@@ -29,6 +41,7 @@ import {
 import { Input } from '~/components/ui/input'
 import { Badge } from '~/components/ui/badge'
 import { Button } from '~/components/ui/button'
+import { Checkbox } from '~/components/ui/checkbox'
 import {
   Select,
   SelectContent,
@@ -48,6 +61,9 @@ import { useFormatCurrency } from '~/contexts/privacy-context'
 import { resolveTransactionCategoryKey, useCategories } from '~/lib/categories'
 import { CategoryPicker } from '~/components/category-picker'
 import { CreateRuleDialog } from '~/components/create-rule-dialog'
+import { LabelPicker } from '~/components/label-picker'
+import { SelectionBar } from '~/components/selection-bar'
+import { useRegisterCommands } from '~/contexts/command-context'
 import { cn } from '~/lib/utils'
 
 export interface TransactionRow {
@@ -60,6 +76,7 @@ export interface TransactionRow {
   category?: string
   categoryParent?: string
   userCategoryKey?: string
+  labelIds?: Array<string>
   value: number
   originalValue?: number
   originalCurrency?: string
@@ -77,9 +94,23 @@ export interface TransactionRow {
 interface TransactionsListProps {
   data: Array<TransactionRow>
   currency: string
+  labels?: Array<LabelData>
+  workspaceId?: string
 }
 
 const PAGE_SIZE_OPTIONS = ['25', '50', '100']
+const MAX_VISIBLE_LABELS = 2
+const SELECTION_COMMAND_GROUP = 'Selection'
+const LABEL_COLORS = [
+  '#ef4444',
+  '#f97316',
+  '#eab308',
+  '#22c55e',
+  '#06b6d4',
+  '#3b82f6',
+  '#8b5cf6',
+  '#ec4899',
+]
 
 function formatDate(date: string): string {
   return new Date(date).toLocaleDateString('fr-FR', {
@@ -89,13 +120,20 @@ function formatDate(date: string): string {
   })
 }
 
-export function TransactionsList({ data, currency }: TransactionsListProps) {
+export function TransactionsList({
+  data,
+  currency,
+  labels = [],
+  workspaceId,
+}: TransactionsListProps) {
   const formatCurrency = useFormatCurrency()
   const { getCategory } = useCategories()
   const [sorting, setSorting] = React.useState<SortingState>([
     { id: 'date', desc: true },
   ])
   const [globalFilter, setGlobalFilter] = React.useState('')
+  const [rowSelection, setRowSelection] = React.useState<RowSelectionState>({})
+  const [selectAllMatching, setSelectAllMatching] = React.useState(false)
   const [selectedTransaction, setSelectedTransaction] =
     React.useState<TransactionRow | null>(null)
   const [ruleDialog, setRuleDialog] = React.useState<{
@@ -104,6 +142,20 @@ export function TransactionsList({ data, currency }: TransactionsListProps) {
     categoryKey: string
   }>({ open: false, pattern: '', categoryKey: '' })
 
+  const updateTransactionLabels = useMutation(
+    api.transactions.updateTransactionLabels,
+  )
+  const batchUpdateLabels = useMutation(
+    api.transactions.batchUpdateTransactionLabels,
+  )
+  const labelMap = React.useMemo(() => {
+    const map = new Map<string, LabelData>()
+    for (const label of labels) {
+      map.set(label._id, label)
+    }
+    return map
+  }, [labels])
+
   const handleCreateRule = React.useCallback(
     (wording: string, categoryKey: string) => {
       setRuleDialog({ open: true, pattern: wording, categoryKey })
@@ -111,8 +163,50 @@ export function TransactionsList({ data, currency }: TransactionsListProps) {
     [],
   )
 
+  const handleLabelToggle = React.useCallback(
+    async (transactionId: string, labelIds: Array<string>) => {
+      try {
+        await updateTransactionLabels({
+          transactionId: transactionId as Id<'transactions'>,
+          labelIds: labelIds as Array<Id<'labels'>>,
+        })
+      } catch {
+        toast.error('Failed to update labels')
+      }
+    },
+    [updateTransactionLabels],
+  )
+
   const columns = React.useMemo<Array<ColumnDef<TransactionRow>>>(
     () => [
+      {
+        id: 'select',
+        header: ({ table }) => (
+          <div onClick={(e) => e.stopPropagation()}>
+            <Checkbox
+              checked={
+                table.getIsAllPageRowsSelected() ||
+                (table.getIsSomePageRowsSelected() && 'indeterminate')
+              }
+              onCheckedChange={(value) => {
+                table.toggleAllPageRowsSelected(!!value)
+                if (!value) setSelectAllMatching(false)
+              }}
+              aria-label="Select all"
+            />
+          </div>
+        ),
+        cell: ({ row }) => (
+          <div onClick={(e) => e.stopPropagation()}>
+            <Checkbox
+              checked={row.getIsSelected()}
+              onCheckedChange={(value) => row.toggleSelected(!!value)}
+              aria-label="Select row"
+            />
+          </div>
+        ),
+        enableSorting: false,
+      },
       {
         accessorKey: 'date',
         header: ({ column }) => (
@@ -135,16 +229,50 @@ export function TransactionsList({ data, currency }: TransactionsListProps) {
       {
         accessorKey: 'wording',
         header: 'Description',
-        cell: ({ row }) => (
-          <div className="flex max-w-[150px] items-center gap-2 sm:max-w-[200px] md:max-w-[300px] lg:max-w-[400px]">
-            <span className="truncate">{row.original.wording}</span>
-            {row.original.coming && (
-              <Badge variant="outline" className="shrink-0 text-[10px]">
-                Pending
-              </Badge>
-            )}
-          </div>
-        ),
+        cell: ({ row }) => {
+          const rowLabels = (row.original.labelIds ?? [])
+            .map((id) => labelMap.get(id))
+            .filter(Boolean) as Array<LabelData>
+          const visibleLabels = rowLabels.slice(0, MAX_VISIBLE_LABELS)
+          const overflowCount = rowLabels.length - MAX_VISIBLE_LABELS
+
+          return (
+            <div className="flex max-w-[150px] items-center gap-2 sm:max-w-[200px] md:max-w-[300px] lg:max-w-[400px]">
+              <span className="truncate">{row.original.wording}</span>
+              {row.original.coming && (
+                <Badge variant="outline" className="shrink-0 text-[10px]">
+                  Pending
+                </Badge>
+              )}
+              {visibleLabels.map((label) => (
+                <Badge
+                  key={label._id}
+                  variant="secondary"
+                  className="shrink-0 gap-1 px-1.5 py-0 text-[10px]"
+                  style={{
+                    backgroundColor: label.color + '20',
+                    color: label.color,
+                    borderColor: label.color + '40',
+                  }}
+                >
+                  <span
+                    className="size-1.5 rounded-full"
+                    style={{ backgroundColor: label.color }}
+                  />
+                  {label.name}
+                </Badge>
+              ))}
+              {overflowCount > 0 && (
+                <Badge
+                  variant="secondary"
+                  className="shrink-0 px-1.5 py-0 text-[10px]"
+                >
+                  +{overflowCount}
+                </Badge>
+              )}
+            </div>
+          )
+        },
       },
       {
         accessorKey: 'accountName',
@@ -221,15 +349,18 @@ export function TransactionsList({ data, currency }: TransactionsListProps) {
         },
       },
     ],
-    [currency, formatCurrency, getCategory, handleCreateRule],
+    [currency, formatCurrency, getCategory, handleCreateRule, labelMap],
   )
 
   const table = useReactTable({
     data,
     columns,
-    state: { sorting, globalFilter },
+    state: { sorting, globalFilter, rowSelection },
     onSortingChange: setSorting,
     onGlobalFilterChange: setGlobalFilter,
+    onRowSelectionChange: setRowSelection,
+    enableRowSelection: true,
+    getRowId: (row) => row._id,
     getCoreRowModel: getCoreRowModel(),
     getSortedRowModel: getSortedRowModel(),
     getFilteredRowModel: getFilteredRowModel(),
@@ -245,6 +376,102 @@ export function TransactionsList({ data, currency }: TransactionsListProps) {
   const totalRows = table.getFilteredRowModel().rows.length
   const from = totalRows === 0 ? 0 : pageIndex * pageSize + 1
   const to = Math.min((pageIndex + 1) * pageSize, totalRows)
+
+  const selectedCount = selectAllMatching
+    ? totalRows
+    : Object.keys(rowSelection).length
+  const hasSelection = selectedCount > 0
+
+  const clearSelection = React.useCallback(() => {
+    setRowSelection({})
+    setSelectAllMatching(false)
+  }, [])
+
+  React.useEffect(() => {
+    if (!hasSelection) return
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        clearSelection()
+      }
+    }
+    document.addEventListener('keydown', handleKeyDown)
+    return () => document.removeEventListener('keydown', handleKeyDown)
+  }, [hasSelection, clearSelection])
+
+  const getSelectedIds = React.useCallback((): Array<string> => {
+    if (selectAllMatching) {
+      return table.getFilteredRowModel().rows.map((r) => r.original._id)
+    }
+    return Object.keys(rowSelection)
+  }, [selectAllMatching, rowSelection, table])
+
+  const getSelectedRows = React.useCallback((): Array<TransactionRow> => {
+    if (selectAllMatching) {
+      return table.getFilteredRowModel().rows.map((r) => r.original)
+    }
+    return Object.keys(rowSelection).map((id) => table.getRow(id).original)
+  }, [selectAllMatching, rowSelection, table])
+
+  const handleBulkLabelToggle = React.useCallback(
+    async (labelId: string, checked: boolean) => {
+      const ids = getSelectedIds()
+      if (ids.length === 0) return
+
+      const label = labelMap.get(labelId)
+      try {
+        if (checked) {
+          await batchUpdateLabels({
+            transactionIds: ids as Array<Id<'transactions'>>,
+            addLabelIds: [labelId as Id<'labels'>],
+          })
+          toast.success(
+            `Adding "${label?.name}" to ${ids.length} transactions...`,
+          )
+        } else {
+          await batchUpdateLabels({
+            transactionIds: ids as Array<Id<'transactions'>>,
+            removeLabelIds: [labelId as Id<'labels'>],
+          })
+          toast.success(
+            `Removing "${label?.name}" from ${ids.length} transactions...`,
+          )
+        }
+      } catch {
+        toast.error('Failed to update labels')
+      }
+    },
+    [getSelectedIds, batchUpdateLabels, labelMap],
+  )
+
+  // Register a single "Change or add labels" command with inline view
+  const selectedRows = React.useMemo(
+    () => getSelectedRows(),
+    [getSelectedRows, data],
+  )
+  const selectionCommands = React.useMemo<Array<CommandEntry>>(() => {
+    if (!hasSelection) return []
+
+    return [
+      {
+        id: 'bulk-change-labels',
+        label: 'Change or add labels',
+        group: SELECTION_COMMAND_GROUP,
+        icon: Tags,
+        onSelect: () => {},
+        view: ({ onBack }) => (
+          <BulkLabelView
+            labels={labels}
+            selectedRows={selectedRows}
+            workspaceId={workspaceId}
+            onToggle={handleBulkLabelToggle}
+            onBack={onBack}
+          />
+        ),
+      },
+    ]
+  }, [hasSelection, labels, selectedRows, workspaceId, handleBulkLabelToggle])
+
+  useRegisterCommands(selectionCommands, [selectionCommands])
 
   return (
     <div className="space-y-4">
@@ -284,6 +511,7 @@ export function TransactionsList({ data, currency }: TransactionsListProps) {
                 <TableRow
                   key={row.id}
                   className="cursor-pointer"
+                  data-state={row.getIsSelected() && 'selected'}
                   onClick={() => setSelectedTransaction(row.original)}
                 >
                   {row.getVisibleCells().map((cell) => (
@@ -381,6 +609,15 @@ export function TransactionsList({ data, currency }: TransactionsListProps) {
         </div>
       </div>
 
+      <SelectionBar
+        count={selectedCount}
+        totalMatchingCount={totalRows}
+        selectAllMatching={selectAllMatching}
+        onSelectAllMatching={() => setSelectAllMatching(true)}
+        onClear={clearSelection}
+        commandGroup={SELECTION_COMMAND_GROUP}
+      />
+
       <TransactionDetailSheet
         transaction={selectedTransaction}
         onOpenChange={(open) => {
@@ -389,6 +626,9 @@ export function TransactionsList({ data, currency }: TransactionsListProps) {
         currency={currency}
         formatCurrency={formatCurrency}
         onCreateRule={handleCreateRule}
+        labels={labels}
+        workspaceId={workspaceId}
+        onLabelToggle={handleLabelToggle}
       />
 
       <CreateRuleDialog
@@ -401,18 +641,160 @@ export function TransactionsList({ data, currency }: TransactionsListProps) {
   )
 }
 
+function BulkLabelView({
+  labels,
+  selectedRows,
+  workspaceId,
+  onToggle,
+  onBack,
+}: {
+  labels: Array<LabelData>
+  selectedRows: Array<TransactionRow>
+  workspaceId?: string
+  onToggle: (labelId: string, checked: boolean) => void
+  onBack: () => void
+}) {
+  const [search, setSearch] = React.useState('')
+  // Optimistic overrides: tracks labels toggled by the user before the server confirms
+  const [optimistic, setOptimistic] = React.useState<Map<string, boolean>>(
+    new Map(),
+  )
+  const createLabelMutation = useMutation(api.labels.createLabel)
+
+  const handleToggle = (labelId: string, checked: boolean) => {
+    setOptimistic((prev) => new Map(prev).set(labelId, checked))
+    onToggle(labelId, checked)
+  }
+
+  const handleCreate = async () => {
+    const name = search.trim()
+    if (!name || !workspaceId) return
+
+    try {
+      const color = LABEL_COLORS[labels.length % LABEL_COLORS.length]
+      const labelId = await createLabelMutation({
+        workspaceId: workspaceId as Id<'workspaces'>,
+        name,
+        color,
+      })
+      setSearch('')
+      handleToggle(labelId, true)
+    } catch {
+      toast.error('Failed to create label')
+    }
+  }
+
+  // Compute checked state for each label, with optimistic overrides
+  const labelStates = React.useMemo(() => {
+    const states = new Map<string, 'all' | 'some' | 'none'>()
+    const total = selectedRows.length
+    for (const label of labels) {
+      // If user has optimistically toggled this label, use that value
+      const override = optimistic.get(label._id)
+      if (override !== undefined) {
+        states.set(label._id, override ? 'all' : 'none')
+        continue
+      }
+      const count = selectedRows.filter((r) =>
+        r.labelIds?.includes(label._id),
+      ).length
+      if (count === 0) states.set(label._id, 'none')
+      else if (count === total) states.set(label._id, 'all')
+      else states.set(label._id, 'some')
+    }
+    return states
+  }, [labels, selectedRows, optimistic])
+
+  const query = search.trim().toLowerCase()
+  const filtered = query
+    ? labels.filter((l) => l.name.toLowerCase().includes(query))
+    : labels
+  const exactMatch = labels.some((l) => l.name.toLowerCase() === query)
+
+  return (
+    <>
+      <div className="flex h-12 items-center gap-2 border-b px-3">
+        <button
+          onClick={onBack}
+          className="flex size-6 shrink-0 items-center justify-center rounded-md text-muted-foreground hover:bg-accent hover:text-foreground"
+        >
+          <ChevronLeft className="size-4" />
+        </button>
+        <input
+          autoFocus
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+          placeholder="Search or create label..."
+          className="flex h-10 w-full bg-transparent text-sm outline-none placeholder:text-muted-foreground"
+        />
+      </div>
+      <div className="min-h-[300px] max-h-[300px] overflow-y-auto overflow-x-hidden scroll-py-1 px-2 py-1">
+        {filtered.length === 0 && !search.trim() && (
+          <p className="py-6 text-center text-sm text-muted-foreground">
+            No labels found.
+          </p>
+        )}
+        {filtered.length > 0 && (
+          <div className="py-1">
+            {filtered.map((label) => {
+              const state = labelStates.get(label._id) ?? 'none'
+              const checked = state === 'all'
+              const indeterminate = state === 'some'
+              return (
+                <button
+                  key={label._id}
+                  onClick={() =>
+                    handleToggle(label._id, !checked && !indeterminate)
+                  }
+                  className="flex w-full items-center gap-2 rounded-sm px-2 py-2 text-sm hover:bg-accent"
+                >
+                  <Checkbox
+                    checked={indeterminate ? 'indeterminate' : checked}
+                    tabIndex={-1}
+                    className="pointer-events-none"
+                  />
+                  <span
+                    className="size-2.5 shrink-0 rounded-full"
+                    style={{ backgroundColor: label.color }}
+                  />
+                  <span>{label.name}</span>
+                </button>
+              )
+            })}
+          </div>
+        )}
+        {search.trim() && !exactMatch && (
+          <button
+            onClick={handleCreate}
+            className="flex w-full items-center gap-2 rounded-sm px-2 py-2 text-sm hover:bg-accent"
+          >
+            <Plus className="size-3" />
+            Create &ldquo;{search.trim()}&rdquo;
+          </button>
+        )}
+      </div>
+    </>
+  )
+}
+
 function TransactionDetailSheet({
   transaction,
   onOpenChange,
   currency,
   formatCurrency,
   onCreateRule,
+  labels,
+  workspaceId,
+  onLabelToggle,
 }: {
   transaction: TransactionRow | null
   onOpenChange: (open: boolean) => void
   currency: string
   formatCurrency: (value: number, currency: string) => string
   onCreateRule: (wording: string, categoryKey: string) => void
+  labels: Array<LabelData>
+  workspaceId?: string
+  onLabelToggle: (transactionId: string, labelIds: Array<string>) => void
 }) {
   if (!transaction) return null
 
@@ -497,6 +879,22 @@ function TransactionDetailSheet({
               onCreateRule={onCreateRule}
             />
           </div>
+
+          {workspaceId && (
+            <div>
+              <p className="mb-1 text-xs font-medium text-muted-foreground">
+                Labels
+              </p>
+              <LabelPicker
+                labels={labels}
+                selectedLabelIds={transaction.labelIds ?? []}
+                workspaceId={workspaceId}
+                onToggle={(labelIds) =>
+                  onLabelToggle(transaction._id, labelIds)
+                }
+              />
+            </div>
+          )}
 
           <Separator />
 
