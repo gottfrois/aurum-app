@@ -240,7 +240,7 @@ export function TransactionsList({
             <div className="flex max-w-[150px] items-center gap-2 sm:max-w-[200px] md:max-w-[300px] lg:max-w-[400px]">
               <span className="truncate">{row.original.wording}</span>
               {row.original.coming && (
-                <Badge variant="outline" className="shrink-0 text-[10px]">
+                <Badge variant="outline" className="shrink-0 text-xs">
                   Pending
                 </Badge>
               )}
@@ -248,7 +248,7 @@ export function TransactionsList({
                 <Badge
                   key={label._id}
                   variant="secondary"
-                  className="shrink-0 gap-1 px-1.5 py-0 text-[10px]"
+                  className="shrink-0 gap-1 px-1.5 py-0.5 text-xs"
                   style={{
                     backgroundColor: label.color + '20',
                     color: label.color,
@@ -256,7 +256,7 @@ export function TransactionsList({
                   }}
                 >
                   <span
-                    className="size-1.5 rounded-full"
+                    className="size-2 rounded-full"
                     style={{ backgroundColor: label.color }}
                   />
                   {label.name}
@@ -265,7 +265,7 @@ export function TransactionsList({
               {overflowCount > 0 && (
                 <Badge
                   variant="secondary"
-                  className="shrink-0 px-1.5 py-0 text-[10px]"
+                  className="shrink-0 px-1.5 py-0.5 text-xs"
                 >
                   +{overflowCount}
                 </Badge>

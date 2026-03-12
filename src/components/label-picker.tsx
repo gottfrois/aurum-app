@@ -1,6 +1,6 @@
 import * as React from 'react'
 import { useMutation } from 'convex/react'
-import { Check, ChevronsUpDown, Plus } from 'lucide-react'
+import { ChevronsUpDown, Plus } from 'lucide-react'
 import { toast } from 'sonner'
 import { api } from '../../convex/_generated/api'
 import type { Id } from '../../convex/_generated/dataModel'
@@ -19,7 +19,7 @@ import {
   PopoverTrigger,
 } from '~/components/ui/popover'
 import { Badge } from '~/components/ui/badge'
-import { cn } from '~/lib/utils'
+import { Checkbox } from '~/components/ui/checkbox'
 
 const LABEL_COLORS = [
   '#ef4444',
@@ -53,12 +53,40 @@ export function LabelPicker({
 }: LabelPickerProps) {
   const [open, setOpen] = React.useState(false)
   const [search, setSearch] = React.useState('')
+  // Optimistic state — merges with server state for instant UI feedback
+  const [optimistic, setOptimistic] = React.useState<Map<string, boolean>>(
+    new Map(),
+  )
   const createLabel = useMutation(api.labels.createLabel)
 
-  const selectedLabels = labels.filter((l) => selectedLabelIds.includes(l._id))
+  // Sync: clear optimistic overrides once server state catches up
+  React.useEffect(() => {
+    setOptimistic((prev) => {
+      if (prev.size === 0) return prev
+      const next = new Map(prev)
+      for (const [id, value] of prev) {
+        const serverHas = selectedLabelIds.includes(id)
+        if (serverHas === value) next.delete(id)
+      }
+      return next.size === prev.size ? prev : next
+    })
+  }, [selectedLabelIds])
+
+  const effectiveIds = React.useMemo(() => {
+    const ids = new Set(selectedLabelIds)
+    for (const [id, value] of optimistic) {
+      if (value) ids.add(id)
+      else ids.delete(id)
+    }
+    return [...ids]
+  }, [selectedLabelIds, optimistic])
+
+  const selectedLabels = labels.filter((l) => effectiveIds.includes(l._id))
 
   const handleToggle = (labelId: string) => {
-    const next = selectedLabelIds.includes(labelId)
+    const isSelected = effectiveIds.includes(labelId)
+    setOptimistic((prev) => new Map(prev).set(labelId, !isSelected))
+    const next = isSelected
       ? selectedLabelIds.filter((id) => id !== labelId)
       : [...selectedLabelIds, labelId]
     onToggle(next)
@@ -76,6 +104,7 @@ export function LabelPicker({
         color,
       })
       setSearch('')
+      setOptimistic((prev) => new Map(prev).set(labelId, true))
       onToggle([...selectedLabelIds, labelId])
       toast.success(`Label "${name}" created`)
     } catch {
@@ -103,7 +132,7 @@ export function LabelPicker({
                 <Badge
                   key={label._id}
                   variant="secondary"
-                  className="gap-1 px-1.5 py-0 text-xs"
+                  className="gap-1 px-2 py-0.5 text-xs"
                   style={{
                     backgroundColor: label.color + '20',
                     color: label.color,
@@ -111,7 +140,7 @@ export function LabelPicker({
                   }}
                 >
                   <span
-                    className="size-1.5 shrink-0 rounded-full"
+                    className="size-2 shrink-0 rounded-full"
                     style={{ backgroundColor: label.color }}
                   />
                   {label.name}
@@ -153,19 +182,16 @@ export function LabelPicker({
                     value={label.name}
                     onSelect={() => handleToggle(label._id)}
                   >
+                    <Checkbox
+                      checked={effectiveIds.includes(label._id)}
+                      tabIndex={-1}
+                      className="pointer-events-none"
+                    />
                     <span
                       className="size-2.5 shrink-0 rounded-full"
                       style={{ backgroundColor: label.color }}
                     />
                     <span>{label.name}</span>
-                    <Check
-                      className={cn(
-                        'ml-auto size-3',
-                        selectedLabelIds.includes(label._id)
-                          ? 'opacity-100'
-                          : 'opacity-0',
-                      )}
-                    />
                   </CommandItem>
                 ))}
               </CommandGroup>

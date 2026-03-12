@@ -94,6 +94,8 @@ export function FilterDropdown({
     }
   }
 
+  const [subTop, setSubTop] = React.useState(0)
+
   const handleFieldHover = (
     field: FilterFieldDescriptor,
     e: React.MouseEvent,
@@ -104,12 +106,18 @@ export function FilterDropdown({
     }
 
     // Determine which side has more space
-    const rect = (e.currentTarget as HTMLElement).getBoundingClientRect()
+    const item = e.currentTarget as HTMLElement
+    const rect = item.getBoundingClientRect()
     const spaceRight = window.innerWidth - rect.right
     const spaceLeft = rect.left
     setSubSide(
       spaceRight >= 280 ? 'right' : spaceLeft >= 280 ? 'left' : 'right',
     )
+
+    // Position submenu vertically aligned with the hovered item
+    const container = item.closest('[data-filter-container]') as HTMLElement
+    const containerRect = container.getBoundingClientRect()
+    setSubTop(rect.top - containerRect.top)
 
     if (hoveredField?.name !== field.name) {
       // Clean up live condition from previous field if empty
@@ -254,7 +262,7 @@ export function FilterDropdown({
         />
       )}
       <PopoverContent className="w-[220px] p-0" align="start">
-        <div className="relative">
+        <div className="relative" data-filter-container>
           {aiMode ? (
             <div className="flex flex-col">
               <div className="flex items-center gap-2 border-b px-3 py-2">
@@ -333,6 +341,7 @@ export function FilterDropdown({
                 field={hoveredField}
                 value={pendingValue}
                 side={subSide}
+                top={subTop}
                 onChange={handleValueChange}
                 onAutoApply={handleAutoApply}
                 onToggle={handleToggle}
@@ -350,6 +359,7 @@ function SubPanel({
   field,
   value,
   side,
+  top,
   onChange,
   onAutoApply,
   onToggle,
@@ -359,14 +369,14 @@ function SubPanel({
   field: FilterFieldDescriptor
   value: unknown
   side: 'right' | 'left'
+  top: number
   onChange: (value: unknown) => void
   onAutoApply: (value: unknown) => void
   onToggle: (value: unknown) => void
   onMouseEnter: () => void
   onMouseLeave: () => void
 }) {
-  const positionClass =
-    side === 'right' ? 'left-full top-0 ml-1' : 'right-full top-0 mr-1'
+  const positionClass = side === 'right' ? 'left-full ml-1' : 'right-full mr-1'
 
   const latestValueRef = React.useRef(value)
   latestValueRef.current = value
@@ -383,6 +393,7 @@ function SubPanel({
   return (
     <div
       className={`absolute ${positionClass} z-50 w-[280px] rounded-md border bg-popover shadow-md`}
+      style={{ top }}
       onMouseEnter={onMouseEnter}
       onMouseLeave={onMouseLeave}
     >
