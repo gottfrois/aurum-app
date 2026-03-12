@@ -1,8 +1,9 @@
 import { v } from 'convex/values'
 import { action, internalQuery, query } from './_generated/server'
-import { getAuthUserId, requireAuthUserId } from './lib/auth'
+import { components } from './_generated/api'
+import { getAuthUserId } from './lib/auth'
 import { getWorkspaceSubscription } from './lib/billing'
-import { polar } from './polar'
+import { stripe } from './stripe'
 
 export const getSubscriptionStatus = query({
   args: {},
@@ -10,7 +11,6 @@ export const getSubscriptionStatus = query({
     const userId = await getAuthUserId(ctx)
     if (!userId) return null
 
-    // Find the user's workspace membership
     const membership = await ctx.db
       .query('workspaceMembers')
       .withIndex('by_userId', (q) => q.eq('userId', userId))
@@ -18,7 +18,6 @@ export const getSubscriptionStatus = query({
 
     if (!membership) return null
 
-    // Find the workspace owner
     const ownerMembership = await ctx.db
       .query('workspaceMembers')
       .withIndex('by_workspaceId', (q) =>
@@ -31,7 +30,6 @@ export const getSubscriptionStatus = query({
 
     const status = await getWorkspaceSubscription(ctx, ownerMembership.userId)
 
-    // Also return current seat usage for the UI
     const members = await ctx.db
       .query('workspaceMembers')
       .withIndex('by_workspaceId', (q) =>
@@ -62,99 +60,119 @@ export const getOwnerSubscription = internalQuery({
   },
 })
 
-interface PolarDiscount {
-  id: string
-  name: string
-  type: 'percentage' | 'fixed'
-  amount: number
-  duration: 'once' | 'repeating' | 'forever'
-  duration_in_months: number | null
-}
+export const createCheckout = action({
+  args: {
+    interval: v.union(v.literal('monthly'), v.literal('yearly')),
+  },
+  handler: async (ctx, { interval }) => {
+    const identity = await ctx.auth.getUserIdentity()
+    if (!identity) throw new Error('Not authenticated')
 
-export const getDiscountDetails = action({
-  args: { discountId: v.string() },
-  handler: async (ctx, { discountId }) => {
-    await requireAuthUserId(ctx)
-
-    const token = process.env.POLAR_ORGANIZATION_TOKEN
-    if (!token) return null
-
-    const server = process.env.POLAR_SERVER ?? 'sandbox'
-    const baseUrl =
-      server === 'production'
-        ? 'https://api.polar.sh'
-        : 'https://sandbox-api.polar.sh'
-
-    const res = await fetch(`${baseUrl}/v1/discounts/${discountId}`, {
-      headers: { Authorization: `Bearer ${token}` },
+    const customer = await stripe.getOrCreateCustomer(ctx, {
+      userId: identity.subject,
+      email: identity.email ?? undefined,
+      name: identity.name ?? undefined,
     })
 
-    if (!res.ok) return null
+    const priceId =
+      interval === 'monthly'
+        ? process.env.STRIPE_MONTHLY_PRICE_ID!
+        : process.env.STRIPE_YEARLY_PRICE_ID!
 
-    const data = (await res.json()) as PolarDiscount
+    const siteUrl = process.env.SITE_URL ?? 'http://localhost:3000'
 
-    return {
-      id: data.id,
-      name: data.name,
-      type: data.type,
-      amount: data.amount,
-      duration: data.duration,
-      durationInMonths: data.duration_in_months,
-    }
+    return await stripe.createCheckoutSession(ctx, {
+      priceId,
+      customerId: customer.customerId,
+      mode: 'subscription',
+      successUrl: `${siteUrl}/checkout/success?session_id={CHECKOUT_SESSION_ID}`,
+      cancelUrl: `${siteUrl}/checkout`,
+      quantity: 1,
+      subscriptionMetadata: {
+        userId: identity.subject,
+      },
+    })
   },
 })
 
-interface PolarOrder {
-  id: string
-  created_at: string
-  total_amount: number
-  currency: string
-  status: string
-  product: { name: string } | null
-}
-
-interface PolarOrdersResponse {
-  items: Array<PolarOrder>
-}
-
-export const listRecentOrders = action({
+export const createPortalSession = action({
   args: {},
   handler: async (ctx) => {
-    const userId = await requireAuthUserId(ctx)
+    const identity = await ctx.auth.getUserIdentity()
+    if (!identity) throw new Error('Not authenticated')
 
-    const customer = await polar.getCustomerByUserId(ctx, userId)
-    if (!customer) return []
-
-    const token = process.env.POLAR_ORGANIZATION_TOKEN
-    if (!token) return []
-
-    const server = process.env.POLAR_SERVER ?? 'sandbox'
-    const baseUrl =
-      server === 'production'
-        ? 'https://api.polar.sh'
-        : 'https://sandbox-api.polar.sh'
-
-    const params = new URLSearchParams({
-      customer_id: customer.id,
-      limit: '3',
-      sorting: '-created_at',
+    const customer = await stripe.getOrCreateCustomer(ctx, {
+      userId: identity.subject,
+      email: identity.email ?? undefined,
+      name: identity.name ?? undefined,
     })
 
-    const res = await fetch(`${baseUrl}/v1/orders/?${params.toString()}`, {
-      headers: { Authorization: `Bearer ${token}` },
+    const siteUrl = process.env.SITE_URL ?? 'http://localhost:3000'
+
+    return await stripe.createCustomerPortalSession(ctx, {
+      customerId: customer.customerId,
+      returnUrl: `${siteUrl}/settings/billing`,
     })
+  },
+})
 
-    if (!res.ok) return []
+export const updateSeatCount = action({
+  args: { seats: v.number() },
+  handler: async (ctx, { seats }) => {
+    const identity = await ctx.auth.getUserIdentity()
+    if (!identity) throw new Error('Not authenticated')
 
-    const data = (await res.json()) as PolarOrdersResponse
+    const subscriptions = await ctx.runQuery(
+      components.stripe.public.listSubscriptionsByUserId,
+      { userId: identity.subject },
+    )
 
-    return data.items.map((order) => ({
-      id: order.id,
-      createdAt: order.created_at,
-      totalAmount: order.total_amount,
-      currency: order.currency,
-      status: order.status,
-      productName: order.product?.name ?? 'Bunkr',
-    }))
+    const subscription = subscriptions.find(
+      (s: { status: string }) =>
+        s.status === 'active' || s.status === 'trialing',
+    )
+
+    if (!subscription?.stripeSubscriptionId) {
+      throw new Error('No active subscription found')
+    }
+
+    await stripe.updateSubscriptionQuantity(ctx, {
+      stripeSubscriptionId: subscription.stripeSubscriptionId,
+      quantity: seats,
+    })
+  },
+})
+
+export const listRecentInvoices = action({
+  args: {},
+  handler: async (ctx) => {
+    const identity = await ctx.auth.getUserIdentity()
+    if (!identity) throw new Error('Not authenticated')
+
+    const invoices = await ctx.runQuery(
+      components.stripe.public.listInvoicesByUserId,
+      { userId: identity.subject },
+    )
+
+    // Return the 3 most recent
+    return invoices
+      .slice(0, 3)
+      .map(
+        (invoice: {
+          stripeInvoiceId?: string
+          created?: number
+          amountPaid?: number
+          currency?: string
+          status?: string
+        }) => ({
+          id: invoice.stripeInvoiceId ?? '',
+          createdAt: invoice.created
+            ? new Date(invoice.created * 1000).toISOString()
+            : '',
+          totalAmount: invoice.amountPaid ?? 0,
+          currency: invoice.currency ?? 'eur',
+          status: invoice.status ?? '',
+        }),
+      )
   },
 })
