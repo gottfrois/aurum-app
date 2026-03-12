@@ -175,12 +175,14 @@ export function TransactionsList({ data, currency }: TransactionsListProps) {
         cell: ({ row }) => {
           const categoryKey = resolveTransactionCategoryKey(row.original)
           return (
-            <CategoryPicker
-              transactionId={row.original._id}
-              currentCategoryKey={categoryKey}
-              wording={row.original.wording}
-              onCreateRule={handleCreateRule}
-            />
+            <div onClick={(e) => e.stopPropagation()}>
+              <CategoryPicker
+                transactionId={row.original._id}
+                currentCategoryKey={categoryKey}
+                wording={row.original.wording}
+                onCreateRule={handleCreateRule}
+              />
+            </div>
           )
         },
       },
