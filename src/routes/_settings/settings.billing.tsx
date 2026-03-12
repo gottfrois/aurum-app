@@ -1,8 +1,7 @@
 import { useEffect, useState } from 'react'
 import { Link, createFileRoute } from '@tanstack/react-router'
 import { useAction, useQuery } from 'convex/react'
-import { ExternalLink, Ticket } from 'lucide-react'
-import { CustomerPortalLink } from '@convex-dev/polar/react'
+import { ExternalLink } from 'lucide-react'
 import { api } from '../../../convex/_generated/api'
 import {
   ItemCard,
@@ -17,22 +16,11 @@ import {
 import { Badge } from '~/components/ui/badge'
 import { Button } from '~/components/ui/button'
 import { Skeleton } from '~/components/ui/skeleton'
+import { SEAT_PRICES } from '../../../convex/stripe'
 
 export const Route = createFileRoute('/_settings/settings/billing')({
   component: BillingPage,
 })
-
-const TIER_LABELS: Record<string, string> = {
-  solo: 'Solo',
-  team: 'Team',
-  family: 'Family',
-}
-
-const PLAN_PRICES: Record<string, { monthly: number; yearly: number }> = {
-  solo: { monthly: 9, yearly: 89 },
-  team: { monthly: 25, yearly: 239 },
-  family: { monthly: 39, yearly: 379 },
-}
 
 function formatDate(timestamp: number): string {
   return new Date(timestamp).toLocaleDateString(undefined, {
@@ -49,41 +37,42 @@ function formatCurrency(amountCents: number, currency: string): string {
   }).format(amountCents / 100)
 }
 
-interface Order {
+interface Invoice {
   id: string
   createdAt: string
   totalAmount: number
   currency: string
   status: string
-  productName: string
 }
 
 function BillingPage() {
   const subscription = useQuery(api.billing.getSubscriptionStatus)
-  const listRecentOrders = useAction(api.billing.listRecentOrders)
-  const getDiscountDetails = useAction(api.billing.getDiscountDetails)
-  const [orders, setOrders] = useState<Array<Order> | undefined>(undefined)
-  const [discount, setDiscount] = useState<{
-    name: string
-    type: 'percentage' | 'fixed'
-    amount: number
-    duration: 'once' | 'repeating' | 'forever'
-    durationInMonths: number | null
-  } | null>(null)
+  const createPortalSession = useAction(api.billing.createPortalSession)
+  const listRecentInvoices = useAction(api.billing.listRecentInvoices)
+  const [invoices, setInvoices] = useState<Array<Invoice> | undefined>(
+    undefined,
+  )
+  const [portalLoading, setPortalLoading] = useState(false)
 
   useEffect(() => {
     if (subscription?.isActive) {
-      void listRecentOrders().then(setOrders)
+      void listRecentInvoices().then(setInvoices)
     }
-  }, [subscription?.isActive, listRecentOrders])
+  }, [subscription?.isActive, listRecentInvoices])
 
-  useEffect(() => {
-    if (subscription?.discountId) {
-      void getDiscountDetails({ discountId: subscription.discountId }).then(
-        setDiscount,
-      )
+  async function handleManageSubscription() {
+    setPortalLoading(true)
+    try {
+      const result = await createPortalSession()
+      if (result.url) {
+        window.location.href = result.url
+      }
+    } catch (error) {
+      console.error('Portal error:', error)
+    } finally {
+      setPortalLoading(false)
     }
-  }, [subscription?.discountId, getDiscountDetails])
+  }
 
   if (subscription === undefined) {
     return (
@@ -100,17 +89,8 @@ function BillingPage() {
 
   if (!subscription) return null
 
-  const tierLabel = subscription.tier
-    ? (TIER_LABELS[subscription.tier] ?? subscription.tier)
-    : 'None'
-  const prices = subscription.tier
-    ? (PLAN_PRICES[subscription.tier] ?? null)
-    : null
-  const displayPrice = prices
-    ? subscription.interval === 'yearly'
-      ? prices.yearly
-      : prices.monthly
-    : null
+  const seatPrice =
+    subscription.interval === 'yearly' ? SEAT_PRICES.yearly : SEAT_PRICES.monthly
 
   const trialDaysRemaining = subscription.trialEndsAt
     ? Math.max(
@@ -126,16 +106,14 @@ function BillingPage() {
       <header className="flex items-center justify-between">
         <h1 className="text-3xl font-semibold">Billing</h1>
         {subscription.isActive && (
-          <CustomerPortalLink
-            polarApi={{
-              generateCustomerPortalUrl: api.polar.generateCustomerPortalUrl,
-            }}
+          <button
+            onClick={handleManageSubscription}
+            disabled={portalLoading}
+            className="inline-flex items-center gap-1.5 text-sm text-muted-foreground transition-colors hover:text-foreground"
           >
-            <span className="inline-flex items-center gap-1.5 text-sm text-muted-foreground transition-colors hover:text-foreground">
-              Manage subscription
-              <ExternalLink className="size-3.5" />
-            </span>
-          </CustomerPortalLink>
+            {portalLoading ? 'Loading...' : 'Manage subscription'}
+            <ExternalLink className="size-3.5" />
+          </button>
         )}
       </header>
       <p className="mt-1 text-sm text-muted-foreground">
@@ -147,21 +125,17 @@ function BillingPage() {
           <div className="grid grid-cols-3 gap-6 rounded-lg border p-6">
             <div>
               <div className="flex items-center gap-2">
-                <span className="text-sm font-medium">{tierLabel}</span>
+                <span className="text-sm font-medium">Bunkr</span>
                 <Badge>Current</Badge>
                 {subscription.isTrial && (
                   <Badge variant="secondary">Trial</Badge>
                 )}
               </div>
               <p className="mt-1 text-sm text-muted-foreground">
-                {displayPrice !== null && (
-                  <>
-                    {displayPrice}&#8364;
-                    {subscription.interval === 'yearly'
-                      ? '/yr — billed annually'
-                      : '/mo'}
-                  </>
-                )}
+                {seatPrice / 100}&#8364;/seat
+                {subscription.interval === 'yearly'
+                  ? '/yr — billed annually'
+                  : '/mo'}
               </p>
             </div>
 
@@ -185,41 +159,24 @@ function BillingPage() {
               ) : subscription.renewsAt ? (
                 <p className="mt-1 text-sm text-muted-foreground">
                   {formatDate(subscription.renewsAt)}
-                  {displayPrice !== null &&
-                  subscription.amount !== null &&
-                  subscription.amount !== displayPrice * 100 ? (
+                  {subscription.amount !== null && (
                     <>
                       {' — '}
-                      <span className="line-through">
-                        {displayPrice}&#8364;
-                      </span>{' '}
                       {formatCurrency(
                         subscription.amount,
                         subscription.currency ?? 'eur',
                       )}
                     </>
-                  ) : displayPrice !== null ? (
-                    <> — {displayPrice}&#8364;</>
-                  ) : null}
+                  )}
                 </p>
               ) : (
                 <p className="mt-1 text-sm text-muted-foreground">—</p>
               )}
             </div>
 
-            {discount && (
-              <div className="col-span-3 flex items-center gap-1.5 border-t pt-4 text-sm text-muted-foreground">
-                <Ticket className="size-3.5" />
-                <span>
-                  {discount.type === 'percentage'
-                    ? `${discount.amount}% off`
-                    : `${formatCurrency(discount.amount, 'eur')} off`}
-                  {discount.duration === 'forever'
-                    ? ' forever'
-                    : discount.duration === 'once'
-                      ? ' (first payment)'
-                      : ` for ${discount.durationInMonths} months`}
-                </span>
+            {subscription.cancelAtPeriodEnd && (
+              <div className="col-span-3 border-t pt-4 text-sm text-muted-foreground">
+                Subscription will cancel at the end of the current period.
               </div>
             )}
           </div>
@@ -234,39 +191,36 @@ function BillingPage() {
           </div>
         )}
 
-        {orders !== undefined && orders.length > 0 && (
+        {invoices !== undefined && invoices.length > 0 && (
           <ItemCard>
             <ItemCardItems>
-              {orders.map((order) => (
-                <ItemCardItem key={order.id}>
+              {invoices.map((invoice) => (
+                <ItemCardItem key={invoice.id}>
                   <ItemCardItemContent>
                     <ItemCardItemTitle>
-                      {formatDate(new Date(order.createdAt).getTime())}
+                      {formatDate(new Date(invoice.createdAt).getTime())}
                     </ItemCardItemTitle>
                     <ItemCardItemDescription>
-                      {order.productName}
+                      Bunkr subscription
                     </ItemCardItemDescription>
                   </ItemCardItemContent>
                   <ItemCardItemAction>
                     <span className="text-sm font-medium">
-                      {formatCurrency(order.totalAmount, order.currency)}
+                      {formatCurrency(invoice.totalAmount, invoice.currency)}
                     </span>
                   </ItemCardItemAction>
                 </ItemCardItem>
               ))}
             </ItemCardItems>
             <ItemCardFooter>
-              <CustomerPortalLink
-                polarApi={{
-                  generateCustomerPortalUrl:
-                    api.polar.generateCustomerPortalUrl,
-                }}
+              <button
+                onClick={handleManageSubscription}
+                disabled={portalLoading}
+                className="inline-flex items-center gap-1.5 text-sm text-muted-foreground transition-colors hover:text-foreground"
               >
-                <span className="inline-flex items-center gap-1.5 text-sm text-muted-foreground transition-colors hover:text-foreground">
-                  More invoices
-                  <ExternalLink className="size-3.5" />
-                </span>
-              </CustomerPortalLink>
+                More invoices
+                <ExternalLink className="size-3.5" />
+              </button>
             </ItemCardFooter>
           </ItemCard>
         )}
