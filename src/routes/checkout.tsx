@@ -1,8 +1,7 @@
 import { useEffect, useState } from 'react'
 import { createFileRoute, useNavigate } from '@tanstack/react-router'
-import { useQuery } from 'convex/react'
-import { Check, Home, User, Users } from 'lucide-react'
-import { CheckoutLink } from '@convex-dev/polar/react'
+import { useAction, useQuery } from 'convex/react'
+import { Check } from 'lucide-react'
 import { api } from '../../convex/_generated/api'
 import { Button } from '~/components/ui/button'
 import {
@@ -14,74 +13,32 @@ import {
   CardTitle,
 } from '~/components/ui/card'
 import { Badge } from '~/components/ui/badge'
-import { Skeleton } from '~/components/ui/skeleton'
 
 export const Route = createFileRoute('/checkout')({
   component: CheckoutPage,
 })
 
-const TIERS = [
-  {
-    key: 'solo',
-    name: 'Solo',
-    icon: User,
-    seats: 1,
-    monthlyKey: 'soloMonthly' as const,
-    yearlyKey: 'soloYearly' as const,
-    description: 'For individuals tracking their finances',
-    features: [
-      'Unlimited bank connections',
-      'Unlimited profiles',
-      'Full transaction history',
-      'Net worth tracking',
-      'Portfolio analytics',
-      'End-to-end encryption',
-    ],
-  },
-  {
-    key: 'team',
-    name: 'Team',
-    icon: Users,
-    seats: 3,
-    monthlyKey: 'teamMonthly' as const,
-    yearlyKey: 'teamYearly' as const,
-    description: 'For couples or small teams',
-    popular: true,
-    features: [
-      'Everything in Solo',
-      'Up to 3 members',
-      'Workspace collaboration',
-      'Shared financial overview',
-    ],
-  },
-  {
-    key: 'family',
-    name: 'Family',
-    icon: Home,
-    seats: 5,
-    monthlyKey: 'familyMonthly' as const,
-    yearlyKey: 'familyYearly' as const,
-    description: 'For the whole family',
-    features: ['Everything in Team', 'Up to 5 members', 'Priority support'],
-  },
+const FEATURES = [
+  'Unlimited bank connections',
+  'Unlimited profiles',
+  'Full transaction history',
+  'Net worth tracking',
+  'Portfolio analytics',
+  'End-to-end encryption',
+  'Workspace collaboration',
+  'Priority support',
 ]
 
-function getPrice(
-  products: Record<
-    string,
-    { prices: Array<{ priceAmount?: number | null }> } | undefined
-  >,
-  key: string,
-): number | null {
-  const product = products[key]
-  if (!product) return null
-  return (product.prices[0]?.priceAmount ?? 0) / 100
+const SEAT_PRICE = {
+  monthly: 9,
+  yearly: 89,
 }
 
 function CheckoutPage() {
   const [isYearly, setIsYearly] = useState(false)
-  const products = useQuery(api.polar.getConfiguredProducts)
+  const [loading, setLoading] = useState(false)
   const subscription = useQuery(api.billing.getSubscriptionStatus)
+  const createCheckout = useAction(api.billing.createCheckout)
   const navigate = useNavigate()
 
   useEffect(() => {
@@ -90,14 +47,22 @@ function CheckoutPage() {
     }
   }, [subscription, navigate])
 
-  if (products === undefined) {
-    return (
-      <div className="flex min-h-screen items-center justify-center gap-6 px-4">
-        {[1, 2, 3].map((i) => (
-          <Skeleton key={i} className="h-[500px] w-[320px] rounded-xl" />
-        ))}
-      </div>
-    )
+  const price = isYearly ? SEAT_PRICE.yearly : SEAT_PRICE.monthly
+
+  async function handleCheckout() {
+    setLoading(true)
+    try {
+      const result = await createCheckout({
+        interval: isYearly ? 'yearly' : 'monthly',
+      })
+      if (result.url) {
+        window.location.href = result.url
+      }
+    } catch (error) {
+      console.error('Checkout error:', error)
+    } finally {
+      setLoading(false)
+    }
   }
 
   return (
@@ -130,103 +95,51 @@ function CheckoutPage() {
         >
           Yearly
           <Badge variant="secondary" className="ml-1.5">
-            Save 20%
+            Save 18%
           </Badge>
         </button>
       </div>
 
-      <div className="grid w-full max-w-4xl gap-6 md:grid-cols-3">
-        {TIERS.map((tier) => {
-          const productKey = isYearly ? tier.yearlyKey : tier.monthlyKey
-          const product = products[productKey]
-          const productId = product?.id ?? null
-          const price = getPrice(
-            products as Record<
-              string,
-              { prices: Array<{ priceAmount?: number | null }> }
-            >,
-            productKey,
-          )
-          const TierIcon = tier.icon
-
-          return (
-            <Card
-              key={tier.key}
-              className={`flex flex-col${tier.popular ? ' relative border-primary shadow-md' : ''}`}
-            >
-              {tier.popular && (
-                <Badge className="absolute -top-2.5 left-1/2 -translate-x-1/2">
-                  Most popular
-                </Badge>
-              )}
-              <CardHeader className="text-center">
-                <div className="mx-auto mb-2 flex size-10 items-center justify-center rounded-lg bg-muted">
-                  <TierIcon className="size-5" />
-                </div>
-                <CardTitle className="text-xl">{tier.name}</CardTitle>
-                <CardDescription className="min-h-[2lh]">
-                  {tier.description}
-                </CardDescription>
-                <div className="mt-4">
-                  {price !== null ? (
-                    <>
-                      <span className="text-4xl font-bold">{price}&#8364;</span>
-                      <span className="text-muted-foreground">
-                        /{isYearly ? 'year' : 'month'}
-                      </span>
-                    </>
-                  ) : (
-                    <Skeleton className="mx-auto h-10 w-24" />
-                  )}
-                </div>
-                <p className="mt-1 text-xs text-muted-foreground">
-                  {tier.seats} {tier.seats === 1 ? 'seat' : 'seats'} included
-                </p>
-              </CardHeader>
-              <CardContent className="flex-1">
-                <ul className="space-y-3">
-                  {tier.features.map((feature) => (
-                    <li
-                      key={feature}
-                      className="flex items-center gap-2 text-sm"
-                    >
-                      <Check className="size-4 shrink-0 text-primary" />
-                      {feature}
-                    </li>
-                  ))}
-                </ul>
-              </CardContent>
-              <CardFooter>
-                {productId ? (
-                  <CheckoutLink
-                    polarApi={api.polar}
-                    productIds={[productId]}
-                    trialInterval="day"
-                    trialIntervalCount={14}
-                    embed={false}
-                    className="w-full"
-                  >
-                    <Button
-                      className="w-full"
-                      size="lg"
-                      variant={tier.popular ? 'default' : 'outline'}
-                    >
-                      Start free trial
-                    </Button>
-                  </CheckoutLink>
-                ) : (
-                  <Button className="w-full" size="lg" disabled>
-                    Start free trial
-                  </Button>
-                )}
-              </CardFooter>
-            </Card>
-          )
-        })}
-      </div>
+      <Card className="w-full max-w-md">
+        <CardHeader className="text-center">
+          <CardTitle className="text-xl">Bunkr</CardTitle>
+          <CardDescription>
+            Personal finance tracking for you and your family
+          </CardDescription>
+          <div className="mt-4">
+            <span className="text-4xl font-bold">{price}&#8364;</span>
+            <span className="text-muted-foreground">
+              /seat/{isYearly ? 'year' : 'month'}
+            </span>
+          </div>
+          <p className="mt-1 text-xs text-muted-foreground">
+            Start with 1 seat, add more anytime
+          </p>
+        </CardHeader>
+        <CardContent>
+          <ul className="space-y-3">
+            {FEATURES.map((feature) => (
+              <li key={feature} className="flex items-center gap-2 text-sm">
+                <Check className="size-4 shrink-0 text-primary" />
+                {feature}
+              </li>
+            ))}
+          </ul>
+        </CardContent>
+        <CardFooter>
+          <Button
+            className="w-full"
+            size="lg"
+            onClick={handleCheckout}
+            disabled={loading}
+          >
+            {loading ? 'Redirecting...' : 'Start free trial'}
+          </Button>
+        </CardFooter>
+      </Card>
 
       <p className="mt-6 text-center text-xs text-muted-foreground">
-        14-day free trial on all plans. Cancel anytime.
+        14-day free trial. Cancel anytime. Add seats as you grow.
       </p>
     </div>
   )
