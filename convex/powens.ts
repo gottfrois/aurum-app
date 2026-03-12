@@ -125,7 +125,21 @@ async function recordBalanceSnapshot(
     )
     .first()
 
-  const oldBalance = existing?.balance ?? 0
+  let oldBalance: number
+  if (existing) {
+    oldBalance = existing.balance
+  } else {
+    // No snapshot today yet — look up the most recent previous snapshot
+    // so the delta reflects actual change, not the full balance.
+    const previous = await ctx.db
+      .query('balanceSnapshots')
+      .withIndex('by_bankAccountId_timestamp', (q) =>
+        q.eq('bankAccountId', params.bankAccountId),
+      )
+      .order('desc')
+      .first()
+    oldBalance = previous?.balance ?? 0
+  }
 
   if (existing) {
     await ctx.db.patch('balanceSnapshots', existing._id, {
@@ -198,12 +212,23 @@ async function updateDailyNetWorth(
       balance: Math.round((existing.balance + params.balanceDelta) * 100) / 100,
     })
   } else {
+    // Carry forward the previous day's net worth so accounts that haven't
+    // synced yet today are still reflected in the total.
+    const previous = await ctx.db
+      .query('dailyNetWorth')
+      .withIndex('by_profileId_date', (q) =>
+        q.eq('profileId', params.profileId),
+      )
+      .order('desc')
+      .first()
+    const carryForward = previous?.balance ?? 0
+
     await ctx.db.insert('dailyNetWorth', {
       profileId: params.profileId,
       workspaceId: params.workspaceId,
       date: params.date,
       timestamp: params.timestamp,
-      balance: Math.round(params.balanceDelta * 100) / 100,
+      balance: Math.round((carryForward + params.balanceDelta) * 100) / 100,
       currency: params.currency,
     })
   }
@@ -236,13 +261,24 @@ async function updateDailyCategoryBalance(
       balance: Math.round((existing.balance + params.balanceDelta) * 100) / 100,
     })
   } else {
+    // Carry forward the previous day's category balance so accounts that
+    // haven't synced yet today are still reflected in the total.
+    const previous = await ctx.db
+      .query('dailyCategoryBalance')
+      .withIndex('by_profileId_category_date', (q) =>
+        q.eq('profileId', params.profileId).eq('category', params.category),
+      )
+      .order('desc')
+      .first()
+    const carryForward = previous?.balance ?? 0
+
     await ctx.db.insert('dailyCategoryBalance', {
       profileId: params.profileId,
       workspaceId: params.workspaceId,
       category: params.category,
       date: params.date,
       timestamp: params.timestamp,
-      balance: Math.round(params.balanceDelta * 100) / 100,
+      balance: Math.round((carryForward + params.balanceDelta) * 100) / 100,
       currency: params.currency,
     })
   }
