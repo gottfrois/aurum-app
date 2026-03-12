@@ -42,11 +42,7 @@ export function SavedViews({ entityType, onLoadConditions }: SavedViewsProps) {
   return (
     <Popover open={open} onOpenChange={setOpen}>
       <PopoverTrigger asChild>
-        <Button
-          variant="ghost"
-          size="sm"
-          className="gap-1.5"
-        >
+        <Button variant="ghost" size="sm" className="gap-1.5">
           <Bookmark className="size-3.5" />
           Views
         </Button>

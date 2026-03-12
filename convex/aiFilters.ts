@@ -3,11 +3,11 @@
 import { google } from '@ai-sdk/google'
 import { generateObject } from 'ai'
 import { v } from 'convex/values'
+import { aiFilterSchema } from '../src/lib/filters/ai/schema'
+import { parseAIFilterResponse } from '../src/lib/filters/ai/parse'
+import { buildSystemPrompt } from '../src/lib/filters/ai/prompt'
 import { action } from './_generated/server'
 import { requireAuthUserId } from './lib/auth'
-import { aiFilterSchema } from '../src/lib/filters/ai/schema'
-import { buildSystemPrompt } from '../src/lib/filters/ai/prompt'
-import { parseAIFilterResponse } from '../src/lib/filters/ai/parse'
 import type { SerializableField } from '../src/lib/filters/ai/prompt'
 
 export const askAI = action({
@@ -34,6 +34,8 @@ export const askAI = action({
   handler: async (ctx, { query, fields }) => {
     await requireAuthUserId(ctx)
 
+    const trimmedQuery = query.slice(0, 500)
+
     const today = new Date().toISOString().slice(0, 10)
     const systemPrompt = buildSystemPrompt(
       fields as Array<SerializableField>,
@@ -43,8 +45,9 @@ export const askAI = action({
     const { object } = await generateObject({
       model: google('gemini-2.5-flash'),
       system: systemPrompt,
-      prompt: query,
+      prompt: trimmedQuery,
       schema: aiFilterSchema,
+      maxOutputTokens: 1024,
     })
 
     return parseAIFilterResponse(object, fields as Array<SerializableField>)

@@ -18,9 +18,9 @@ import {
   CommandList,
 } from '~/components/ui/command'
 import {
-  getOperatorLabel,
   RANGE_OPERATORS,
   VALUELESS_OPERATORS,
+  getOperatorLabel,
 } from '~/lib/filters/operators'
 
 interface FilterChipProps {

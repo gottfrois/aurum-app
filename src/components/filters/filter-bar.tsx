@@ -145,11 +145,7 @@ function SaveFilterButton({
   return (
     <Popover open={open} onOpenChange={setOpen}>
       <PopoverTrigger asChild>
-        <Button
-          variant="ghost"
-          size="sm"
-          className="gap-1.5"
-        >
+        <Button variant="ghost" size="sm" className="gap-1.5">
           Save
         </Button>
       </PopoverTrigger>

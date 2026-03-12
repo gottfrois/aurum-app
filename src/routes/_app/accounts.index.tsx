@@ -28,6 +28,7 @@ import {
 import { Skeleton } from '~/components/ui/skeleton'
 import { BalanceChart } from '~/components/balance-chart'
 import { StackedBalanceChart } from '~/components/stacked-balance-chart'
+import { AllocationChart } from '~/components/allocation-chart'
 import { getStartTimestamp } from '~/lib/chart-periods'
 import { ACCOUNT_CATEGORIES, getCategoryKey } from '~/lib/account-categories'
 import { computePnL } from '~/lib/pnl'
@@ -61,6 +62,14 @@ function AccountsPage() {
     </>
   )
 }
+
+const BANK_CHART_COLORS = [
+  'var(--color-chart-1)',
+  'var(--color-chart-2)',
+  'var(--color-chart-3)',
+  'var(--color-chart-4)',
+  'var(--color-chart-5)',
+]
 
 function BankAccountsList({ categoryFilter }: { categoryFilter?: string }) {
   const {
@@ -202,6 +211,25 @@ function BankAccountsList({ categoryFilter }: { categoryFilter?: string }) {
       }))
   }, [activeCategoryKeys])
 
+  const allocationByBank = React.useMemo(() => {
+    if (!bankAccounts) return []
+    const bankTotals = new Map<string, number>()
+    for (const a of bankAccounts) {
+      const name = a.connectorName ?? 'Unknown'
+      bankTotals.set(name, (bankTotals.get(name) ?? 0) + a.balance)
+    }
+    return [...bankTotals.entries()]
+      .sort(([, a], [, b]) => b - a)
+      .map(([name, total], i) => ({
+        key: name,
+        label: name,
+        value: total,
+        color: BANK_CHART_COLORS[i % BANK_CHART_COLORS.length],
+      }))
+  }, [bankAccounts])
+
+  const showAllocationChart = allocationByBank.length >= 2
+
   if (profileLoading || bankAccounts === undefined) {
     return (
       <>
@@ -258,31 +286,65 @@ function BankAccountsList({ categoryFilter }: { categoryFilter?: string }) {
   return (
     <>
       {categoryFilter ? (
-        <BalanceChart
-          data={chartData}
-          currency={currency}
-          isLoading={categoryBalances === undefined}
-          period={period}
-          onPeriodChange={setPeriod}
-          title={
-            categoryFilter && ACCOUNT_CATEGORIES[categoryFilter].label
-              ? ACCOUNT_CATEGORIES[categoryFilter].label
-              : 'Accounts'
+        <div
+          className={
+            showAllocationChart
+              ? 'grid gap-4 lg:grid-cols-3 md:gap-6'
+              : undefined
           }
-          description={formattedTotal}
-        />
+        >
+          <div className={showAllocationChart ? 'lg:col-span-2' : undefined}>
+            <BalanceChart
+              data={chartData}
+              currency={currency}
+              isLoading={categoryBalances === undefined}
+              period={period}
+              onPeriodChange={setPeriod}
+              title={
+                categoryFilter && ACCOUNT_CATEGORIES[categoryFilter].label
+                  ? ACCOUNT_CATEGORIES[categoryFilter].label
+                  : 'Accounts'
+              }
+              description={formattedTotal}
+            />
+          </div>
+          {showAllocationChart && (
+            <AllocationChart
+              data={allocationByBank}
+              currency={currency}
+              total={totalBalance}
+            />
+          )}
+        </div>
       ) : (
-        <StackedBalanceChart
-          data={stackedChartData}
-          categories={activeCategorySeries}
-          currency={currency}
-          isLoading={categoryBalances === undefined}
-          period={period}
-          onPeriodChange={setPeriod}
-          title="Accounts"
-          description={formattedTotal}
-          pnl={aggregatePnl}
-        />
+        <div
+          className={
+            showAllocationChart
+              ? 'grid gap-4 lg:grid-cols-3 md:gap-6'
+              : undefined
+          }
+        >
+          <div className={showAllocationChart ? 'lg:col-span-2' : undefined}>
+            <StackedBalanceChart
+              data={stackedChartData}
+              categories={activeCategorySeries}
+              currency={currency}
+              isLoading={categoryBalances === undefined}
+              period={period}
+              onPeriodChange={setPeriod}
+              title="Accounts"
+              description={formattedTotal}
+              pnl={aggregatePnl}
+            />
+          </div>
+          {showAllocationChart && (
+            <AllocationChart
+              data={allocationByBank}
+              currency={currency}
+              total={totalBalance}
+            />
+          )}
+        </div>
       )}
 
       <div className="space-y-6">

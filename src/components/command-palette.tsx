@@ -11,6 +11,7 @@ import {
 } from 'lucide-react'
 import { toast } from 'sonner'
 import { api } from '../../convex/_generated/api'
+import type { FilterCondition } from '~/lib/filters/types'
 import {
   CommandDialog,
   CommandEmpty,
@@ -23,7 +24,6 @@ import {
 } from '~/components/ui/command'
 import { serializeFilterConfig } from '~/lib/filters/ai/prompt'
 import { createTransactionFilterConfig } from '~/lib/filters/transactions'
-import type { FilterCondition } from '~/lib/filters/types'
 
 const NAV_ITEMS = [
   { title: 'Dashboard', url: '/', icon: LayoutDashboard },

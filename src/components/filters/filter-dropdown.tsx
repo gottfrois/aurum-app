@@ -3,13 +3,13 @@ import { ChevronRight, ListFilter, Loader2, Sparkles } from 'lucide-react'
 import { useAction } from 'convex/react'
 import { toast } from 'sonner'
 import { api } from '../../../convex/_generated/api'
-import { serializeFilterConfig } from '~/lib/filters/ai/prompt'
 import { FilterValueInput } from './filter-value-input'
 import type {
   FilterCondition,
   FilterConfig,
   FilterFieldDescriptor,
 } from '~/lib/filters/types'
+import { serializeFilterConfig } from '~/lib/filters/ai/prompt'
 import { Button } from '~/components/ui/button'
 import {
   Popover,

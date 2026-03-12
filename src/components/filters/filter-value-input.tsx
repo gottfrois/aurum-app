@@ -15,6 +15,7 @@ import type {
   FilterFieldDescriptor,
   FilterOperator,
 } from '~/lib/filters/types'
+import type { DateSelectorValue } from '~/components/reui/date-selector'
 import { Button } from '~/components/ui/button'
 import { Input } from '~/components/ui/input'
 import {
@@ -32,10 +33,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from '~/components/ui/dialog'
-import {
-  DateSelector,
-  type DateSelectorValue,
-} from '~/components/reui/date-selector'
+import { DateSelector } from '~/components/reui/date-selector'
 import { cn } from '~/lib/utils'
 import { RANGE_OPERATORS } from '~/lib/filters/operators'
 
@@ -399,9 +397,7 @@ function resolveDateSelectorValue(
       value.year != null &&
       value.halfYear != null
     ) {
-      const start = startOfMonth(
-        new Date(value.year, (value.halfYear - 1) * 6),
-      )
+      const start = startOfMonth(new Date(value.year, (value.halfYear - 1) * 6))
       const end = endOfMonth(new Date(value.year, value.halfYear * 6 - 1))
       return { range: { from: fmt(start), to: fmt(end) } }
     }
@@ -431,7 +427,10 @@ function CustomDateDialog({
   open: boolean
   onOpenChange: (open: boolean) => void
   isRange: boolean
-  onApply: (result: { single?: string; range?: { from: string; to: string } }) => void
+  onApply: (result: {
+    single?: string
+    range?: { from: string; to: string }
+  }) => void
 }) {
   const [dateValue, setDateValue] = React.useState<DateSelectorValue>({
     period: 'day',
