@@ -1,15 +1,32 @@
-// Server-side ECIES encryption using Web Crypto API (available in Convex action runtime)
+// Server-side ECIES encryption using pure-JS @noble/* libraries.
+// Convex's default runtime does not support crypto.subtle for X25519, HKDF,
+// or AES-GCM, so we use @noble/curves, @noble/hashes, and @noble/ciphers.
 // Only import this from actions/httpActions — NOT from queries/mutations
+
+import { gcm } from '@noble/ciphers/aes.js'
+import { x25519 } from '@noble/curves/ed25519.js'
+import { hkdf } from '@noble/hashes/hkdf.js'
+import { sha256 } from '@noble/hashes/sha256.js'
 
 const CURRENT_PAYLOAD_VERSION = 1
 
-function toBase64(buffer: ArrayBuffer): string {
-  const bytes = new Uint8Array(buffer)
+function toBase64(bytes: Uint8Array): string {
   let binary = ''
   for (let i = 0; i < bytes.byteLength; i++) {
     binary += String.fromCharCode(bytes[i])
   }
   return btoa(binary)
+}
+
+function base64urlToBytes(b64url: string): Uint8Array {
+  const b64 = b64url.replace(/-/g, '+').replace(/_/g, '/')
+  const padded = b64 + '='.repeat((4 - (b64.length % 4)) % 4)
+  const binary = atob(padded)
+  const bytes = new Uint8Array(binary.length)
+  for (let i = 0; i < binary.length; i++) {
+    bytes[i] = binary.charCodeAt(i)
+  }
+  return bytes
 }
 
 function buildHkdfInfo(context: string, fieldGroup?: string): string {
@@ -32,68 +49,42 @@ async function eciesEncrypt(
   context: string,
   fieldGroup?: string,
 ): Promise<string> {
-  const publicKey = await crypto.subtle.importKey(
-    'jwk',
-    JSON.parse(publicKeyJwk),
-    { name: 'X25519' },
-    false,
-    [],
-  )
+  // Extract raw public key bytes from JWK
+  const jwk = JSON.parse(publicKeyJwk) as { x: string }
+  const recipientPubBytes = base64urlToBytes(jwk.x)
 
   // Generate ephemeral X25519 keypair
-  const ephemeral = (await crypto.subtle.generateKey({ name: 'X25519' }, true, [
-    'deriveBits',
-  ])) as CryptoKeyPair
+  const ephemeralPrivateKey = x25519.utils.randomSecretKey()
+  const ephemeralPublicKey = x25519.getPublicKey(ephemeralPrivateKey)
 
-  const epkRaw = await crypto.subtle.exportKey('raw', ephemeral.publicKey)
-  const epkBase64 = toBase64(epkRaw)
+  const epkBase64 = toBase64(ephemeralPublicKey)
 
   // ECDH → shared secret
-  const sharedBits = await crypto.subtle.deriveBits(
-    { name: 'X25519', public: publicKey },
-    ephemeral.privateKey,
-    256,
+  const sharedSecret = x25519.getSharedSecret(
+    ephemeralPrivateKey,
+    recipientPubBytes,
   )
 
-  // HKDF → AES key
-  const hkdfKey = await crypto.subtle.importKey(
-    'raw',
-    sharedBits,
-    'HKDF',
-    false,
-    ['deriveKey'],
-  )
+  // HKDF → AES key (32 bytes for AES-256)
   const info = buildHkdfInfo(context, fieldGroup)
-  const aesKey = await crypto.subtle.deriveKey(
-    {
-      name: 'HKDF',
-      hash: 'SHA-256',
-      salt: epkRaw,
-      info: new TextEncoder().encode(info),
-    },
-    hkdfKey,
-    { name: 'AES-GCM', length: 256 },
-    false,
-    ['encrypt'],
+  const aesKeyBytes = hkdf(
+    sha256,
+    sharedSecret,
+    ephemeralPublicKey,
+    new TextEncoder().encode(info),
+    32,
   )
 
   // AES-GCM encrypt with AAD
   const iv = crypto.getRandomValues(new Uint8Array(12))
   const aad = buildAad(1, epkBase64, context)
-  const ct = await crypto.subtle.encrypt(
-    {
-      name: 'AES-GCM',
-      iv: iv as BufferSource,
-      additionalData: aad as BufferSource,
-    },
-    aesKey,
-    plaintext as BufferSource,
-  )
+  const cipher = gcm(aesKeyBytes, iv, aad)
+  const ct = cipher.encrypt(plaintext)
 
   return JSON.stringify({
     ct: toBase64(ct),
     epk: epkBase64,
-    iv: toBase64(iv.buffer as ArrayBuffer),
+    iv: toBase64(iv),
     v: 1,
   })
 }
