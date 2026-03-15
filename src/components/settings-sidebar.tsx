@@ -55,7 +55,7 @@ export function SettingsSidebar({
             <SidebarMenu>
               <SidebarMenuItem>
                 <SidebarMenuButton asChild>
-                  <Link to="/settings">
+                  <Link to="/settings/account">
                     <Palette />
                     <span>Preferences</span>
                   </Link>
@@ -63,7 +63,7 @@ export function SettingsSidebar({
               </SidebarMenuItem>
               <SidebarMenuItem>
                 <SidebarMenuButton asChild>
-                  <Link to="/settings/profile">
+                  <Link to="/settings/account/profile">
                     <User />
                     <span>Profile</span>
                   </Link>
@@ -71,7 +71,7 @@ export function SettingsSidebar({
               </SidebarMenuItem>
               <SidebarMenuItem>
                 <SidebarMenuButton asChild>
-                  <Link to="/settings/security">
+                  <Link to="/settings/account/security">
                     <Shield />
                     <span>Security & access</span>
                   </Link>
@@ -79,7 +79,7 @@ export function SettingsSidebar({
               </SidebarMenuItem>
               <SidebarMenuItem>
                 <SidebarMenuButton asChild>
-                  <Link to="/settings/encryption">
+                  <Link to="/settings/account/encryption">
                     <Lock />
                     <span>Encryption</span>
                   </Link>
@@ -87,7 +87,7 @@ export function SettingsSidebar({
               </SidebarMenuItem>
               <SidebarMenuItem>
                 <SidebarMenuButton asChild>
-                  <Link to="/settings/notifications">
+                  <Link to="/settings/account/notifications">
                     <Bell />
                     <span>Notifications</span>
                   </Link>
@@ -95,7 +95,7 @@ export function SettingsSidebar({
               </SidebarMenuItem>
               <SidebarMenuItem>
                 <SidebarMenuButton asChild>
-                  <Link to="/settings/connections">
+                  <Link to="/settings/account/connections">
                     <Link2 />
                     <span>Connections</span>
                   </Link>
@@ -116,7 +116,7 @@ export function SettingsSidebar({
               <SidebarMenu>
                 <SidebarMenuItem>
                   <SidebarMenuButton asChild>
-                    <Link to="/settings/general">
+                    <Link to="/settings/workspace">
                       <Settings />
                       <span>General</span>
                     </Link>
@@ -124,7 +124,7 @@ export function SettingsSidebar({
                 </SidebarMenuItem>
                 <SidebarMenuItem>
                   <SidebarMenuButton asChild>
-                    <Link to="/settings/categories">
+                    <Link to="/settings/workspace/categories">
                       <Tag />
                       <span>Categories</span>
                     </Link>
@@ -132,7 +132,7 @@ export function SettingsSidebar({
                 </SidebarMenuItem>
                 <SidebarMenuItem>
                   <SidebarMenuButton asChild>
-                    <Link to="/settings/members">
+                    <Link to="/settings/workspace/members">
                       <Users />
                       <span>Members</span>
                     </Link>
@@ -140,7 +140,7 @@ export function SettingsSidebar({
                 </SidebarMenuItem>
                 <SidebarMenuItem>
                   <SidebarMenuButton asChild>
-                    <Link to="/settings/billing">
+                    <Link to="/settings/workspace/billing">
                       <CreditCard />
                       <span>Billing</span>
                     </Link>

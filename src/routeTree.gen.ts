@@ -20,16 +20,17 @@ import { Route as AppTransactionsRouteImport } from './routes/_app/transactions'
 import { Route as AppPortfoliosRouteImport } from './routes/_app/portfolios'
 import { Route as SettingsSettingsIndexRouteImport } from './routes/_settings/settings.index'
 import { Route as AppAccountsIndexRouteImport } from './routes/_app/accounts.index'
-import { Route as SettingsSettingsSecurityRouteImport } from './routes/_settings/settings.security'
-import { Route as SettingsSettingsProfileRouteImport } from './routes/_settings/settings.profile'
-import { Route as SettingsSettingsNotificationsRouteImport } from './routes/_settings/settings.notifications'
-import { Route as SettingsSettingsMembersRouteImport } from './routes/_settings/settings.members'
-import { Route as SettingsSettingsGeneralRouteImport } from './routes/_settings/settings.general'
-import { Route as SettingsSettingsEncryptionRouteImport } from './routes/_settings/settings.encryption'
-import { Route as SettingsSettingsConnectionsRouteImport } from './routes/_settings/settings.connections'
-import { Route as SettingsSettingsCategoriesRouteImport } from './routes/_settings/settings.categories'
-import { Route as SettingsSettingsBillingRouteImport } from './routes/_settings/settings.billing'
 import { Route as AppAccountsAccountIdRouteImport } from './routes/_app/accounts.$accountId'
+import { Route as SettingsSettingsWorkspaceIndexRouteImport } from './routes/_settings/settings.workspace.index'
+import { Route as SettingsSettingsAccountIndexRouteImport } from './routes/_settings/settings.account.index'
+import { Route as SettingsSettingsWorkspaceMembersRouteImport } from './routes/_settings/settings.workspace.members'
+import { Route as SettingsSettingsWorkspaceCategoriesRouteImport } from './routes/_settings/settings.workspace.categories'
+import { Route as SettingsSettingsWorkspaceBillingRouteImport } from './routes/_settings/settings.workspace.billing'
+import { Route as SettingsSettingsAccountSecurityRouteImport } from './routes/_settings/settings.account.security'
+import { Route as SettingsSettingsAccountProfileRouteImport } from './routes/_settings/settings.account.profile'
+import { Route as SettingsSettingsAccountNotificationsRouteImport } from './routes/_settings/settings.account.notifications'
+import { Route as SettingsSettingsAccountEncryptionRouteImport } from './routes/_settings/settings.account.encryption'
+import { Route as SettingsSettingsAccountConnectionsRouteImport } from './routes/_settings/settings.account.connections'
 
 const OnboardingRoute = OnboardingRouteImport.update({
   id: '/onboarding',
@@ -84,61 +85,71 @@ const AppAccountsIndexRoute = AppAccountsIndexRouteImport.update({
   path: '/accounts/',
   getParentRoute: () => AppRoute,
 } as any)
-const SettingsSettingsSecurityRoute =
-  SettingsSettingsSecurityRouteImport.update({
-    id: '/settings/security',
-    path: '/settings/security',
-    getParentRoute: () => SettingsRoute,
-  } as any)
-const SettingsSettingsProfileRoute = SettingsSettingsProfileRouteImport.update({
-  id: '/settings/profile',
-  path: '/settings/profile',
-  getParentRoute: () => SettingsRoute,
-} as any)
-const SettingsSettingsNotificationsRoute =
-  SettingsSettingsNotificationsRouteImport.update({
-    id: '/settings/notifications',
-    path: '/settings/notifications',
-    getParentRoute: () => SettingsRoute,
-  } as any)
-const SettingsSettingsMembersRoute = SettingsSettingsMembersRouteImport.update({
-  id: '/settings/members',
-  path: '/settings/members',
-  getParentRoute: () => SettingsRoute,
-} as any)
-const SettingsSettingsGeneralRoute = SettingsSettingsGeneralRouteImport.update({
-  id: '/settings/general',
-  path: '/settings/general',
-  getParentRoute: () => SettingsRoute,
-} as any)
-const SettingsSettingsEncryptionRoute =
-  SettingsSettingsEncryptionRouteImport.update({
-    id: '/settings/encryption',
-    path: '/settings/encryption',
-    getParentRoute: () => SettingsRoute,
-  } as any)
-const SettingsSettingsConnectionsRoute =
-  SettingsSettingsConnectionsRouteImport.update({
-    id: '/settings/connections',
-    path: '/settings/connections',
-    getParentRoute: () => SettingsRoute,
-  } as any)
-const SettingsSettingsCategoriesRoute =
-  SettingsSettingsCategoriesRouteImport.update({
-    id: '/settings/categories',
-    path: '/settings/categories',
-    getParentRoute: () => SettingsRoute,
-  } as any)
-const SettingsSettingsBillingRoute = SettingsSettingsBillingRouteImport.update({
-  id: '/settings/billing',
-  path: '/settings/billing',
-  getParentRoute: () => SettingsRoute,
-} as any)
 const AppAccountsAccountIdRoute = AppAccountsAccountIdRouteImport.update({
   id: '/accounts/$accountId',
   path: '/accounts/$accountId',
   getParentRoute: () => AppRoute,
 } as any)
+const SettingsSettingsWorkspaceIndexRoute =
+  SettingsSettingsWorkspaceIndexRouteImport.update({
+    id: '/settings/workspace/',
+    path: '/settings/workspace/',
+    getParentRoute: () => SettingsRoute,
+  } as any)
+const SettingsSettingsAccountIndexRoute =
+  SettingsSettingsAccountIndexRouteImport.update({
+    id: '/settings/account/',
+    path: '/settings/account/',
+    getParentRoute: () => SettingsRoute,
+  } as any)
+const SettingsSettingsWorkspaceMembersRoute =
+  SettingsSettingsWorkspaceMembersRouteImport.update({
+    id: '/settings/workspace/members',
+    path: '/settings/workspace/members',
+    getParentRoute: () => SettingsRoute,
+  } as any)
+const SettingsSettingsWorkspaceCategoriesRoute =
+  SettingsSettingsWorkspaceCategoriesRouteImport.update({
+    id: '/settings/workspace/categories',
+    path: '/settings/workspace/categories',
+    getParentRoute: () => SettingsRoute,
+  } as any)
+const SettingsSettingsWorkspaceBillingRoute =
+  SettingsSettingsWorkspaceBillingRouteImport.update({
+    id: '/settings/workspace/billing',
+    path: '/settings/workspace/billing',
+    getParentRoute: () => SettingsRoute,
+  } as any)
+const SettingsSettingsAccountSecurityRoute =
+  SettingsSettingsAccountSecurityRouteImport.update({
+    id: '/settings/account/security',
+    path: '/settings/account/security',
+    getParentRoute: () => SettingsRoute,
+  } as any)
+const SettingsSettingsAccountProfileRoute =
+  SettingsSettingsAccountProfileRouteImport.update({
+    id: '/settings/account/profile',
+    path: '/settings/account/profile',
+    getParentRoute: () => SettingsRoute,
+  } as any)
+const SettingsSettingsAccountNotificationsRoute =
+  SettingsSettingsAccountNotificationsRouteImport.update({
+    id: '/settings/account/notifications',
+    path: '/settings/account/notifications',
+    getParentRoute: () => SettingsRoute,
+  } as any)
+const SettingsSettingsAccountEncryptionRoute =
+  SettingsSettingsAccountEncryptionRouteImport.update({
+    id: '/settings/account/encryption',
+    path: '/settings/account/encryption',
+    getParentRoute: () => SettingsRoute,
+  } as any)
+const SettingsSettingsAccountConnectionsRoute =
+  SettingsSettingsAccountConnectionsRouteImport.update({
+    id: '/settings/account/connections',
+    path: '/settings/account/connections',
+    getParentRoute: () => SettingsRoute,
+  } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof AppIndexRoute
@@ -149,17 +160,18 @@ export interface FileRoutesByFullPath {
   '/powens/callback': typeof PowensCallbackRoute
   '/sign-in/$': typeof SignInSplatRoute
   '/accounts/$accountId': typeof AppAccountsAccountIdRoute
-  '/settings/billing': typeof SettingsSettingsBillingRoute
-  '/settings/categories': typeof SettingsSettingsCategoriesRoute
-  '/settings/connections': typeof SettingsSettingsConnectionsRoute
-  '/settings/encryption': typeof SettingsSettingsEncryptionRoute
-  '/settings/general': typeof SettingsSettingsGeneralRoute
-  '/settings/members': typeof SettingsSettingsMembersRoute
-  '/settings/notifications': typeof SettingsSettingsNotificationsRoute
-  '/settings/profile': typeof SettingsSettingsProfileRoute
-  '/settings/security': typeof SettingsSettingsSecurityRoute
   '/accounts/': typeof AppAccountsIndexRoute
   '/settings/': typeof SettingsSettingsIndexRoute
+  '/settings/account/connections': typeof SettingsSettingsAccountConnectionsRoute
+  '/settings/account/encryption': typeof SettingsSettingsAccountEncryptionRoute
+  '/settings/account/notifications': typeof SettingsSettingsAccountNotificationsRoute
+  '/settings/account/profile': typeof SettingsSettingsAccountProfileRoute
+  '/settings/account/security': typeof SettingsSettingsAccountSecurityRoute
+  '/settings/workspace/billing': typeof SettingsSettingsWorkspaceBillingRoute
+  '/settings/workspace/categories': typeof SettingsSettingsWorkspaceCategoriesRoute
+  '/settings/workspace/members': typeof SettingsSettingsWorkspaceMembersRoute
+  '/settings/account/': typeof SettingsSettingsAccountIndexRoute
+  '/settings/workspace/': typeof SettingsSettingsWorkspaceIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof AppIndexRoute
@@ -170,17 +182,18 @@ export interface FileRoutesByTo {
   '/powens/callback': typeof PowensCallbackRoute
   '/sign-in/$': typeof SignInSplatRoute
   '/accounts/$accountId': typeof AppAccountsAccountIdRoute
-  '/settings/billing': typeof SettingsSettingsBillingRoute
-  '/settings/categories': typeof SettingsSettingsCategoriesRoute
-  '/settings/connections': typeof SettingsSettingsConnectionsRoute
-  '/settings/encryption': typeof SettingsSettingsEncryptionRoute
-  '/settings/general': typeof SettingsSettingsGeneralRoute
-  '/settings/members': typeof SettingsSettingsMembersRoute
-  '/settings/notifications': typeof SettingsSettingsNotificationsRoute
-  '/settings/profile': typeof SettingsSettingsProfileRoute
-  '/settings/security': typeof SettingsSettingsSecurityRoute
   '/accounts': typeof AppAccountsIndexRoute
   '/settings': typeof SettingsSettingsIndexRoute
+  '/settings/account/connections': typeof SettingsSettingsAccountConnectionsRoute
+  '/settings/account/encryption': typeof SettingsSettingsAccountEncryptionRoute
+  '/settings/account/notifications': typeof SettingsSettingsAccountNotificationsRoute
+  '/settings/account/profile': typeof SettingsSettingsAccountProfileRoute
+  '/settings/account/security': typeof SettingsSettingsAccountSecurityRoute
+  '/settings/workspace/billing': typeof SettingsSettingsWorkspaceBillingRoute
+  '/settings/workspace/categories': typeof SettingsSettingsWorkspaceCategoriesRoute
+  '/settings/workspace/members': typeof SettingsSettingsWorkspaceMembersRoute
+  '/settings/account': typeof SettingsSettingsAccountIndexRoute
+  '/settings/workspace': typeof SettingsSettingsWorkspaceIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -194,17 +207,18 @@ export interface FileRoutesById {
   '/sign-in/$': typeof SignInSplatRoute
   '/_app/': typeof AppIndexRoute
   '/_app/accounts/$accountId': typeof AppAccountsAccountIdRoute
-  '/_settings/settings/billing': typeof SettingsSettingsBillingRoute
-  '/_settings/settings/categories': typeof SettingsSettingsCategoriesRoute
-  '/_settings/settings/connections': typeof SettingsSettingsConnectionsRoute
-  '/_settings/settings/encryption': typeof SettingsSettingsEncryptionRoute
-  '/_settings/settings/general': typeof SettingsSettingsGeneralRoute
-  '/_settings/settings/members': typeof SettingsSettingsMembersRoute
-  '/_settings/settings/notifications': typeof SettingsSettingsNotificationsRoute
-  '/_settings/settings/profile': typeof SettingsSettingsProfileRoute
-  '/_settings/settings/security': typeof SettingsSettingsSecurityRoute
   '/_app/accounts/': typeof AppAccountsIndexRoute
   '/_settings/settings/': typeof SettingsSettingsIndexRoute
+  '/_settings/settings/account/connections': typeof SettingsSettingsAccountConnectionsRoute
+  '/_settings/settings/account/encryption': typeof SettingsSettingsAccountEncryptionRoute
+  '/_settings/settings/account/notifications': typeof SettingsSettingsAccountNotificationsRoute
+  '/_settings/settings/account/profile': typeof SettingsSettingsAccountProfileRoute
+  '/_settings/settings/account/security': typeof SettingsSettingsAccountSecurityRoute
+  '/_settings/settings/workspace/billing': typeof SettingsSettingsWorkspaceBillingRoute
+  '/_settings/settings/workspace/categories': typeof SettingsSettingsWorkspaceCategoriesRoute
+  '/_settings/settings/workspace/members': typeof SettingsSettingsWorkspaceMembersRoute
+  '/_settings/settings/account/': typeof SettingsSettingsAccountIndexRoute
+  '/_settings/settings/workspace/': typeof SettingsSettingsWorkspaceIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -217,17 +231,18 @@ export interface FileRouteTypes {
     | '/powens/callback'
     | '/sign-in/$'
     | '/accounts/$accountId'
-    | '/settings/billing'
-    | '/settings/categories'
-    | '/settings/connections'
-    | '/settings/encryption'
-    | '/settings/general'
-    | '/settings/members'
-    | '/settings/notifications'
-    | '/settings/profile'
-    | '/settings/security'
     | '/accounts/'
     | '/settings/'
+    | '/settings/account/connections'
+    | '/settings/account/encryption'
+    | '/settings/account/notifications'
+    | '/settings/account/profile'
+    | '/settings/account/security'
+    | '/settings/workspace/billing'
+    | '/settings/workspace/categories'
+    | '/settings/workspace/members'
+    | '/settings/account/'
+    | '/settings/workspace/'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -238,17 +253,18 @@ export interface FileRouteTypes {
     | '/powens/callback'
     | '/sign-in/$'
     | '/accounts/$accountId'
-    | '/settings/billing'
-    | '/settings/categories'
-    | '/settings/connections'
-    | '/settings/encryption'
-    | '/settings/general'
-    | '/settings/members'
-    | '/settings/notifications'
-    | '/settings/profile'
-    | '/settings/security'
     | '/accounts'
     | '/settings'
+    | '/settings/account/connections'
+    | '/settings/account/encryption'
+    | '/settings/account/notifications'
+    | '/settings/account/profile'
+    | '/settings/account/security'
+    | '/settings/workspace/billing'
+    | '/settings/workspace/categories'
+    | '/settings/workspace/members'
+    | '/settings/account'
+    | '/settings/workspace'
   id:
     | '__root__'
     | '/_app'
@@ -261,17 +277,18 @@ export interface FileRouteTypes {
     | '/sign-in/$'
     | '/_app/'
     | '/_app/accounts/$accountId'
-    | '/_settings/settings/billing'
-    | '/_settings/settings/categories'
-    | '/_settings/settings/connections'
-    | '/_settings/settings/encryption'
-    | '/_settings/settings/general'
-    | '/_settings/settings/members'
-    | '/_settings/settings/notifications'
-    | '/_settings/settings/profile'
-    | '/_settings/settings/security'
     | '/_app/accounts/'
     | '/_settings/settings/'
+    | '/_settings/settings/account/connections'
+    | '/_settings/settings/account/encryption'
+    | '/_settings/settings/account/notifications'
+    | '/_settings/settings/account/profile'
+    | '/_settings/settings/account/security'
+    | '/_settings/settings/workspace/billing'
+    | '/_settings/settings/workspace/categories'
+    | '/_settings/settings/workspace/members'
+    | '/_settings/settings/account/'
+    | '/_settings/settings/workspace/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -362,75 +379,82 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppAccountsIndexRouteImport
       parentRoute: typeof AppRoute
     }
-    '/_settings/settings/security': {
-      id: '/_settings/settings/security'
-      path: '/settings/security'
-      fullPath: '/settings/security'
-      preLoaderRoute: typeof SettingsSettingsSecurityRouteImport
-      parentRoute: typeof SettingsRoute
-    }
-    '/_settings/settings/profile': {
-      id: '/_settings/settings/profile'
-      path: '/settings/profile'
-      fullPath: '/settings/profile'
-      preLoaderRoute: typeof SettingsSettingsProfileRouteImport
-      parentRoute: typeof SettingsRoute
-    }
-    '/_settings/settings/notifications': {
-      id: '/_settings/settings/notifications'
-      path: '/settings/notifications'
-      fullPath: '/settings/notifications'
-      preLoaderRoute: typeof SettingsSettingsNotificationsRouteImport
-      parentRoute: typeof SettingsRoute
-    }
-    '/_settings/settings/members': {
-      id: '/_settings/settings/members'
-      path: '/settings/members'
-      fullPath: '/settings/members'
-      preLoaderRoute: typeof SettingsSettingsMembersRouteImport
-      parentRoute: typeof SettingsRoute
-    }
-    '/_settings/settings/general': {
-      id: '/_settings/settings/general'
-      path: '/settings/general'
-      fullPath: '/settings/general'
-      preLoaderRoute: typeof SettingsSettingsGeneralRouteImport
-      parentRoute: typeof SettingsRoute
-    }
-    '/_settings/settings/encryption': {
-      id: '/_settings/settings/encryption'
-      path: '/settings/encryption'
-      fullPath: '/settings/encryption'
-      preLoaderRoute: typeof SettingsSettingsEncryptionRouteImport
-      parentRoute: typeof SettingsRoute
-    }
-    '/_settings/settings/connections': {
-      id: '/_settings/settings/connections'
-      path: '/settings/connections'
-      fullPath: '/settings/connections'
-      preLoaderRoute: typeof SettingsSettingsConnectionsRouteImport
-      parentRoute: typeof SettingsRoute
-    }
-    '/_settings/settings/categories': {
-      id: '/_settings/settings/categories'
-      path: '/settings/categories'
-      fullPath: '/settings/categories'
-      preLoaderRoute: typeof SettingsSettingsCategoriesRouteImport
-      parentRoute: typeof SettingsRoute
-    }
-    '/_settings/settings/billing': {
-      id: '/_settings/settings/billing'
-      path: '/settings/billing'
-      fullPath: '/settings/billing'
-      preLoaderRoute: typeof SettingsSettingsBillingRouteImport
-      parentRoute: typeof SettingsRoute
-    }
     '/_app/accounts/$accountId': {
       id: '/_app/accounts/$accountId'
       path: '/accounts/$accountId'
       fullPath: '/accounts/$accountId'
       preLoaderRoute: typeof AppAccountsAccountIdRouteImport
       parentRoute: typeof AppRoute
+    }
+    '/_settings/settings/workspace/': {
+      id: '/_settings/settings/workspace/'
+      path: '/settings/workspace'
+      fullPath: '/settings/workspace/'
+      preLoaderRoute: typeof SettingsSettingsWorkspaceIndexRouteImport
+      parentRoute: typeof SettingsRoute
+    }
+    '/_settings/settings/account/': {
+      id: '/_settings/settings/account/'
+      path: '/settings/account'
+      fullPath: '/settings/account/'
+      preLoaderRoute: typeof SettingsSettingsAccountIndexRouteImport
+      parentRoute: typeof SettingsRoute
+    }
+    '/_settings/settings/workspace/members': {
+      id: '/_settings/settings/workspace/members'
+      path: '/settings/workspace/members'
+      fullPath: '/settings/workspace/members'
+      preLoaderRoute: typeof SettingsSettingsWorkspaceMembersRouteImport
+      parentRoute: typeof SettingsRoute
+    }
+    '/_settings/settings/workspace/categories': {
+      id: '/_settings/settings/workspace/categories'
+      path: '/settings/workspace/categories'
+      fullPath: '/settings/workspace/categories'
+      preLoaderRoute: typeof SettingsSettingsWorkspaceCategoriesRouteImport
+      parentRoute: typeof SettingsRoute
+    }
+    '/_settings/settings/workspace/billing': {
+      id: '/_settings/settings/workspace/billing'
+      path: '/settings/workspace/billing'
+      fullPath: '/settings/workspace/billing'
+      preLoaderRoute: typeof SettingsSettingsWorkspaceBillingRouteImport
+      parentRoute: typeof SettingsRoute
+    }
+    '/_settings/settings/account/security': {
+      id: '/_settings/settings/account/security'
+      path: '/settings/account/security'
+      fullPath: '/settings/account/security'
+      preLoaderRoute: typeof SettingsSettingsAccountSecurityRouteImport
+      parentRoute: typeof SettingsRoute
+    }
+    '/_settings/settings/account/profile': {
+      id: '/_settings/settings/account/profile'
+      path: '/settings/account/profile'
+      fullPath: '/settings/account/profile'
+      preLoaderRoute: typeof SettingsSettingsAccountProfileRouteImport
+      parentRoute: typeof SettingsRoute
+    }
+    '/_settings/settings/account/notifications': {
+      id: '/_settings/settings/account/notifications'
+      path: '/settings/account/notifications'
+      fullPath: '/settings/account/notifications'
+      preLoaderRoute: typeof SettingsSettingsAccountNotificationsRouteImport
+      parentRoute: typeof SettingsRoute
+    }
+    '/_settings/settings/account/encryption': {
+      id: '/_settings/settings/account/encryption'
+      path: '/settings/account/encryption'
+      fullPath: '/settings/account/encryption'
+      preLoaderRoute: typeof SettingsSettingsAccountEncryptionRouteImport
+      parentRoute: typeof SettingsRoute
+    }
+    '/_settings/settings/account/connections': {
+      id: '/_settings/settings/account/connections'
+      path: '/settings/account/connections'
+      fullPath: '/settings/account/connections'
+      preLoaderRoute: typeof SettingsSettingsAccountConnectionsRouteImport
+      parentRoute: typeof SettingsRoute
     }
   }
 }
@@ -454,29 +478,35 @@ const AppRouteChildren: AppRouteChildren = {
 const AppRouteWithChildren = AppRoute._addFileChildren(AppRouteChildren)
 
 interface SettingsRouteChildren {
-  SettingsSettingsBillingRoute: typeof SettingsSettingsBillingRoute
-  SettingsSettingsCategoriesRoute: typeof SettingsSettingsCategoriesRoute
-  SettingsSettingsConnectionsRoute: typeof SettingsSettingsConnectionsRoute
-  SettingsSettingsEncryptionRoute: typeof SettingsSettingsEncryptionRoute
-  SettingsSettingsGeneralRoute: typeof SettingsSettingsGeneralRoute
-  SettingsSettingsMembersRoute: typeof SettingsSettingsMembersRoute
-  SettingsSettingsNotificationsRoute: typeof SettingsSettingsNotificationsRoute
-  SettingsSettingsProfileRoute: typeof SettingsSettingsProfileRoute
-  SettingsSettingsSecurityRoute: typeof SettingsSettingsSecurityRoute
   SettingsSettingsIndexRoute: typeof SettingsSettingsIndexRoute
+  SettingsSettingsAccountConnectionsRoute: typeof SettingsSettingsAccountConnectionsRoute
+  SettingsSettingsAccountEncryptionRoute: typeof SettingsSettingsAccountEncryptionRoute
+  SettingsSettingsAccountNotificationsRoute: typeof SettingsSettingsAccountNotificationsRoute
+  SettingsSettingsAccountProfileRoute: typeof SettingsSettingsAccountProfileRoute
+  SettingsSettingsAccountSecurityRoute: typeof SettingsSettingsAccountSecurityRoute
+  SettingsSettingsWorkspaceBillingRoute: typeof SettingsSettingsWorkspaceBillingRoute
+  SettingsSettingsWorkspaceCategoriesRoute: typeof SettingsSettingsWorkspaceCategoriesRoute
+  SettingsSettingsWorkspaceMembersRoute: typeof SettingsSettingsWorkspaceMembersRoute
+  SettingsSettingsAccountIndexRoute: typeof SettingsSettingsAccountIndexRoute
+  SettingsSettingsWorkspaceIndexRoute: typeof SettingsSettingsWorkspaceIndexRoute
 }
 
 const SettingsRouteChildren: SettingsRouteChildren = {
-  SettingsSettingsBillingRoute: SettingsSettingsBillingRoute,
-  SettingsSettingsCategoriesRoute: SettingsSettingsCategoriesRoute,
-  SettingsSettingsConnectionsRoute: SettingsSettingsConnectionsRoute,
-  SettingsSettingsEncryptionRoute: SettingsSettingsEncryptionRoute,
-  SettingsSettingsGeneralRoute: SettingsSettingsGeneralRoute,
-  SettingsSettingsMembersRoute: SettingsSettingsMembersRoute,
-  SettingsSettingsNotificationsRoute: SettingsSettingsNotificationsRoute,
-  SettingsSettingsProfileRoute: SettingsSettingsProfileRoute,
-  SettingsSettingsSecurityRoute: SettingsSettingsSecurityRoute,
   SettingsSettingsIndexRoute: SettingsSettingsIndexRoute,
+  SettingsSettingsAccountConnectionsRoute:
+    SettingsSettingsAccountConnectionsRoute,
+  SettingsSettingsAccountEncryptionRoute:
+    SettingsSettingsAccountEncryptionRoute,
+  SettingsSettingsAccountNotificationsRoute:
+    SettingsSettingsAccountNotificationsRoute,
+  SettingsSettingsAccountProfileRoute: SettingsSettingsAccountProfileRoute,
+  SettingsSettingsAccountSecurityRoute: SettingsSettingsAccountSecurityRoute,
+  SettingsSettingsWorkspaceBillingRoute: SettingsSettingsWorkspaceBillingRoute,
+  SettingsSettingsWorkspaceCategoriesRoute:
+    SettingsSettingsWorkspaceCategoriesRoute,
+  SettingsSettingsWorkspaceMembersRoute: SettingsSettingsWorkspaceMembersRoute,
+  SettingsSettingsAccountIndexRoute: SettingsSettingsAccountIndexRoute,
+  SettingsSettingsWorkspaceIndexRoute: SettingsSettingsWorkspaceIndexRoute,
 }
 
 const SettingsRouteWithChildren = SettingsRoute._addFileChildren(

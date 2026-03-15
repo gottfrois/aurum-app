@@ -42,7 +42,7 @@ import {
 } from '~/lib/crypto'
 import { api } from '../../../convex/_generated/api'
 
-export const Route = createFileRoute('/_settings/settings/encryption')({
+export const Route = createFileRoute('/_settings/settings/account/encryption')({
   component: EncryptionPage,
 })
 

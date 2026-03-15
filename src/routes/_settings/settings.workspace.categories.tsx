@@ -39,7 +39,9 @@ import { Skeleton } from '~/components/ui/skeleton'
 import { api } from '../../../convex/_generated/api'
 import type { Id } from '../../../convex/_generated/dataModel'
 
-export const Route = createFileRoute('/_settings/settings/categories')({
+export const Route = createFileRoute(
+  '/_settings/settings/workspace/categories',
+)({
   component: CategoriesPage,
 })
 

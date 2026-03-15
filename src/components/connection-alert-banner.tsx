@@ -24,7 +24,7 @@ export function ConnectionAlertBanner() {
       </div>
       <div className="flex items-center gap-3">
         <Link
-          to="/settings/connections"
+          to="/settings/account/connections"
           className="shrink-0 text-sm font-medium underline-offset-4 hover:underline"
         >
           Review connections

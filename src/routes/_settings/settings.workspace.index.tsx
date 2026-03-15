@@ -18,7 +18,7 @@ import { Input } from '~/components/ui/input'
 import { Skeleton } from '~/components/ui/skeleton'
 import { api } from '../../../convex/_generated/api'
 
-export const Route = createFileRoute('/_settings/settings/general')({
+export const Route = createFileRoute('/_settings/settings/workspace/')({
   component: GeneralPage,
 })
 

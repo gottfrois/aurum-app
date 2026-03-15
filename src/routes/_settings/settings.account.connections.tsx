@@ -41,9 +41,11 @@ type DecryptedConnection = Doc<'connections'> & {
   connectorName?: string
 }
 
-export const Route = createFileRoute('/_settings/settings/connections')({
-  component: ConnectionsPage,
-})
+export const Route = createFileRoute('/_settings/settings/account/connections')(
+  {
+    component: ConnectionsPage,
+  },
+)
 
 function ConnectionsPage() {
   return (

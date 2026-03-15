@@ -18,7 +18,7 @@ type SessionWithActivitiesResource = Awaited<
   ReturnType<NonNullable<ReturnType<typeof useUser>['user']>['getSessions']>
 >[number]
 
-export const Route = createFileRoute('/_settings/settings/security')({
+export const Route = createFileRoute('/_settings/settings/account/security')({
   component: SecurityPage,
 })
 

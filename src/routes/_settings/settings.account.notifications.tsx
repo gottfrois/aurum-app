@@ -14,7 +14,9 @@ import { Skeleton } from '~/components/ui/skeleton'
 import { Switch } from '~/components/ui/switch'
 import { api } from '../../../convex/_generated/api'
 
-export const Route = createFileRoute('/_settings/settings/notifications')({
+export const Route = createFileRoute(
+  '/_settings/settings/account/notifications',
+)({
   component: NotificationsPage,
 })
 

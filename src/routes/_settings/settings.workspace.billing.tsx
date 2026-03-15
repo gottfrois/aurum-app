@@ -19,7 +19,7 @@ import { Skeleton } from '~/components/ui/skeleton'
 import { api } from '../../../convex/_generated/api'
 import { SEAT_PRICES } from '../../../convex/stripe'
 
-export const Route = createFileRoute('/_settings/settings/billing')({
+export const Route = createFileRoute('/_settings/settings/workspace/billing')({
   component: BillingPage,
 })
 

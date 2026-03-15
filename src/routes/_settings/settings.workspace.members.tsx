@@ -42,7 +42,7 @@ import { useEncryption } from '~/contexts/encryption-context'
 import { encryptString, importPublicKey } from '~/lib/crypto'
 import { api } from '../../../convex/_generated/api'
 
-export const Route = createFileRoute('/_settings/settings/members')({
+export const Route = createFileRoute('/_settings/settings/workspace/members')({
   component: MembersPage,
 })
 

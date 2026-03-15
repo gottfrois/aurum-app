@@ -119,7 +119,7 @@ export const createPortalSession = action({
 
     return await stripe.createCustomerPortalSession(ctx, {
       customerId: customer.customerId,
-      returnUrl: `${siteUrl}/settings/billing`,
+      returnUrl: `${siteUrl}/settings/workspace/billing`,
     })
   },
 })

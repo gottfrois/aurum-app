@@ -24,7 +24,7 @@ export function TrialBanner({ trialEndsAt }: TrialBannerProps) {
         </span>
       </div>
       <Link
-        to="/settings/billing"
+        to="/settings/workspace/billing"
         className="shrink-0 text-sm font-medium text-primary underline-offset-4 hover:underline"
       >
         Upgrade now

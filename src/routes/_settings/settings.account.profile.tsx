@@ -20,7 +20,7 @@ import { Skeleton } from '~/components/ui/skeleton'
 import { useEncryption } from '~/contexts/encryption-context'
 import { api } from '../../../convex/_generated/api'
 
-export const Route = createFileRoute('/_settings/settings/profile')({
+export const Route = createFileRoute('/_settings/settings/account/profile')({
   component: ProfilePage,
 })
 
