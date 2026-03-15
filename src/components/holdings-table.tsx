@@ -9,7 +9,7 @@ import {
 import { usePrivacy } from '~/contexts/privacy-context'
 import { cn } from '~/lib/utils'
 
-interface Investment {
+export interface Investment {
   _id: string
   label: string
   code?: string

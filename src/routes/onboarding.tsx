@@ -41,7 +41,7 @@ import { Switch } from '~/components/ui/switch'
 import {
   deriveKeyFromPassphrase,
   encryptPrivateKey,
-  envelopeEncryptString,
+  encryptString,
   exportPrivateKey,
   exportPublicKey,
   generateKeyPair,
@@ -626,7 +626,7 @@ function VaultStep({
         const wsPublicKeyJwk = await exportPublicKey(wsKeyPair.publicKey)
         const wsPrivateKeyJwk = await exportPrivateKey(wsKeyPair.privateKey)
 
-        const ownerKeySlotEncrypted = await envelopeEncryptString(
+        const ownerKeySlotEncrypted = await encryptString(
           wsPrivateKeyJwk,
           personalKeyPair.publicKey,
         )

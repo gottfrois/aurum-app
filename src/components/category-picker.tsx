@@ -16,7 +16,9 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from '~/components/ui/popover'
+import { useEncryption } from '~/contexts/encryption-context'
 import { useCategories } from '~/lib/categories'
+import { encryptData, importPublicKey } from '~/lib/crypto'
 import { cn } from '~/lib/utils'
 import { api } from '../../convex/_generated/api'
 import type { Id } from '../../convex/_generated/dataModel'
@@ -36,6 +38,7 @@ export function CategoryPicker({
 }: CategoryPickerProps) {
   const [open, setOpen] = React.useState(false)
   const { categories, getCategory } = useCategories()
+  const { workspacePublicKey } = useEncryption()
   const updateCategory = useMutation(api.transactions.updateTransactionCategory)
 
   const current = getCategory(currentCategoryKey)
@@ -48,9 +51,21 @@ export function CategoryPicker({
     if (categoryKey === currentCategoryKey) return
 
     try {
+      if (!workspacePublicKey) throw new Error('Vault not unlocked')
+      const pubKey = await importPublicKey(workspacePublicKey)
+      const encryptedCategories = await encryptData(
+        {
+          category: categoryKey,
+          categoryParent: undefined,
+          userCategoryKey: categoryKey,
+        },
+        pubKey,
+        transactionId,
+        'encryptedCategories',
+      )
       await updateCategory({
         transactionId: transactionId as Id<'transactions'>,
-        categoryKey,
+        encryptedCategories,
       })
       const cat = getCategory(categoryKey)
       toast.success('Category updated', {

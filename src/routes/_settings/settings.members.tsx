@@ -38,7 +38,7 @@ import { Input } from '~/components/ui/input'
 import { Label } from '~/components/ui/label'
 import { Skeleton } from '~/components/ui/skeleton'
 import { useEncryption } from '~/contexts/encryption-context'
-import { envelopeEncryptString, importPublicKey } from '~/lib/crypto'
+import { encryptString, importPublicKey } from '~/lib/crypto'
 import { api } from '../../../convex/_generated/api'
 
 export const Route = createFileRoute('/_settings/settings/members')({
@@ -349,7 +349,7 @@ function GrantAccessButton({
     setGranting(true)
     try {
       const recipientPubKey = await importPublicKey(targetPublicKey)
-      const encryptedWsPrivateKey = await envelopeEncryptString(
+      const encryptedWsPrivateKey = await encryptString(
         wsPrivateKeyJwk,
         recipientPubKey,
       )

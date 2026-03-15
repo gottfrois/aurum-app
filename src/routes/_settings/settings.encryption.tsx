@@ -29,8 +29,10 @@ import { useEncryption } from '~/contexts/encryption-context'
 import { usePortfolio } from '~/contexts/portfolio-context'
 import {
   decryptData,
+  decryptFieldGroups,
   encryptData,
-  envelopeEncryptString,
+  encryptFieldGroups,
+  encryptString,
   exportPrivateKey,
   exportPublicKey,
   generateKeyPair,
@@ -182,6 +184,10 @@ function KeyRotationDialog({
     api.investments.listAllInvestmentsByPortfolios,
     allPortfolioIds.length > 0 ? { portfolioIds: allPortfolioIds } : 'skip',
   )
+  const allTransactions = useQuery(
+    api.transactions.listAllTransactions,
+    allPortfolioIds.length > 0 ? { portfolioIds: allPortfolioIds } : 'skip',
+  )
 
   const BATCH_SIZE = 50
 
@@ -197,6 +203,9 @@ function KeyRotationDialog({
   const reEncryptInvestmentBatch = useMutation(
     api.encryptionKeys.reEncryptInvestmentBatch,
   )
+  const reEncryptTransactionBatch = useMutation(
+    api.encryptionKeys.reEncryptTransactionBatch,
+  )
 
   const [passphrase, setPassphrase] = useState('')
   const [rotating, setRotating] = useState(false)
@@ -208,16 +217,25 @@ function KeyRotationDialog({
   const encryptedConnections =
     allConnections?.filter((c) => c.encryptedData) ?? []
   const encryptedAccounts =
-    allBankAccounts?.filter((a) => a.encryptedData) ?? []
+    allBankAccounts?.filter((a) => a.encryptedIdentity || a.encryptedBalance) ??
+    []
   const encryptedSnapshots = allSnapshots?.filter((s) => s.encryptedData) ?? []
   const encryptedInvestments =
-    allInvestments?.filter((inv) => inv.encryptedData) ?? []
+    allInvestments?.filter(
+      (inv) => inv.encryptedIdentity || inv.encryptedValuation,
+    ) ?? []
+  const encryptedTransactions =
+    allTransactions?.filter(
+      (t) =>
+        t.encryptedDetails || t.encryptedFinancials || t.encryptedCategories,
+    ) ?? []
 
   const totalRecords =
     encryptedConnections.length +
     encryptedAccounts.length +
     encryptedSnapshots.length +
-    encryptedInvestments.length
+    encryptedInvestments.length +
+    encryptedTransactions.length
 
   function handleCancel() {
     cancelRef.current = true
@@ -245,7 +263,7 @@ function KeyRotationDialog({
       const newWsPrivateKeyJwk = await exportPrivateKey(newWsKeyPair.privateKey)
 
       const personalPublicKey = await importPublicKey(ownerMember.publicKey)
-      const ownerKeySlotEncrypted = await envelopeEncryptString(
+      const ownerKeySlotEncrypted = await encryptString(
         newWsPrivateKeyJwk,
         personalPublicKey,
       )
@@ -278,15 +296,30 @@ function KeyRotationDialog({
 
       for (const acct of encryptedAccounts) {
         if (isCancelled()) break
-        const data = await decryptData(
-          acct.encryptedData!,
+        const data = await decryptFieldGroups(
+          {
+            encryptedIdentity: acct.encryptedIdentity,
+            encryptedBalance: acct.encryptedBalance,
+          },
           privateKey,
           acct._id,
         )
-        const encrypted = await encryptData(data, newPublicKey, acct._id)
+        const groups = await encryptFieldGroups(
+          {
+            encryptedIdentity: {
+              name: data.name,
+              number: data.number,
+              iban: data.iban,
+            },
+            encryptedBalance: { balance: data.balance },
+          },
+          newPublicKey,
+          acct._id,
+        )
         await reEncryptAccount({
           bankAccountId: acct._id,
-          encryptedData: encrypted,
+          encryptedIdentity: groups.encryptedIdentity,
+          encryptedBalance: groups.encryptedBalance,
         })
         done++
         setProgress({ done, total })
@@ -319,19 +352,94 @@ function KeyRotationDialog({
         const chunk = encryptedInvestments.slice(i, i + BATCH_SIZE)
         const items = await Promise.all(
           chunk.map(async (inv) => {
-            const data = await decryptData(
-              inv.encryptedData!,
+            const data = await decryptFieldGroups(
+              {
+                encryptedIdentity: inv.encryptedIdentity,
+                encryptedValuation: inv.encryptedValuation,
+              },
               privateKey,
+              inv._id,
+            )
+            const groups = await encryptFieldGroups(
+              {
+                encryptedIdentity: {
+                  code: data.code,
+                  label: data.label,
+                  description: data.description,
+                },
+                encryptedValuation: {
+                  quantity: data.quantity,
+                  unitprice: data.unitprice,
+                  unitvalue: data.unitvalue,
+                  valuation: data.valuation,
+                  portfolioShare: data.portfolioShare,
+                  diff: data.diff,
+                  diffPercent: data.diffPercent,
+                },
+              },
+              newPublicKey,
               inv._id,
             )
             return {
               investmentId: inv._id,
-              encryptedData: await encryptData(data, newPublicKey, inv._id),
+              encryptedIdentity: groups.encryptedIdentity,
+              encryptedValuation: groups.encryptedValuation,
             }
           }),
         )
         if (isCancelled()) break
         await reEncryptInvestmentBatch({ items })
+        done += chunk.length
+        setProgress({ done, total })
+      }
+
+      for (let i = 0; i < encryptedTransactions.length; i += BATCH_SIZE) {
+        if (isCancelled()) break
+        const chunk = encryptedTransactions.slice(i, i + BATCH_SIZE)
+        const items = await Promise.all(
+          chunk.map(async (txn) => {
+            const data = await decryptFieldGroups(
+              {
+                encryptedDetails: txn.encryptedDetails,
+                encryptedFinancials: txn.encryptedFinancials,
+                encryptedCategories: txn.encryptedCategories,
+              },
+              privateKey,
+              txn._id,
+            )
+            const groups = await encryptFieldGroups(
+              {
+                encryptedDetails: {
+                  wording: data.wording,
+                  originalWording: data.originalWording,
+                  simplifiedWording: data.simplifiedWording,
+                  counterparty: data.counterparty,
+                  card: data.card,
+                  comment: data.comment,
+                },
+                encryptedFinancials: {
+                  value: data.value,
+                  originalValue: data.originalValue,
+                },
+                encryptedCategories: {
+                  category: data.category,
+                  categoryParent: data.categoryParent,
+                  userCategoryKey: data.userCategoryKey,
+                },
+              },
+              newPublicKey,
+              txn._id,
+            )
+            return {
+              transactionId: txn._id,
+              encryptedDetails: groups.encryptedDetails,
+              encryptedFinancials: groups.encryptedFinancials,
+              encryptedCategories: groups.encryptedCategories,
+            }
+          }),
+        )
+        if (isCancelled()) break
+        await reEncryptTransactionBatch({ items })
         done += chunk.length
         setProgress({ done, total })
       }

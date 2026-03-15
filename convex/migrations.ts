@@ -4,72 +4,19 @@ import { getCategoryKey } from './lib/accountCategories'
 
 export const backfillBalanceSnapshots = internalMutation({
   args: {},
-  handler: async (ctx) => {
-    const bankAccounts = await ctx.db.query('bankAccounts').collect()
-    const now = new Date()
-    const date = now.toISOString().slice(0, 10)
-    const timestamp = now.getTime()
-
-    const existingSnapshots = await Promise.all(
-      bankAccounts.map((ba) =>
-        ctx.db
-          .query('balanceSnapshots')
-          .withIndex('by_bankAccountId_date', (q) =>
-            q.eq('bankAccountId', ba._id).eq('date', date),
-          )
-          .first(),
-      ),
-    )
-
-    const toInsert = bankAccounts.filter((_, i) => !existingSnapshots[i])
-    await Promise.all(
-      toInsert.map((ba) =>
-        ctx.db.insert('balanceSnapshots', {
-          bankAccountId: ba._id,
-          portfolioId: ba.portfolioId,
-          balance: ba.balance,
-          currency: ba.currency,
-          date,
-          timestamp,
-        }),
-      ),
-    )
-    return { backfilled: toInsert.length }
+  handler: async (_ctx) => {
+    // Balance is now encrypted on bankAccounts — backfill from plaintext is no longer possible.
+    // Balance snapshots must be created during sync with encrypted data.
+    return { backfilled: 0 }
   },
 })
 
 export const seedBalanceSnapshots = internalMutation({
   args: {},
-  handler: async (ctx) => {
-    const bankAccounts = await ctx.db.query('bankAccounts').collect()
-    const now = new Date()
-    const days = 90
-
-    let count = 0
-    for (const ba of bankAccounts) {
-      for (let i = days; i >= 1; i--) {
-        const d = new Date(now)
-        d.setDate(d.getDate() - i)
-        const date = d.toISOString().slice(0, 10)
-        const timestamp = d.getTime()
-
-        // Random walk: drift +-2% from current balance
-        const variation = 1 + (Math.random() - 0.5) * 0.04 * (i / days)
-        const balance = Math.round(ba.balance * variation * 100) / 100
-
-        await ctx.db.insert('balanceSnapshots', {
-          bankAccountId: ba._id,
-          portfolioId: ba.portfolioId,
-          balance,
-          currency: ba.currency,
-          date,
-          timestamp,
-          seed: true,
-        })
-        count++
-      }
-    }
-    return { seeded: count }
+  handler: async (_ctx) => {
+    // Balance is now encrypted on bankAccounts — seeding from plaintext is no longer possible.
+    // Seed data is not compatible with mandatory encryption.
+    return { seeded: 0 }
   },
 })
 

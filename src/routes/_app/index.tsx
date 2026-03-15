@@ -27,6 +27,24 @@ import { getStartTimestamp } from '~/lib/chart-periods'
 import { fillMissingDates } from '~/lib/fill-missing-dates'
 import { api } from '../../../convex/_generated/api'
 
+type DecryptedBankAccount = NonNullable<
+  NonNullable<ReturnType<typeof useQuery<typeof api.powens.listBankAccounts>>>
+>[number] & {
+  name?: string
+  balance: number
+  connectorName?: string
+}
+
+interface DecryptedInvestment {
+  _id: string
+  label: string
+  code?: string
+  valuation: number
+  diff?: number
+  diffPercent?: number
+  currency?: string
+}
+
 export const Route = createFileRoute('/_app/')({
   component: Dashboard,
 })
@@ -70,7 +88,10 @@ function BankAccountsSection() {
       : 'skip',
   )
   const rawBankAccounts = isAllPortfolios ? bankAccountsAll : bankAccountsSingle
-  const bankAccounts = useCachedDecryptRecords('bankAccounts', rawBankAccounts)
+  const bankAccounts = useCachedDecryptRecords(
+    'bankAccounts',
+    rawBankAccounts,
+  ) as DecryptedBankAccount[] | undefined
 
   const netWorthSingle = useQuery(
     api.balanceSnapshots.listDailyNetWorth,
@@ -95,7 +116,9 @@ function BankAccountsSection() {
       : 'skip',
   )
   const rawInvestments = isAllPortfolios ? investmentsAll : investmentsSingle
-  const investments = useCachedDecryptRecords('investments', rawInvestments)
+  const investments = useCachedDecryptRecords('investments', rawInvestments) as
+    | DecryptedInvestment[]
+    | undefined
 
   const formatCurrency = useFormatCurrency()
   const [dialogOpen, setDialogOpen] = React.useState(false)

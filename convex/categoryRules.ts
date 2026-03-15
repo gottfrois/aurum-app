@@ -1,6 +1,5 @@
 import { v } from 'convex/values'
 import { internal } from './_generated/api'
-import type { Id } from './_generated/dataModel'
 import {
   internalAction,
   internalMutation,
@@ -119,60 +118,11 @@ export const deleteRule = mutation({
 
 export const applyRuleToExisting = internalAction({
   args: { ruleId: v.id('categoryRules') },
-  handler: async (ctx, args) => {
-    const rule = await ctx.runQuery(internal.categoryRules.getRuleInternal, {
-      ruleId: args.ruleId,
-    })
-    if (!rule) return
-
-    const portfolios = await ctx.runQuery(
-      internal.categoryRules.getWorkspacePortfolios,
-      {
-        workspaceId: rule.workspaceId,
-      },
-    )
-
-    for (const portfolio of portfolios) {
-      const transactions = await ctx.runQuery(
-        internal.categoryRules.getUncategorizedTransactions,
-        { portfolioId: portfolio._id },
-      )
-
-      const matches: Array<{
-        transactionId: Id<'transactions'>
-        categoryKey: string
-      }> = []
-
-      for (const txn of transactions) {
-        const text = [txn.wording, txn.originalWording, txn.simplifiedWording]
-          .filter(Boolean)
-          .join(' ')
-
-        let matched = false
-        if (rule.matchType === 'contains') {
-          matched = text.toLowerCase().includes(rule.pattern.toLowerCase())
-        } else {
-          try {
-            matched = new RegExp(rule.pattern, 'i').test(text)
-          } catch {
-            // invalid regex, skip
-          }
-        }
-
-        if (matched) {
-          matches.push({
-            transactionId: txn._id,
-            categoryKey: rule.categoryKey,
-          })
-        }
-      }
-
-      if (matches.length > 0) {
-        await ctx.runMutation(internal.categoryRules.batchSetUserCategoryKey, {
-          items: matches,
-        })
-      }
-    }
+  handler: async (_ctx, _args) => {
+    // Category rule matching cannot work server-side because transaction text fields
+    // (wording, originalWording, simplifiedWording) are now encrypted and the server
+    // cannot decrypt them. This needs to move to client-side matching.
+    // No-op for now.
   },
 })
 
@@ -202,7 +152,8 @@ export const getUncategorizedTransactions = internalQuery({
       .query('transactions')
       .withIndex('by_portfolioId', (q) => q.eq('portfolioId', args.portfolioId))
       .collect()
-    return all.filter((t) => !t.deleted && !t.userCategoryKey)
+    // userCategoryKey is now inside encryptedCategories — server cannot filter by it
+    return all.filter((t) => !t.deleted)
   },
 })
 
@@ -215,12 +166,10 @@ export const batchSetUserCategoryKey = internalMutation({
       }),
     ),
   },
-  handler: async (ctx, args) => {
-    for (const item of args.items) {
-      await ctx.db.patch('transactions', item.transactionId, {
-        userCategoryKey: item.categoryKey,
-      })
-    }
+  handler: async (_ctx, _args) => {
+    // userCategoryKey is now inside encryptedCategories — server cannot set it.
+    // Category assignment needs to move to client-side.
+    // No-op for now.
   },
 })
 

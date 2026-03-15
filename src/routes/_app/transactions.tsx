@@ -37,6 +37,16 @@ import type {
 } from '~/lib/filters/types'
 import { api } from '../../../convex/_generated/api'
 
+type DecryptedBankAccount = NonNullable<
+  NonNullable<ReturnType<typeof useQuery<typeof api.powens.listBankAccounts>>>
+>[number] & {
+  name?: string
+  number?: string
+  iban?: string
+  balance?: number
+  connectorName?: string
+}
+
 interface TransactionRecord {
   _id: string
   bankAccountId: string
@@ -162,7 +172,10 @@ function TransactionsContent() {
       : 'skip',
   )
   const rawBankAccounts = isAllPortfolios ? bankAccountsAll : bankAccountsSingle
-  const bankAccounts = useCachedDecryptRecords('bankAccounts', rawBankAccounts)
+  const bankAccounts = useCachedDecryptRecords(
+    'bankAccounts',
+    rawBankAccounts,
+  ) as DecryptedBankAccount[] | undefined
 
   const labelsData = useQuery(
     api.labels.listLabels,
@@ -174,8 +187,9 @@ function TransactionsContent() {
     const map = new Map<string, string>()
     if (!bankAccounts) return map
     for (const ba of bankAccounts) {
-      const connector = (ba as { connectorName?: string }).connectorName
-      const label = connector ? `${connector} – ${ba.name}` : ba.name
+      const label = ba.connectorName
+        ? `${ba.connectorName} – ${ba.name ?? ''}`
+        : (ba.name ?? '')
       map.set(ba._id, label)
     }
     return map
@@ -185,8 +199,7 @@ function TransactionsContent() {
     const map = new Map<string, string>()
     if (!bankAccounts) return map
     for (const ba of bankAccounts) {
-      const acct = ba as { iban?: string; number?: string }
-      const num = acct.iban ?? acct.number
+      const num = ba.iban ?? ba.number
       if (num) map.set(ba._id, num)
     }
     return map
@@ -198,7 +211,7 @@ function TransactionsContent() {
       .filter((ba) => !ba.disabled && !ba.deleted)
       .map((ba) => ({
         value: ba._id,
-        label: accountNameMap.get(ba._id) ?? ba.name,
+        label: accountNameMap.get(ba._id) ?? ba.name ?? '',
       }))
   }, [bankAccounts, accountNameMap])
 

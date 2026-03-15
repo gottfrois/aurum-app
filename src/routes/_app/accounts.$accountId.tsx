@@ -3,6 +3,7 @@ import { useQuery } from 'convex/react'
 import * as React from 'react'
 import { AllocationChart } from '~/components/allocation-chart'
 import { BalanceChart } from '~/components/balance-chart'
+import type { Investment } from '~/components/holdings-table'
 import { HoldingsTable } from '~/components/holdings-table'
 import { SiteHeader } from '~/components/site-header'
 import { Card, CardContent, CardHeader, CardTitle } from '~/components/ui/card'
@@ -18,6 +19,14 @@ import { getStartTimestamp } from '~/lib/chart-periods'
 import { fillMissingDates } from '~/lib/fill-missing-dates'
 import { api } from '../../../convex/_generated/api'
 import type { Id } from '../../../convex/_generated/dataModel'
+
+type DecryptedBankAccount = NonNullable<
+  ReturnType<typeof useQuery<typeof api.powens.getBankAccount>>
+> & {
+  name?: string
+  balance?: number
+  connectorName?: string
+}
 
 export const Route = createFileRoute('/_app/accounts/$accountId')({
   component: AccountDetailPage,
@@ -42,7 +51,10 @@ function AccountDetailPage() {
   const rawBankAccount = useQuery(api.powens.getBankAccount, {
     bankAccountId: accountId as Id<'bankAccounts'>,
   })
-  const bankAccount = useCachedDecryptRecord('bankAccounts', rawBankAccount)
+  const bankAccount = useCachedDecryptRecord('bankAccounts', rawBankAccount) as
+    | DecryptedBankAccount
+    | undefined
+    | null
 
   const rawSnapshots = useQuery(api.balanceSnapshots.listSnapshots, {
     bankAccountId: accountId as Id<'bankAccounts'>,
@@ -56,7 +68,9 @@ function AccountDetailPage() {
     api.investments.listInvestments,
     isInvestment ? { bankAccountId: accountId as Id<'bankAccounts'> } : 'skip',
   )
-  const investments = useCachedDecryptRecords('investments', rawInvestments)
+  const investments = useCachedDecryptRecords('investments', rawInvestments) as
+    | Investment[]
+    | undefined
 
   const formatCurrency = useFormatCurrency()
 
@@ -131,7 +145,7 @@ function AccountDetailPage() {
                     onPeriodChange={setPeriod}
                     title={bankAccount.connectorName ?? bankAccount.name}
                     description={formatCurrency(
-                      bankAccount.balance,
+                      bankAccount.balance ?? 0,
                       bankAccount.currency,
                     )}
                   />

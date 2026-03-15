@@ -258,7 +258,7 @@ export const getTransactionVolumeAllPortfolios = query({
 export const updateTransactionCategory = mutation({
   args: {
     transactionId: v.id('transactions'),
-    categoryKey: v.string(),
+    encryptedCategories: v.string(),
   },
   handler: async (ctx, args) => {
     const userId = await requireAuthUserId(ctx)
@@ -277,8 +277,10 @@ export const updateTransactionCategory = mutation({
       throw new Error('Not authorized')
     }
 
+    // userCategoryKey is now inside encryptedCategories — client must re-encrypt
+    // the entire categories blob with the updated key
     await ctx.db.patch('transactions', args.transactionId, {
-      userCategoryKey: args.categoryKey,
+      encryptedCategories: args.encryptedCategories,
     })
   },
 })

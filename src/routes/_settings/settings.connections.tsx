@@ -37,6 +37,10 @@ import { useCachedDecryptRecords } from '~/hooks/use-cached-decrypt'
 import { api } from '../../../convex/_generated/api'
 import type { Doc } from '../../../convex/_generated/dataModel'
 
+type DecryptedConnection = Doc<'connections'> & {
+  connectorName?: string
+}
+
 export const Route = createFileRoute('/_settings/settings/connections')({
   component: ConnectionsPage,
 })
@@ -99,7 +103,9 @@ function ConnectionsList() {
       : 'skip',
   )
   const rawConnections = isAllPortfolios ? connectionsAll : connectionsSingle
-  const connections = useCachedDecryptRecords('connections', rawConnections)
+  const connections = useCachedDecryptRecords('connections', rawConnections) as
+    | DecryptedConnection[]
+    | undefined
 
   const bankAccountsSingle = useQuery(
     api.powens.listBankAccounts,
@@ -193,7 +199,7 @@ function ConnectionItem({
   numAccounts,
   lastSync,
 }: {
-  connection: Doc<'connections'>
+  connection: DecryptedConnection
   numAccounts: number
   lastSync: string | null
 }) {

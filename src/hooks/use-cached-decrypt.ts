@@ -10,6 +10,12 @@ interface HasId {
   _id: string
   encryptedData?: string
   connectionEncryptedData?: string
+  encryptedIdentity?: string
+  encryptedBalance?: string
+  encryptedDetails?: string
+  encryptedFinancials?: string
+  encryptedCategories?: string
+  encryptedValuation?: string
 }
 
 /**

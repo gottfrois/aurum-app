@@ -39,6 +39,16 @@ import {
 import { computePnL } from '~/lib/pnl'
 import { api } from '../../../convex/_generated/api'
 
+type DecryptedBankAccount = NonNullable<
+  NonNullable<ReturnType<typeof useQuery<typeof api.powens.listBankAccounts>>>
+>[number] & {
+  name?: string
+  number?: string
+  iban?: string
+  balance: number
+  connectorName?: string
+}
+
 export const Route = createFileRoute('/_app/accounts/')({
   component: AccountsPage,
   validateSearch: (search: Record<string, unknown>): { type?: string } => ({
@@ -102,7 +112,7 @@ function BankAccountsList({ categoryFilter }: { categoryFilter?: string }) {
   const allBankAccounts = useCachedDecryptRecords(
     'bankAccounts',
     rawAllBankAccounts,
-  )
+  ) as DecryptedBankAccount[] | undefined
 
   const categoryBalanceSingle = useQuery(
     api.balanceSnapshots.listDailyCategoryBalance,

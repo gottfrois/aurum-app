@@ -1,7 +1,21 @@
 // Client-side cryptographic utilities for zero-knowledge encryption
-// Uses Web Crypto API (available in all modern browsers)
+// Uses ECIES (X25519 + HKDF + AES-GCM) via Web Crypto API
 
 import Dexie from 'dexie'
+
+// --- Payload versioning ---
+export const CURRENT_PAYLOAD_VERSION = 1
+
+export function migratePayload(
+  data: Record<string, unknown>,
+  _fromVersion: number,
+): Record<string, unknown> {
+  // v1 is current — no migrations needed yet.
+  // Future migrations: if (fromVersion < 2) { ... transform ... }
+  return data
+}
+
+// --- Base64 helpers ---
 
 function toBase64(buffer: ArrayBuffer): string {
   const bytes = new Uint8Array(buffer)
@@ -21,48 +35,9 @@ function fromBase64(str: string): ArrayBuffer {
   return bytes.buffer
 }
 
-const RSA_PARAMS: RsaHashedKeyGenParams = {
-  name: 'RSA-OAEP',
-  modulusLength: 4096,
-  publicExponent: new Uint8Array([1, 0, 1]),
-  hash: 'SHA-256',
-}
+// --- PBKDF2 passphrase derivation (unchanged) ---
 
 const PBKDF2_ITERATIONS = 600_000
-
-export async function generateKeyPair(): Promise<CryptoKeyPair> {
-  return crypto.subtle.generateKey(RSA_PARAMS, true, ['encrypt', 'decrypt'])
-}
-
-export async function exportPublicKey(key: CryptoKey): Promise<string> {
-  const jwk = await crypto.subtle.exportKey('jwk', key)
-  return JSON.stringify(jwk)
-}
-
-export async function exportPrivateKey(key: CryptoKey): Promise<string> {
-  const jwk = await crypto.subtle.exportKey('jwk', key)
-  return JSON.stringify(jwk)
-}
-
-export async function importPublicKey(jwkStr: string): Promise<CryptoKey> {
-  return crypto.subtle.importKey(
-    'jwk',
-    JSON.parse(jwkStr),
-    { name: 'RSA-OAEP', hash: 'SHA-256' },
-    true,
-    ['encrypt'],
-  )
-}
-
-export async function importPrivateKey(jwkStr: string): Promise<CryptoKey> {
-  return crypto.subtle.importKey(
-    'jwk',
-    JSON.parse(jwkStr),
-    { name: 'RSA-OAEP', hash: 'SHA-256' },
-    false, // non-extractable
-    ['decrypt'],
-  )
-}
 
 export async function deriveKeyFromPassphrase(
   passphrase: string,
@@ -89,6 +64,8 @@ export async function deriveKeyFromPassphrase(
   )
 }
 
+// --- AES-GCM passphrase-protected private key storage (unchanged) ---
+
 export async function encryptPrivateKey(
   privateKeyJwk: string,
   passphraseKey: CryptoKey,
@@ -114,137 +91,324 @@ export async function decryptPrivateKey(
   return new TextDecoder().decode(decrypted)
 }
 
-// Envelope encryption: AES-GCM data key wrapped with RSA-OAEP public key
-// With optional AAD (Additional Authenticated Data) for v2 envelopes
+// --- X25519 key management ---
+
+export async function generateKeyPair(): Promise<CryptoKeyPair> {
+  return crypto.subtle.generateKey({ name: 'X25519' }, true, [
+    'deriveBits',
+  ]) as Promise<CryptoKeyPair>
+}
+
+export async function exportPublicKey(key: CryptoKey): Promise<string> {
+  const jwk = await crypto.subtle.exportKey('jwk', key)
+  return JSON.stringify(jwk)
+}
+
+export async function exportPrivateKey(key: CryptoKey): Promise<string> {
+  const jwk = await crypto.subtle.exportKey('jwk', key)
+  return JSON.stringify(jwk)
+}
+
+export async function importPublicKey(jwkStr: string): Promise<CryptoKey> {
+  return crypto.subtle.importKey(
+    'jwk',
+    JSON.parse(jwkStr),
+    { name: 'X25519' },
+    true,
+    [],
+  )
+}
+
+export async function importPrivateKey(
+  jwkStr: string,
+  extractable = false,
+): Promise<CryptoKey> {
+  return crypto.subtle.importKey(
+    'jwk',
+    JSON.parse(jwkStr),
+    { name: 'X25519' },
+    extractable,
+    ['deriveBits'],
+  )
+}
+
+// --- ECIES core: X25519 ECDH + HKDF-SHA256 + AES-GCM-256 ---
+
+async function ecdhDeriveAesKey(
+  privateKey: CryptoKey,
+  publicKey: CryptoKey,
+  ephemeralPublicKeyRaw: ArrayBuffer,
+  info: string,
+): Promise<CryptoKey> {
+  // ECDH → shared secret
+  const sharedBits = await crypto.subtle.deriveBits(
+    { name: 'X25519', public: publicKey },
+    privateKey,
+    256,
+  )
+
+  // Import shared secret as HKDF key material
+  const hkdfKey = await crypto.subtle.importKey(
+    'raw',
+    sharedBits,
+    'HKDF',
+    false,
+    ['deriveKey'],
+  )
+
+  // HKDF → AES-256 key (salt = ephemeral public key, info = context string)
+  return crypto.subtle.deriveKey(
+    {
+      name: 'HKDF',
+      hash: 'SHA-256',
+      salt: ephemeralPublicKeyRaw,
+      info: new TextEncoder().encode(info),
+    },
+    hkdfKey,
+    { name: 'AES-GCM', length: 256 },
+    false,
+    ['encrypt', 'decrypt'],
+  )
+}
+
+function buildHkdfInfo(context: string, fieldGroup?: string): string {
+  const parts = ['bunkr-v1', context]
+  if (fieldGroup) parts.push(fieldGroup)
+  return parts.join('|')
+}
+
+function buildAad(
+  version: number,
+  epkBase64: string,
+  context: string,
+): Uint8Array {
+  return new TextEncoder().encode(`${version}|${epkBase64}|${context}`)
+}
+
+// --- ECIES encrypt/decrypt for record data ---
+
 export async function encryptData(
   data: Record<string, unknown>,
-  publicKey: CryptoKey,
-  aad?: string,
+  recipientPublicKey: CryptoKey,
+  context: string,
+  fieldGroup?: string,
 ): Promise<string> {
-  const aesKey = await crypto.subtle.generateKey(
-    { name: 'AES-GCM', length: 256 },
-    true,
-    ['encrypt'],
+  // Generate ephemeral X25519 keypair
+  const ephemeral = (await crypto.subtle.generateKey({ name: 'X25519' }, true, [
+    'deriveBits',
+  ])) as CryptoKeyPair
+
+  const epkRaw = await crypto.subtle.exportKey('raw', ephemeral.publicKey)
+  const epkBase64 = toBase64(epkRaw)
+
+  // Derive AES key via ECDH + HKDF
+  const info = buildHkdfInfo(context, fieldGroup)
+  const aesKey = await ecdhDeriveAesKey(
+    ephemeral.privateKey,
+    recipientPublicKey,
+    epkRaw,
+    info,
   )
+
+  // AES-GCM encrypt with AAD
   const iv = crypto.getRandomValues(new Uint8Array(12))
-  const aesParams: AesGcmParams = { name: 'AES-GCM', iv: iv as BufferSource }
-  if (aad) {
-    aesParams.additionalData = new TextEncoder().encode(aad)
-  }
+  const aad = buildAad(1, epkBase64, context)
+  const payload = { _v: CURRENT_PAYLOAD_VERSION, ...data }
   const ct = await crypto.subtle.encrypt(
-    aesParams,
+    {
+      name: 'AES-GCM',
+      iv: iv as BufferSource,
+      additionalData: aad as BufferSource,
+    },
     aesKey,
-    new TextEncoder().encode(JSON.stringify(data)),
+    new TextEncoder().encode(JSON.stringify(payload)),
   )
-  const rawAesKey = await crypto.subtle.exportKey('raw', aesKey)
-  const ek = await crypto.subtle.encrypt(
-    { name: 'RSA-OAEP' },
-    publicKey,
-    rawAesKey,
-  )
+
   return JSON.stringify({
     ct: toBase64(ct),
-    ek: toBase64(ek),
+    epk: epkBase64,
     iv: toBase64(iv.buffer),
-    v: aad ? 2 : 1,
+    v: 1,
   })
 }
 
 export async function decryptData(
   encryptedStr: string,
   privateKey: CryptoKey,
-  aad?: string,
+  context: string,
+  fieldGroup?: string,
 ): Promise<Record<string, unknown>> {
-  const { ct, ek, iv, v } = JSON.parse(encryptedStr) as {
+  const { ct, epk, iv, v } = JSON.parse(encryptedStr) as {
     ct: string
-    ek: string
+    epk: string
     iv: string
-    v?: number
+    v: number
   }
-  const rawAesKey = await crypto.subtle.decrypt(
-    { name: 'RSA-OAEP' },
-    privateKey,
-    fromBase64(ek),
-  )
-  const aesKey = await crypto.subtle.importKey(
+
+  // Import ephemeral public key
+  const epkRaw = fromBase64(epk)
+  const ephemeralPublicKey = await crypto.subtle.importKey(
     'raw',
-    rawAesKey,
-    { name: 'AES-GCM', length: 256 },
+    epkRaw,
+    { name: 'X25519' },
     false,
-    ['decrypt'],
+    [],
   )
-  const aesParams: AesGcmParams = { name: 'AES-GCM', iv: fromBase64(iv) }
-  if (v === 2 && aad) {
-    aesParams.additionalData = new TextEncoder().encode(aad)
-  }
+
+  // Derive same AES key via ECDH + HKDF
+  const info = buildHkdfInfo(context, fieldGroup)
+  const aesKey = await ecdhDeriveAesKey(
+    privateKey,
+    ephemeralPublicKey,
+    epkRaw,
+    info,
+  )
+
+  // AES-GCM decrypt with AAD
+  const aad = buildAad(v, epk, context)
   const decrypted = await crypto.subtle.decrypt(
-    aesParams,
+    {
+      name: 'AES-GCM',
+      iv: fromBase64(iv),
+      additionalData: aad as BufferSource,
+    },
     aesKey,
     fromBase64(ct),
   )
-  return JSON.parse(new TextDecoder().decode(decrypted))
+
+  const parsed = JSON.parse(new TextDecoder().decode(decrypted)) as Record<
+    string,
+    unknown
+  >
+
+  // Run payload migration and strip _v
+  const payloadVersion = (parsed._v as number) ?? 0
+  const migrated = migratePayload(parsed, payloadVersion)
+  delete migrated._v
+  return migrated
 }
 
-// Envelope-encrypt a string (e.g. workspace private key JWK) for a recipient's RSA public key
-export async function envelopeEncryptString(
+// --- ECIES encrypt/decrypt for strings (key slot wrapping) ---
+
+export async function encryptString(
   plaintext: string,
   recipientPublicKey: CryptoKey,
 ): Promise<string> {
-  const aesKey = await crypto.subtle.generateKey(
-    { name: 'AES-GCM', length: 256 },
-    true,
-    ['encrypt'],
+  const ephemeral = (await crypto.subtle.generateKey({ name: 'X25519' }, true, [
+    'deriveBits',
+  ])) as CryptoKeyPair
+
+  const epkRaw = await crypto.subtle.exportKey('raw', ephemeral.publicKey)
+  const epkBase64 = toBase64(epkRaw)
+
+  const info = buildHkdfInfo('keyslot')
+  const aesKey = await ecdhDeriveAesKey(
+    ephemeral.privateKey,
+    recipientPublicKey,
+    epkRaw,
+    info,
   )
+
   const iv = crypto.getRandomValues(new Uint8Array(12))
+  const aad = new TextEncoder().encode(`keyslot|${epkBase64}`)
   const ct = await crypto.subtle.encrypt(
-    { name: 'AES-GCM', iv: iv as BufferSource },
+    {
+      name: 'AES-GCM',
+      iv: iv as BufferSource,
+      additionalData: aad as BufferSource,
+    },
     aesKey,
     new TextEncoder().encode(plaintext),
   )
-  const rawAesKey = await crypto.subtle.exportKey('raw', aesKey)
-  const ek = await crypto.subtle.encrypt(
-    { name: 'RSA-OAEP' },
-    recipientPublicKey,
-    rawAesKey,
-  )
+
   return JSON.stringify({
     ct: toBase64(ct),
-    ek: toBase64(ek),
+    epk: epkBase64,
     iv: toBase64(iv.buffer),
   })
 }
 
-// Decrypt an envelope-encrypted string using recipient's RSA private key
-export async function envelopeDecryptString(
+export async function decryptString(
   encryptedStr: string,
   privateKey: CryptoKey,
 ): Promise<string> {
-  const { ct, ek, iv } = JSON.parse(encryptedStr) as {
+  const { ct, epk, iv } = JSON.parse(encryptedStr) as {
     ct: string
-    ek: string
+    epk: string
     iv: string
   }
-  const rawAesKey = await crypto.subtle.decrypt(
-    { name: 'RSA-OAEP' },
-    privateKey,
-    fromBase64(ek),
-  )
-  const aesKey = await crypto.subtle.importKey(
+
+  const epkRaw = fromBase64(epk)
+  const ephemeralPublicKey = await crypto.subtle.importKey(
     'raw',
-    rawAesKey,
-    { name: 'AES-GCM', length: 256 },
+    epkRaw,
+    { name: 'X25519' },
     false,
-    ['decrypt'],
+    [],
   )
+
+  const info = buildHkdfInfo('keyslot')
+  const aesKey = await ecdhDeriveAesKey(
+    privateKey,
+    ephemeralPublicKey,
+    epkRaw,
+    info,
+  )
+
+  const aad = new TextEncoder().encode(`keyslot|${epk}`)
   const decrypted = await crypto.subtle.decrypt(
-    { name: 'AES-GCM', iv: fromBase64(iv) },
+    {
+      name: 'AES-GCM',
+      iv: fromBase64(iv),
+      additionalData: aad as BufferSource,
+    },
     aesKey,
     fromBase64(ct),
   )
+
   return new TextDecoder().decode(decrypted)
 }
 
-// IndexedDB-based key storage using Dexie (non-extractable CryptoKey)
+// --- Field-group encryption ---
+
+export async function encryptFieldGroups(
+  groups: Record<string, Record<string, unknown>>,
+  publicKey: CryptoKey,
+  recordId: string,
+): Promise<Record<string, string>> {
+  const result: Record<string, string> = {}
+  for (const [groupName, fields] of Object.entries(groups)) {
+    result[groupName] = await encryptData(
+      fields,
+      publicKey,
+      recordId,
+      groupName,
+    )
+  }
+  return result
+}
+
+export async function decryptFieldGroups(
+  encryptedFields: Record<string, string | undefined>,
+  privateKey: CryptoKey,
+  recordId: string,
+): Promise<Record<string, unknown>> {
+  const merged: Record<string, unknown> = {}
+  for (const [groupName, encryptedStr] of Object.entries(encryptedFields)) {
+    if (!encryptedStr) continue
+    const data = await decryptData(
+      encryptedStr,
+      privateKey,
+      recordId,
+      groupName,
+    )
+    Object.assign(merged, data)
+  }
+  return merged
+}
+
+// --- IndexedDB-based key storage using Dexie ---
+
 const keyDb = new Dexie('BunkrKeyStore') as Dexie & {
   keys: Dexie.Table<{ id: string; key: CryptoKey }, string>
 }

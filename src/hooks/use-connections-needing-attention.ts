@@ -1,12 +1,17 @@
 import { useQuery } from 'convex/react'
 import { usePortfolio } from '~/contexts/portfolio-context'
+import { useCachedDecryptRecords } from '~/hooks/use-cached-decrypt'
 import { isConnectionStateActionNeeded } from '~/lib/connection-states'
 import { api } from '../../convex/_generated/api'
 import type { Doc } from '../../convex/_generated/dataModel'
 
+type DecryptedConnection = Doc<'connections'> & {
+  connectorName?: string
+}
+
 interface ConnectionsNeedingAttention {
   /** Connections that need user action (re-auth, error, etc.) */
-  connections: Array<Doc<'connections'>>
+  connections: Array<DecryptedConnection>
   /** Number of connections needing attention */
   count: number
   /** Whether the data is still loading */
@@ -37,9 +42,12 @@ export function useConnectionsNeedingAttention(): ConnectionsNeedingAttention {
   )
 
   const rawConnections = isAllPortfolios ? connectionsAll : connectionsSingle
-  const isLoading = portfolioLoading || rawConnections === undefined
+  const connections = useCachedDecryptRecords('connections', rawConnections) as
+    | DecryptedConnection[]
+    | undefined
+  const isLoading = portfolioLoading || connections === undefined
 
-  const problemConnections = (rawConnections ?? []).filter((c) =>
+  const problemConnections = (connections ?? []).filter((c) =>
     isConnectionStateActionNeeded(c.state),
   )
 

@@ -82,10 +82,9 @@ export default defineSchema({
   connections: defineTable({
     portfolioId: v.id('portfolios'),
     powensConnectionId: v.number(),
-    connectorName: v.string(),
     state: v.optional(v.string()),
     lastSync: v.optional(v.string()),
-    encryptedData: v.optional(v.string()),
+    encryptedData: v.string(),
   })
     .index('by_portfolioId', ['portfolioId'])
     .index('by_powensConnectionId', ['powensConnectionId']),
@@ -94,16 +93,13 @@ export default defineSchema({
     connectionId: v.id('connections'),
     portfolioId: v.id('portfolios'),
     powensBankAccountId: v.number(),
-    name: v.string(),
-    number: v.optional(v.string()),
-    iban: v.optional(v.string()),
     type: v.optional(v.string()),
-    balance: v.number(),
     currency: v.string(),
     disabled: v.boolean(),
     deleted: v.boolean(),
     lastSync: v.optional(v.string()),
-    encryptedData: v.optional(v.string()),
+    encryptedIdentity: v.string(),
+    encryptedBalance: v.string(),
   })
     .index('by_connectionId', ['connectionId'])
     .index('by_portfolioId', ['portfolioId']),
@@ -112,22 +108,13 @@ export default defineSchema({
     bankAccountId: v.id('bankAccounts'),
     portfolioId: v.id('portfolios'),
     powensInvestmentId: v.number(),
-    code: v.optional(v.string()),
     codeType: v.optional(v.string()),
-    label: v.string(),
-    description: v.optional(v.string()),
-    quantity: v.number(),
-    unitprice: v.number(),
-    unitvalue: v.number(),
-    valuation: v.number(),
-    portfolioShare: v.optional(v.number()),
-    diff: v.optional(v.number()),
-    diffPercent: v.optional(v.number()),
     originalCurrency: v.optional(v.string()),
     originalValuation: v.optional(v.number()),
     vdate: v.optional(v.string()),
     deleted: v.boolean(),
-    encryptedData: v.optional(v.string()),
+    encryptedIdentity: v.string(),
+    encryptedValuation: v.string(),
   })
     .index('by_bankAccountId', ['bankAccountId'])
     .index('by_portfolioId', ['portfolioId'])
@@ -136,12 +123,12 @@ export default defineSchema({
   balanceSnapshots: defineTable({
     bankAccountId: v.id('bankAccounts'),
     portfolioId: v.id('portfolios'),
-    balance: v.number(),
+    balance: v.number(), // plaintext for daily aggregate delta computation (dailyNetWorth, dailyCategoryBalance)
     currency: v.string(),
     date: v.string(),
     timestamp: v.number(),
     seed: v.optional(v.boolean()),
-    encryptedData: v.optional(v.string()),
+    encryptedData: v.string(),
   })
     .index('by_bankAccountId_timestamp', ['bankAccountId', 'timestamp'])
     .index('by_bankAccountId_date', ['bankAccountId', 'date'])
@@ -166,24 +153,15 @@ export default defineSchema({
     date: v.string(),
     rdate: v.optional(v.string()),
     vdate: v.optional(v.string()),
-    value: v.number(),
-    originalValue: v.optional(v.number()),
     originalCurrency: v.optional(v.string()),
     type: v.optional(v.string()),
-    wording: v.string(),
-    originalWording: v.optional(v.string()),
-    simplifiedWording: v.optional(v.string()),
-    category: v.optional(v.string()),
-    categoryParent: v.optional(v.string()),
     coming: v.boolean(),
     active: v.boolean(),
     deleted: v.boolean(),
-    counterparty: v.optional(v.string()),
-    card: v.optional(v.string()),
-    comment: v.optional(v.string()),
-    userCategoryKey: v.optional(v.string()),
     labelIds: v.optional(v.array(v.id('labels'))),
-    encryptedData: v.optional(v.string()),
+    encryptedDetails: v.string(),
+    encryptedFinancials: v.string(),
+    encryptedCategories: v.string(),
   })
     .index('by_bankAccountId', ['bankAccountId'])
     .index('by_portfolioId', ['portfolioId'])

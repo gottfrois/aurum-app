@@ -4,13 +4,21 @@ import { clearCache } from '~/lib/cache-db'
 import {
   clearStoredPrivateKey,
   decryptData,
+  decryptFieldGroups,
   decryptPrivateKey as decryptPrivateKeyWithPassphrase,
+  decryptString,
   deriveKeyFromPassphrase,
-  envelopeDecryptString,
+  exportPrivateKey,
   getStoredPrivateKey,
   importPrivateKey,
   storePrivateKey,
 } from '~/lib/crypto'
+import {
+  decryptFieldGroupsViaWorker,
+  decryptViaWorker,
+  initWorkerKey,
+  isWorkerAvailable,
+} from '~/lib/worker-pool'
 import { api } from '../../convex/_generated/api'
 
 interface EncryptionContextValue {
@@ -27,6 +35,8 @@ interface EncryptionContextValue {
   // For granting access: the decrypted workspace private key JWK (in memory only when unlocked via passphrase)
   // Will be null after page reload (non-extractable key in IndexedDB)
   workspacePrivateKeyJwk: string | null
+  // JWK for Web Workers (available when key is extractable)
+  workerKeyJwk: string | null
 }
 
 const EncryptionContext = React.createContext<EncryptionContextValue | null>(
@@ -48,6 +58,8 @@ export function EncryptionProvider({
   const [workspacePrivateKeyJwk, setWorkspacePrivateKeyJwk] = React.useState<
     string | null
   >(null)
+  // JWK for passing to Web Workers (set on mount from extractable key or on unlock)
+  const [workerKeyJwk, setWorkerKeyJwk] = React.useState<string | null>(null)
   const [isLoading, setIsLoading] = React.useState(true)
   const importingRef = React.useRef(false)
 
@@ -67,11 +79,18 @@ export function EncryptionProvider({
     importingRef.current = true
 
     getStoredPrivateKey()
-      .then((key) => {
+      .then(async (key) => {
         if (key) {
           setPrivateKey(key)
-          // workspacePrivateKeyJwk stays null — can't extract from non-extractable key
-          // User needs to re-enter passphrase to grant access to other members
+          // Try to export JWK for workers (only works if key was stored as extractable)
+          try {
+            const jwk = await exportPrivateKey(key)
+            setWorkerKeyJwk(jwk)
+            if (isWorkerAvailable()) initWorkerKey(jwk)
+          } catch {
+            // Key is non-extractable (old storage) — workers will fall back to main thread
+          }
+          // workspacePrivateKeyJwk stays null — user needs to re-enter passphrase for granting access
         }
       })
       .catch(() => {
@@ -89,7 +108,7 @@ export function EncryptionProvider({
       if (!wsEncryption.personalKey) throw new Error('No personal key set up')
       if (!wsEncryption.keySlot) throw new Error('No workspace access granted')
 
-      // Step 1: Decrypt personal RSA private key with passphrase
+      // Step 1: Decrypt personal private key with passphrase
       const salt = Uint8Array.from(
         atob(wsEncryption.personalKey.pbkdf2Salt),
         (c) => c.charCodeAt(0),
@@ -107,16 +126,18 @@ export function EncryptionProvider({
       )
       const personalPrivateKey = await importPrivateKey(personalPrivateKeyJwk)
 
-      // Step 2: Decrypt workspace private key using personal private key
-      const wsPrivateKeyJwk = await envelopeDecryptString(
+      // Step 2: Decrypt workspace private key using personal private key (ECIES)
+      const wsPrivateKeyJwk = await decryptString(
         wsEncryption.keySlot.encryptedPrivateKey,
         personalPrivateKey,
       )
 
-      // Step 3: Import workspace private key as non-extractable and store in IndexedDB
-      const wsKey = await importPrivateKey(wsPrivateKeyJwk)
+      // Step 3: Import workspace private key (extractable for workers) and store in IndexedDB
+      const wsKey = await importPrivateKey(wsPrivateKeyJwk, true)
       await storePrivateKey(wsKey) // Store CryptoKey in IndexedDB
       setWorkspacePrivateKeyJwk(wsPrivateKeyJwk) // Keep JWK in memory for granting access
+      setWorkerKeyJwk(wsPrivateKeyJwk) // Keep JWK for Web Workers
+      if (isWorkerAvailable()) initWorkerKey(wsPrivateKeyJwk)
       setPrivateKey(wsKey)
     },
     [wsEncryption],
@@ -126,6 +147,7 @@ export function EncryptionProvider({
     await clearStoredPrivateKey()
     setPrivateKey(null)
     setWorkspacePrivateKeyJwk(null)
+    setWorkerKeyJwk(null)
     clearCache()
   }, [])
 
@@ -142,6 +164,7 @@ export function EncryptionProvider({
       workspacePublicKey: wsEncryption?.workspacePublicKey ?? null,
       role: wsEncryption?.role ?? null,
       workspacePrivateKeyJwk,
+      workerKeyJwk,
     }),
     [
       isEncryptionEnabled,
@@ -154,6 +177,7 @@ export function EncryptionProvider({
       hasWorkspaceAccess,
       wsEncryption,
       workspacePrivateKeyJwk,
+      workerKeyJwk,
     ],
   )
 
@@ -172,15 +196,49 @@ export function useEncryption() {
   return ctx
 }
 
+// Encrypted field names used to detect if a record needs decryption
+const ENCRYPTED_FIELD_NAMES = [
+  'encryptedData',
+  'connectionEncryptedData',
+  'encryptedIdentity',
+  'encryptedBalance',
+  'encryptedDetails',
+  'encryptedFinancials',
+  'encryptedCategories',
+  'encryptedValuation',
+] as const
+
+// Field-group names (subset that use field-group decryption)
+const FIELD_GROUP_NAMES = [
+  'encryptedIdentity',
+  'encryptedBalance',
+  'encryptedDetails',
+  'encryptedFinancials',
+  'encryptedCategories',
+  'encryptedValuation',
+] as const
+
+function hasAnyEncryptedField(r: Record<string, unknown>): boolean {
+  return ENCRYPTED_FIELD_NAMES.some((f) => typeof r[f] === 'string')
+}
+
 // Hook to transparently decrypt records that may have encrypted data
 export function useDecryptRecords<
   T extends {
     _id: string
     encryptedData?: string
     connectionEncryptedData?: string
+    encryptedIdentity?: string
+    encryptedBalance?: string
+    encryptedDetails?: string
+    encryptedFinancials?: string
+    encryptedCategories?: string
+    encryptedValuation?: string
   },
 >(records: Array<T> | undefined): Array<T> | undefined {
-  const { privateKey, isEncryptionEnabled, isLoading } = useEncryption()
+  const { privateKey, isEncryptionEnabled, isLoading, workerKeyJwk } =
+    useEncryption()
+  const useWorkers = isWorkerAvailable() && workerKeyJwk !== null
   const [decrypted, setDecrypted] = React.useState<Array<T> | undefined>(
     undefined,
   )
@@ -205,8 +263,8 @@ export function useDecryptRecords<
     }
 
     // No encrypted records — pass through
-    const hasEncrypted = records.some(
-      (r) => r.encryptedData || r.connectionEncryptedData,
+    const hasEncrypted = records.some((r) =>
+      hasAnyEncryptedField(r as unknown as Record<string, unknown>),
     )
     if (!hasEncrypted) {
       setDecrypted(records)
@@ -233,14 +291,13 @@ export function useDecryptRecords<
       const results = await Promise.all(
         records!.map(async (r) => {
           let result = r
+
+          // Single-blob encrypted fields (connections, balance snapshots)
           if (r.encryptedData) {
             try {
-              // Pass record _id as AAD — decryptData checks version internally
-              const data = await decryptData(
-                r.encryptedData,
-                privateKey!,
-                r._id,
-              )
+              const data = useWorkers
+                ? await decryptViaWorker(r.encryptedData, r._id)
+                : await decryptData(r.encryptedData, privateKey!, r._id)
               result = { ...result, ...data }
             } catch {
               // keep original
@@ -248,19 +305,42 @@ export function useDecryptRecords<
           }
           if (r.connectionEncryptedData) {
             try {
-              // connectionEncryptedData uses the connection's _id as AAD, not the record's
-              // Since we don't have the connection _id here, pass the record _id
-              // The decryptData function only uses AAD for v2 envelopes
-              const data = await decryptData(
-                r.connectionEncryptedData,
-                privateKey!,
-                r._id,
-              )
+              const data = useWorkers
+                ? await decryptViaWorker(r.connectionEncryptedData, r._id)
+                : await decryptData(
+                    r.connectionEncryptedData,
+                    privateKey!,
+                    r._id,
+                  )
               result = { ...result, ...data }
             } catch {
               // keep original
             }
           }
+
+          // Field-group encrypted fields
+          const fieldGroupEntries: Record<string, string | undefined> = {}
+          for (const name of FIELD_GROUP_NAMES) {
+            const val = (r as Record<string, unknown>)[name]
+            if (typeof val === 'string') {
+              fieldGroupEntries[name] = val
+            }
+          }
+          if (Object.keys(fieldGroupEntries).length > 0) {
+            try {
+              const data = useWorkers
+                ? await decryptFieldGroupsViaWorker(fieldGroupEntries, r._id)
+                : await decryptFieldGroups(
+                    fieldGroupEntries,
+                    privateKey!,
+                    r._id,
+                  )
+              result = { ...result, ...data }
+            } catch {
+              // keep original
+            }
+          }
+
           return result
         }),
       )
@@ -270,7 +350,14 @@ export function useDecryptRecords<
     return () => {
       cancelled = true
     }
-  }, [records, privateKey, isEncryptionEnabled, isLoading])
+  }, [
+    records,
+    privateKey,
+    isEncryptionEnabled,
+    isLoading,
+    useWorkers,
+    workerKeyJwk,
+  ])
 
   return decrypted
 }
@@ -281,6 +368,12 @@ export function useDecryptRecord<
     _id: string
     encryptedData?: string
     connectionEncryptedData?: string
+    encryptedIdentity?: string
+    encryptedBalance?: string
+    encryptedDetails?: string
+    encryptedFinancials?: string
+    encryptedCategories?: string
+    encryptedValuation?: string
   },
 >(record: T | null | undefined): T | null | undefined {
   const arr = React.useMemo(() => (record ? [record] : undefined), [record])
