@@ -8,9 +8,9 @@ import {
 import { internal } from './_generated/api'
 import { getAuthUserId, requireAuthUserId } from './lib/auth'
 
-export const listTransactionsByProfile = query({
+export const listTransactionsByPortfolio = query({
   args: {
-    profileId: v.id('profiles'),
+    portfolioId: v.id('portfolios'),
     startDate: v.string(),
     endDate: v.string(),
   },
@@ -20,9 +20,9 @@ export const listTransactionsByProfile = query({
 
     const results = await ctx.db
       .query('transactions')
-      .withIndex('by_profileId_date', (q) =>
+      .withIndex('by_portfolioId_date', (q) =>
         q
-          .eq('profileId', args.profileId)
+          .eq('portfolioId', args.portfolioId)
           .gte('date', args.startDate)
           .lte('date', args.endDate),
       )
@@ -34,17 +34,17 @@ export const listTransactionsByProfile = query({
 
 export const listAllTransactions = query({
   args: {
-    profileIds: v.array(v.id('profiles')),
+    portfolioIds: v.array(v.id('portfolios')),
   },
   handler: async (ctx, args) => {
     const userId = await getAuthUserId(ctx)
     if (!userId) return []
 
     const results = await Promise.all(
-      args.profileIds.map((profileId) =>
+      args.portfolioIds.map((portfolioId) =>
         ctx.db
           .query('transactions')
-          .withIndex('by_profileId', (q) => q.eq('profileId', profileId))
+          .withIndex('by_portfolioId', (q) => q.eq('portfolioId', portfolioId))
           .collect(),
       ),
     )
@@ -53,9 +53,9 @@ export const listAllTransactions = query({
   },
 })
 
-export const listAllTransactionsByProfiles = query({
+export const listAllTransactionsByPortfolios = query({
   args: {
-    profileIds: v.array(v.id('profiles')),
+    portfolioIds: v.array(v.id('portfolios')),
     startDate: v.string(),
     endDate: v.string(),
   },
@@ -64,12 +64,12 @@ export const listAllTransactionsByProfiles = query({
     if (!userId) return []
 
     const results = await Promise.all(
-      args.profileIds.map((profileId) =>
+      args.portfolioIds.map((portfolioId) =>
         ctx.db
           .query('transactions')
-          .withIndex('by_profileId_date', (q) =>
+          .withIndex('by_portfolioId_date', (q) =>
             q
-              .eq('profileId', profileId)
+              .eq('portfolioId', portfolioId)
               .gte('date', args.startDate)
               .lte('date', args.endDate),
           )
@@ -92,14 +92,14 @@ export const updateTransactionLabels = mutation({
     const transaction = await ctx.db.get('transactions', args.transactionId)
     if (!transaction) throw new Error('Transaction not found')
 
-    const profile = await ctx.db.get('profiles', transaction.profileId)
-    if (!profile) throw new Error('Profile not found')
+    const portfolio = await ctx.db.get('portfolios', transaction.portfolioId)
+    if (!portfolio) throw new Error('Portfolio not found')
 
     const member = await ctx.db
       .query('workspaceMembers')
       .withIndex('by_userId', (q) => q.eq('userId', userId))
       .first()
-    if (!member || member.workspaceId !== profile.workspaceId) {
+    if (!member || member.workspaceId !== portfolio.workspaceId) {
       throw new Error('Not authorized')
     }
 
@@ -189,7 +189,7 @@ export const batchUpdateLabelsChunk = internalMutation({
 
 export const getTransactionVolume = query({
   args: {
-    profileId: v.id('profiles'),
+    portfolioId: v.id('portfolios'),
     startDate: v.string(),
     endDate: v.string(),
   },
@@ -199,9 +199,9 @@ export const getTransactionVolume = query({
 
     const txs = await ctx.db
       .query('transactions')
-      .withIndex('by_profileId_date', (q) =>
+      .withIndex('by_portfolioId_date', (q) =>
         q
-          .eq('profileId', args.profileId)
+          .eq('portfolioId', args.portfolioId)
           .gte('date', args.startDate)
           .lte('date', args.endDate),
       )
@@ -219,9 +219,9 @@ export const getTransactionVolume = query({
   },
 })
 
-export const getTransactionVolumeAllProfiles = query({
+export const getTransactionVolumeAllPortfolios = query({
   args: {
-    profileIds: v.array(v.id('profiles')),
+    portfolioIds: v.array(v.id('portfolios')),
     startDate: v.string(),
     endDate: v.string(),
   },
@@ -230,12 +230,12 @@ export const getTransactionVolumeAllProfiles = query({
     if (!userId) return []
 
     const results = await Promise.all(
-      args.profileIds.map((profileId) =>
+      args.portfolioIds.map((portfolioId) =>
         ctx.db
           .query('transactions')
-          .withIndex('by_profileId_date', (q) =>
+          .withIndex('by_portfolioId_date', (q) =>
             q
-              .eq('profileId', profileId)
+              .eq('portfolioId', portfolioId)
               .gte('date', args.startDate)
               .lte('date', args.endDate),
           )
@@ -266,14 +266,14 @@ export const updateTransactionCategory = mutation({
     const transaction = await ctx.db.get('transactions', args.transactionId)
     if (!transaction) throw new Error('Transaction not found')
 
-    const profile = await ctx.db.get('profiles', transaction.profileId)
-    if (!profile) throw new Error('Profile not found')
+    const portfolio = await ctx.db.get('portfolios', transaction.portfolioId)
+    if (!portfolio) throw new Error('Portfolio not found')
 
     const member = await ctx.db
       .query('workspaceMembers')
       .withIndex('by_userId', (q) => q.eq('userId', userId))
       .first()
-    if (!member || member.workspaceId !== profile.workspaceId) {
+    if (!member || member.workspaceId !== portfolio.workspaceId) {
       throw new Error('Not authorized')
     }
 

@@ -18,30 +18,32 @@ export const listInvestments = query({
   },
 })
 
-export const listInvestmentsByProfile = query({
-  args: { profileId: v.id('profiles') },
+export const listInvestmentsByPortfolio = query({
+  args: { portfolioId: v.id('portfolios') },
   handler: async (ctx, args) => {
     const userId = await getAuthUserId(ctx)
     if (!userId) return []
     return (
       await ctx.db
         .query('investments')
-        .withIndex('by_profileId', (q) => q.eq('profileId', args.profileId))
+        .withIndex('by_portfolioId', (q) =>
+          q.eq('portfolioId', args.portfolioId),
+        )
         .collect()
     ).filter((inv) => !inv.deleted)
   },
 })
 
-export const listAllInvestmentsByProfiles = query({
-  args: { profileIds: v.array(v.id('profiles')) },
+export const listAllInvestmentsByPortfolios = query({
+  args: { portfolioIds: v.array(v.id('portfolios')) },
   handler: async (ctx, args) => {
     const userId = await getAuthUserId(ctx)
     if (!userId) return []
     const results = await Promise.all(
-      args.profileIds.map((profileId) =>
+      args.portfolioIds.map((portfolioId) =>
         ctx.db
           .query('investments')
-          .withIndex('by_profileId', (q) => q.eq('profileId', profileId))
+          .withIndex('by_portfolioId', (q) => q.eq('portfolioId', portfolioId))
           .collect(),
       ),
     )

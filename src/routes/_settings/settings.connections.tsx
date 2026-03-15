@@ -12,7 +12,7 @@ import {
   EmptyMedia,
   EmptyTitle,
 } from '~/components/ui/empty'
-import { useProfile } from '~/contexts/profile-context'
+import { usePortfolio } from '~/contexts/portfolio-context'
 import { useCachedDecryptRecords } from '~/hooks/use-cached-decrypt'
 import { AddConnectionDialog } from '~/components/add-connection-dialog'
 import { Button } from '~/components/ui/button'
@@ -89,39 +89,39 @@ function getConnectionState(state?: string | null): {
 
 function ConnectionsList() {
   const {
-    isLoading: profileLoading,
-    isAllProfiles,
-    allProfileIds,
-    singleProfileId,
-  } = useProfile()
+    isLoading: portfolioLoading,
+    isAllPortfolios,
+    allPortfolioIds,
+    singlePortfolioId,
+  } = usePortfolio()
 
   const connectionsSingle = useQuery(
     api.powens.listConnections,
-    singleProfileId ? { profileId: singleProfileId } : 'skip',
+    singlePortfolioId ? { portfolioId: singlePortfolioId } : 'skip',
   )
   const connectionsAll = useQuery(
     api.powens.listAllConnections,
-    isAllProfiles && allProfileIds.length > 0
-      ? { profileIds: allProfileIds }
+    isAllPortfolios && allPortfolioIds.length > 0
+      ? { portfolioIds: allPortfolioIds }
       : 'skip',
   )
-  const rawConnections = isAllProfiles ? connectionsAll : connectionsSingle
+  const rawConnections = isAllPortfolios ? connectionsAll : connectionsSingle
   const connections = useCachedDecryptRecords('connections', rawConnections)
 
   const bankAccountsSingle = useQuery(
     api.powens.listBankAccounts,
-    singleProfileId ? { profileId: singleProfileId } : 'skip',
+    singlePortfolioId ? { portfolioId: singlePortfolioId } : 'skip',
   )
   const bankAccountsAll = useQuery(
     api.powens.listAllBankAccounts,
-    isAllProfiles && allProfileIds.length > 0
-      ? { profileIds: allProfileIds }
+    isAllPortfolios && allPortfolioIds.length > 0
+      ? { portfolioIds: allPortfolioIds }
       : 'skip',
   )
-  const bankAccounts = isAllProfiles ? bankAccountsAll : bankAccountsSingle
+  const bankAccounts = isAllPortfolios ? bankAccountsAll : bankAccountsSingle
   const [dialogOpen, setDialogOpen] = React.useState(false)
 
-  if (profileLoading || connections === undefined) {
+  if (portfolioLoading || connections === undefined) {
     return <Skeleton className="h-48 w-full rounded-lg" />
   }
 
@@ -215,7 +215,7 @@ function ConnectionItem({
     try {
       await deleteConnection({
         connectionId: connection._id,
-        profileId: connection.profileId,
+        portfolioId: connection.portfolioId,
       })
       setConfirmOpen(false)
     } catch (err) {
@@ -254,7 +254,7 @@ function ConnectionItem({
                   try {
                     const url = await generateManageUrl({
                       connectionId: connection._id,
-                      profileId: connection.profileId,
+                      portfolioId: connection.portfolioId,
                     })
                     window.location.href = url
                   } catch (err) {

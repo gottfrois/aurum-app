@@ -19,7 +19,7 @@ import {
   EmptyTitle,
 } from '~/components/ui/empty'
 import { SiteHeader } from '~/components/site-header'
-import { useProfile } from '~/contexts/profile-context'
+import { usePortfolio } from '~/contexts/portfolio-context'
 import { Skeleton } from '~/components/ui/skeleton'
 import { Card, CardContent, CardHeader, CardTitle } from '~/components/ui/card'
 import { CashFlowChart } from '~/components/cash-flow-chart'
@@ -81,14 +81,14 @@ function TransactionsPage() {
 
 function TransactionsContent() {
   const {
-    isLoading: profileLoading,
-    isAllProfiles,
-    allProfileIds,
-    singleProfileId,
-    profiles,
-  } = useProfile()
+    isLoading: portfolioLoading,
+    isAllPortfolios,
+    allPortfolioIds,
+    singlePortfolioId,
+    portfolios,
+  } = usePortfolio()
 
-  const workspaceId = profiles?.[0]?.workspaceId ?? null
+  const workspaceId = portfolios?.[0]?.workspaceId ?? null
 
   const { start, end, range, setRange } = useDateRange()
   const { categories, getCategory } = useCategories()
@@ -105,47 +105,47 @@ function TransactionsContent() {
 
   const volumeSingle = useQuery(
     api.transactions.getTransactionVolume,
-    singleProfileId
+    singlePortfolioId
       ? {
-          profileId: singleProfileId,
+          portfolioId: singlePortfolioId,
           startDate: volumeViewportStart,
           endDate: volumeViewportEnd,
         }
       : 'skip',
   )
   const volumeAll = useQuery(
-    api.transactions.getTransactionVolumeAllProfiles,
-    isAllProfiles && allProfileIds.length > 0
+    api.transactions.getTransactionVolumeAllPortfolios,
+    isAllPortfolios && allPortfolioIds.length > 0
       ? {
-          profileIds: allProfileIds,
+          portfolioIds: allPortfolioIds,
           startDate: volumeViewportStart,
           endDate: volumeViewportEnd,
         }
       : 'skip',
   )
-  const volumeData = isAllProfiles ? volumeAll : volumeSingle
+  const volumeData = isAllPortfolios ? volumeAll : volumeSingle
 
   const transactionsSingle = useQuery(
-    api.transactions.listTransactionsByProfile,
-    singleProfileId
+    api.transactions.listTransactionsByPortfolio,
+    singlePortfolioId
       ? {
-          profileId: singleProfileId,
+          portfolioId: singlePortfolioId,
           startDate: range.start,
           endDate: range.end,
         }
       : 'skip',
   )
   const transactionsAll = useQuery(
-    api.transactions.listAllTransactionsByProfiles,
-    isAllProfiles && allProfileIds.length > 0
+    api.transactions.listAllTransactionsByPortfolios,
+    isAllPortfolios && allPortfolioIds.length > 0
       ? {
-          profileIds: allProfileIds,
+          portfolioIds: allPortfolioIds,
           startDate: range.start,
           endDate: range.end,
         }
       : 'skip',
   )
-  const rawTransactions = isAllProfiles ? transactionsAll : transactionsSingle
+  const rawTransactions = isAllPortfolios ? transactionsAll : transactionsSingle
   const transactions = useCachedDecryptRecords(
     'transactions',
     rawTransactions as Array<TransactionRecord> | undefined,
@@ -153,15 +153,15 @@ function TransactionsContent() {
 
   const bankAccountsSingle = useQuery(
     api.powens.listBankAccounts,
-    singleProfileId ? { profileId: singleProfileId } : 'skip',
+    singlePortfolioId ? { portfolioId: singlePortfolioId } : 'skip',
   )
   const bankAccountsAll = useQuery(
     api.powens.listAllBankAccounts,
-    isAllProfiles && allProfileIds.length > 0
-      ? { profileIds: allProfileIds }
+    isAllPortfolios && allPortfolioIds.length > 0
+      ? { portfolioIds: allPortfolioIds }
       : 'skip',
   )
-  const rawBankAccounts = isAllProfiles ? bankAccountsAll : bankAccountsSingle
+  const rawBankAccounts = isAllPortfolios ? bankAccountsAll : bankAccountsSingle
   const bankAccounts = useCachedDecryptRecords('bankAccounts', rawBankAccounts)
 
   const labelsData = useQuery(
@@ -419,7 +419,7 @@ function TransactionsContent() {
     }))
   }, [filteredTransactions, accountNameMap, accountNumberMap])
 
-  if (profileLoading || transactions === undefined) {
+  if (portfolioLoading || transactions === undefined) {
     return (
       <div className="flex flex-col gap-4 p-4 md:gap-6 md:p-6">
         <div className="space-y-6">

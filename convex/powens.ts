@@ -108,7 +108,7 @@ async function recordBalanceSnapshot(
   ctx: MutationCtx,
   params: {
     bankAccountId: Id<'bankAccounts'>
-    profileId: Id<'profiles'>
+    portfolioId: Id<'portfolios'>
     balance: number
     currency: string
     encryptedData?: string
@@ -150,7 +150,7 @@ async function recordBalanceSnapshot(
   } else {
     await ctx.db.insert('balanceSnapshots', {
       bankAccountId: params.bankAccountId,
-      profileId: params.profileId,
+      portfolioId: params.portfolioId,
       balance: params.balance,
       currency: params.currency,
       date,
@@ -160,26 +160,26 @@ async function recordBalanceSnapshot(
     })
   }
 
-  const [profile, bankAccount] = await Promise.all([
-    ctx.db.get('profiles', params.profileId),
+  const [portfolio, bankAccount] = await Promise.all([
+    ctx.db.get('portfolios', params.portfolioId),
     ctx.db.get('bankAccounts', params.bankAccountId),
   ])
-  if (!profile) throw new Error('Profile not found')
+  if (!portfolio) throw new Error('Portfolio not found')
 
   const balanceDelta = params.balance - oldBalance
 
   await Promise.all([
     updateDailyNetWorth(ctx, {
-      profileId: params.profileId,
-      workspaceId: profile.workspaceId,
+      portfolioId: params.portfolioId,
+      workspaceId: portfolio.workspaceId,
       date,
       timestamp,
       balanceDelta,
       currency: params.currency,
     }),
     updateDailyCategoryBalance(ctx, {
-      profileId: params.profileId,
-      workspaceId: profile.workspaceId,
+      portfolioId: params.portfolioId,
+      workspaceId: portfolio.workspaceId,
       category: getCategoryKey(bankAccount?.type),
       date,
       timestamp,
@@ -192,7 +192,7 @@ async function recordBalanceSnapshot(
 async function updateDailyNetWorth(
   ctx: MutationCtx,
   params: {
-    profileId: Id<'profiles'>
+    portfolioId: Id<'portfolios'>
     workspaceId: Id<'workspaces'>
     date: string
     timestamp: number
@@ -202,8 +202,8 @@ async function updateDailyNetWorth(
 ) {
   const existing = await ctx.db
     .query('dailyNetWorth')
-    .withIndex('by_profileId_date', (q) =>
-      q.eq('profileId', params.profileId).eq('date', params.date),
+    .withIndex('by_portfolioId_date', (q) =>
+      q.eq('portfolioId', params.portfolioId).eq('date', params.date),
     )
     .first()
 
@@ -216,15 +216,15 @@ async function updateDailyNetWorth(
     // synced yet today are still reflected in the total.
     const previous = await ctx.db
       .query('dailyNetWorth')
-      .withIndex('by_profileId_date', (q) =>
-        q.eq('profileId', params.profileId),
+      .withIndex('by_portfolioId_date', (q) =>
+        q.eq('portfolioId', params.portfolioId),
       )
       .order('desc')
       .first()
     const carryForward = previous?.balance ?? 0
 
     await ctx.db.insert('dailyNetWorth', {
-      profileId: params.profileId,
+      portfolioId: params.portfolioId,
       workspaceId: params.workspaceId,
       date: params.date,
       timestamp: params.timestamp,
@@ -237,7 +237,7 @@ async function updateDailyNetWorth(
 async function updateDailyCategoryBalance(
   ctx: MutationCtx,
   params: {
-    profileId: Id<'profiles'>
+    portfolioId: Id<'portfolios'>
     workspaceId: Id<'workspaces'>
     category: string
     date: string
@@ -248,9 +248,9 @@ async function updateDailyCategoryBalance(
 ) {
   const existing = await ctx.db
     .query('dailyCategoryBalance')
-    .withIndex('by_profileId_category_date', (q) =>
+    .withIndex('by_portfolioId_category_date', (q) =>
       q
-        .eq('profileId', params.profileId)
+        .eq('portfolioId', params.portfolioId)
         .eq('category', params.category)
         .eq('date', params.date),
     )
@@ -265,15 +265,15 @@ async function updateDailyCategoryBalance(
     // haven't synced yet today are still reflected in the total.
     const previous = await ctx.db
       .query('dailyCategoryBalance')
-      .withIndex('by_profileId_category_date', (q) =>
-        q.eq('profileId', params.profileId).eq('category', params.category),
+      .withIndex('by_portfolioId_category_date', (q) =>
+        q.eq('portfolioId', params.portfolioId).eq('category', params.category),
       )
       .order('desc')
       .first()
     const carryForward = previous?.balance ?? 0
 
     await ctx.db.insert('dailyCategoryBalance', {
-      profileId: params.profileId,
+      portfolioId: params.portfolioId,
       workspaceId: params.workspaceId,
       category: params.category,
       date: params.date,
@@ -296,7 +296,7 @@ function getPowensConfig() {
 }
 
 export const createPowensUser = action({
-  args: { profileId: v.id('profiles') },
+  args: { portfolioId: v.id('portfolios') },
   handler: async (ctx, args) => {
     await requireAuthUserId(ctx)
     const { baseUrl, clientId, clientSecret } = getPowensConfig()
@@ -319,8 +319,8 @@ export const createPowensUser = action({
     const token = data.auth_token
     const powensUserId = data.id_user
 
-    await ctx.runMutation(internal.powens.updateProfilePowensUser, {
-      profileId: args.profileId,
+    await ctx.runMutation(internal.powens.updatePortfolioPowensUser, {
+      portfolioId: args.portfolioId,
       powensUserToken: token,
       powensUserId,
     })
@@ -330,19 +330,19 @@ export const createPowensUser = action({
 })
 
 export const generateConnectUrl = action({
-  args: { profileId: v.id('profiles') },
+  args: { portfolioId: v.id('portfolios') },
   handler: async (ctx, args) => {
     await requireAuthUserId(ctx)
     const { baseUrl, clientId, clientSecret, domain } = getPowensConfig()
     const siteUrl = process.env.SITE_URL
     if (!siteUrl) throw new Error('SITE_URL not configured')
 
-    // Get profile to check for existing Powens user
-    const profile = await ctx.runQuery(internal.powens.getProfileInternal, {
-      profileId: args.profileId,
+    // Get portfolio to check for existing Powens user
+    const portfolio = await ctx.runQuery(internal.powens.getPortfolioInternal, {
+      portfolioId: args.portfolioId,
     })
 
-    let token = profile?.powensUserToken
+    let token = portfolio?.powensUserToken
 
     // Create Powens user if needed
     if (!token) {
@@ -362,8 +362,8 @@ export const generateConnectUrl = action({
       }
       const initData = (await initResponse.json()) as PowensAuthResponse
       token = initData.auth_token
-      await ctx.runMutation(internal.powens.updateProfilePowensUser, {
-        profileId: args.profileId,
+      await ctx.runMutation(internal.powens.updatePortfolioPowensUser, {
+        portfolioId: args.portfolioId,
         powensUserToken: token,
         powensUserId: initData.id_user,
       })
@@ -395,7 +395,7 @@ export const generateConnectUrl = action({
 export const generateManageUrl = action({
   args: {
     connectionId: v.id('connections'),
-    profileId: v.id('profiles'),
+    portfolioId: v.id('portfolios'),
   },
   returns: v.string(),
   handler: async (ctx, args): Promise<string> => {
@@ -404,11 +404,11 @@ export const generateManageUrl = action({
     const siteUrl = process.env.SITE_URL
     if (!siteUrl) throw new Error('SITE_URL not configured')
 
-    const profile = await ctx.runQuery(internal.powens.getProfileInternal, {
-      profileId: args.profileId,
+    const portfolio = await ctx.runQuery(internal.powens.getPortfolioInternal, {
+      portfolioId: args.portfolioId,
     })
-    if (!profile?.powensUserToken) {
-      throw new Error('Profile has no Powens user token')
+    if (!portfolio?.powensUserToken) {
+      throw new Error('Portfolio has no Powens user token')
     }
 
     const connection: Doc<'connections'> | null = await ctx.runQuery(
@@ -422,7 +422,7 @@ export const generateManageUrl = action({
     // Get temporary code for webview
     const codeResponse = await fetch(`${baseUrl}/auth/token/code`, {
       method: 'GET',
-      headers: { Authorization: `Bearer ${profile.powensUserToken}` },
+      headers: { Authorization: `Bearer ${portfolio.powensUserToken}` },
     })
 
     if (!codeResponse.ok) {
@@ -440,21 +440,21 @@ export const generateManageUrl = action({
   },
 })
 
-export const getProfileInternal = internalQuery({
-  args: { profileId: v.id('profiles') },
+export const getPortfolioInternal = internalQuery({
+  args: { portfolioId: v.id('portfolios') },
   handler: async (ctx, args) => {
-    return await ctx.db.get('profiles', args.profileId)
+    return await ctx.db.get('portfolios', args.portfolioId)
   },
 })
 
-export const updateProfilePowensUser = internalMutation({
+export const updatePortfolioPowensUser = internalMutation({
   args: {
-    profileId: v.id('profiles'),
+    portfolioId: v.id('portfolios'),
     powensUserToken: v.string(),
     powensUserId: v.number(),
   },
   handler: async (ctx, args) => {
-    await ctx.db.patch('profiles', args.profileId, {
+    await ctx.db.patch('portfolios', args.portfolioId, {
       powensUserToken: args.powensUserToken,
       powensUserId: args.powensUserId,
     })
@@ -464,13 +464,13 @@ export const updateProfilePowensUser = internalMutation({
 export const handleConnectionCallback = action({
   args: {
     connectionId: v.number(),
-    profileId: v.id('profiles'),
+    portfolioId: v.id('portfolios'),
   },
   handler: async (ctx, args) => {
     await requireAuthUserId(ctx)
 
     await ctx.runAction(internal.powens.syncConnectionFromPowens, {
-      profileId: args.profileId,
+      portfolioId: args.portfolioId,
       powensConnectionId: args.connectionId,
     })
   },
@@ -478,7 +478,7 @@ export const handleConnectionCallback = action({
 
 export const upsertConnection = internalMutation({
   args: {
-    profileId: v.id('profiles'),
+    portfolioId: v.id('portfolios'),
     powensConnectionId: v.number(),
     connectorName: v.string(),
     state: v.optional(v.string()),
@@ -505,7 +505,7 @@ export const upsertConnection = internalMutation({
     }
 
     return await ctx.db.insert('connections', {
-      profileId: args.profileId,
+      portfolioId: args.portfolioId,
       powensConnectionId: args.powensConnectionId,
       connectorName: args.connectorName,
       state: args.state,
@@ -519,7 +519,7 @@ export const upsertConnection = internalMutation({
 export const upsertBankAccount = internalMutation({
   args: {
     connectionId: v.id('connections'),
-    profileId: v.id('profiles'),
+    portfolioId: v.id('portfolios'),
     powensBankAccountId: v.number(),
     name: v.string(),
     number: v.optional(v.string()),
@@ -569,7 +569,7 @@ export const upsertBankAccount = internalMutation({
 
     await recordBalanceSnapshot(ctx, {
       bankAccountId,
-      profileId: args.profileId,
+      portfolioId: args.portfolioId,
       balance: args.balance,
       currency: args.currency,
       encryptedData: args.encryptedData,
@@ -579,11 +579,11 @@ export const upsertBankAccount = internalMutation({
   },
 })
 
-export const findProfileByPowensUserId = internalQuery({
+export const findPortfolioByPowensUserId = internalQuery({
   args: { powensUserId: v.number() },
   handler: async (ctx, args) => {
     return await ctx.db
-      .query('profiles')
+      .query('portfolios')
       .withIndex('by_powensUserId', (q) =>
         q.eq('powensUserId', args.powensUserId),
       )
@@ -593,7 +593,7 @@ export const findProfileByPowensUserId = internalQuery({
 
 export const syncConnectionFromPowens = internalAction({
   args: {
-    profileId: v.id('profiles'),
+    portfolioId: v.id('portfolios'),
     powensConnectionId: v.number(),
     state: v.optional(v.string()),
     lastSync: v.optional(v.string()),
@@ -601,23 +601,23 @@ export const syncConnectionFromPowens = internalAction({
   handler: async (ctx, args) => {
     const { baseUrl } = getPowensConfig()
 
-    const profile = await ctx.runQuery(internal.powens.getProfileInternal, {
-      profileId: args.profileId,
+    const portfolio = await ctx.runQuery(internal.powens.getPortfolioInternal, {
+      portfolioId: args.portfolioId,
     })
-    if (!profile?.powensUserToken) {
-      console.warn('[powens] No user token found for profile — skipping sync')
+    if (!portfolio?.powensUserToken) {
+      console.warn('[powens] No user token found for portfolio — skipping sync')
       return
     }
 
     const publicKey: string | null = await ctx.runQuery(
-      internal.encryptionKeys.getPublicKeyForProfile,
-      { profileId: args.profileId },
+      internal.encryptionKeys.getPublicKeyForPortfolio,
+      { portfolioId: args.portfolioId },
     )
 
     // Fetch connection details with expanded connector
     const connResponse = await fetch(
       `${baseUrl}/users/me/connections/${args.powensConnectionId}?expand=connector`,
-      { headers: { Authorization: `Bearer ${profile.powensUserToken}` } },
+      { headers: { Authorization: `Bearer ${portfolio.powensUserToken}` } },
     )
 
     if (!connResponse.ok) {
@@ -639,7 +639,7 @@ export const syncConnectionFromPowens = internalAction({
     const connectionDocId: Id<'connections'> = await ctx.runMutation(
       internal.powens.upsertConnection,
       {
-        profileId: args.profileId,
+        portfolioId: args.portfolioId,
         powensConnectionId: args.powensConnectionId,
         connectorName: publicKey ? 'Encrypted' : realConnectorName,
         state: connData.state ?? args.state ?? undefined,
@@ -667,7 +667,7 @@ export const syncConnectionFromPowens = internalAction({
     // Fetch and sync bank accounts
     const acctResponse = await fetch(
       `${baseUrl}/users/me/connections/${args.powensConnectionId}/accounts`,
-      { headers: { Authorization: `Bearer ${profile.powensUserToken}` } },
+      { headers: { Authorization: `Bearer ${portfolio.powensUserToken}` } },
     )
 
     if (acctResponse.ok) {
@@ -684,7 +684,7 @@ export const syncConnectionFromPowens = internalAction({
           internal.powens.upsertBankAccount,
           {
             connectionId: connectionDocId,
-            profileId: args.profileId,
+            portfolioId: args.portfolioId,
             powensBankAccountId: acct.id,
             name: publicKey ? 'Encrypted' : name,
             number: publicKey ? undefined : (number ?? undefined),
@@ -715,12 +715,12 @@ export const syncConnectionFromPowens = internalAction({
 
     // Sync investments and transactions
     await ctx.runAction(internal.powens.syncInvestmentsFromWebhook, {
-      profileId: args.profileId,
+      portfolioId: args.portfolioId,
       powensConnectionId: args.powensConnectionId,
     })
 
     await ctx.runAction(internal.powens.syncTransactionsFromWebhook, {
-      profileId: args.profileId,
+      portfolioId: args.portfolioId,
       powensConnectionId: args.powensConnectionId,
     })
 
@@ -761,14 +761,14 @@ export const updateConnectionState = internalMutation({
 export const deleteConnection = action({
   args: {
     connectionId: v.id('connections'),
-    profileId: v.id('profiles'),
+    portfolioId: v.id('portfolios'),
   },
   handler: async (ctx, args) => {
     await requireAuthUserId(ctx)
     const { baseUrl } = getPowensConfig()
 
-    const profile = await ctx.runQuery(internal.powens.getProfileInternal, {
-      profileId: args.profileId,
+    const portfolio = await ctx.runQuery(internal.powens.getPortfolioInternal, {
+      portfolioId: args.portfolioId,
     })
 
     const connection = await ctx.runQuery(
@@ -777,12 +777,12 @@ export const deleteConnection = action({
     )
 
     // Delete from Powens if we have a token and a Powens connection ID
-    if (profile?.powensUserToken && connection?.powensConnectionId) {
+    if (portfolio?.powensUserToken && connection?.powensConnectionId) {
       const response = await fetch(
         `${baseUrl}/users/me/connections/${connection.powensConnectionId}`,
         {
           method: 'DELETE',
-          headers: { Authorization: `Bearer ${profile.powensUserToken}` },
+          headers: { Authorization: `Bearer ${portfolio.powensUserToken}` },
         },
       )
       if (!response.ok && response.status !== 404) {
@@ -796,7 +796,7 @@ export const deleteConnection = action({
     // Delete local data
     await ctx.runMutation(internal.powens.deleteConnectionData, {
       connectionId: args.connectionId,
-      profileId: args.profileId,
+      portfolioId: args.portfolioId,
     })
   },
 })
@@ -811,7 +811,7 @@ export const getConnectionInternal = internalQuery({
 export const deleteConnectionData = internalMutation({
   args: {
     connectionId: v.id('connections'),
-    profileId: v.id('profiles'),
+    portfolioId: v.id('portfolios'),
   },
   handler: async (ctx, args) => {
     const bankAccounts = await ctx.db
@@ -891,8 +891,8 @@ export const deleteConnectionData = internalMutation({
       [...dateDeltas.keys()].map((date) =>
         ctx.db
           .query('dailyNetWorth')
-          .withIndex('by_profileId_date', (q) =>
-            q.eq('profileId', args.profileId).eq('date', date),
+          .withIndex('by_portfolioId_date', (q) =>
+            q.eq('portfolioId', args.portfolioId).eq('date', date),
           )
           .first(),
       ),
@@ -919,9 +919,9 @@ export const deleteConnectionData = internalMutation({
         const [category, date] = key.split(':')
         return ctx.db
           .query('dailyCategoryBalance')
-          .withIndex('by_profileId_category_date', (q) =>
+          .withIndex('by_portfolioId_category_date', (q) =>
             q
-              .eq('profileId', args.profileId)
+              .eq('portfolioId', args.portfolioId)
               .eq('category', category)
               .eq('date', date),
           )
@@ -947,27 +947,27 @@ export const deleteConnectionData = internalMutation({
 })
 
 export const listConnections = query({
-  args: { profileId: v.id('profiles') },
+  args: { portfolioId: v.id('portfolios') },
   handler: async (ctx, args) => {
     const userId = await getAuthUserId(ctx)
     if (!userId) return []
     return await ctx.db
       .query('connections')
-      .withIndex('by_profileId', (q) => q.eq('profileId', args.profileId))
+      .withIndex('by_portfolioId', (q) => q.eq('portfolioId', args.portfolioId))
       .collect()
   },
 })
 
 export const listAllConnections = query({
-  args: { profileIds: v.array(v.id('profiles')) },
+  args: { portfolioIds: v.array(v.id('portfolios')) },
   handler: async (ctx, args) => {
     const userId = await getAuthUserId(ctx)
     if (!userId) return []
     const results = await Promise.all(
-      args.profileIds.map((profileId) =>
+      args.portfolioIds.map((portfolioId) =>
         ctx.db
           .query('connections')
-          .withIndex('by_profileId', (q) => q.eq('profileId', profileId))
+          .withIndex('by_portfolioId', (q) => q.eq('portfolioId', portfolioId))
           .collect(),
       ),
     )
@@ -976,13 +976,13 @@ export const listAllConnections = query({
 })
 
 export const listBankAccounts = query({
-  args: { profileId: v.id('profiles') },
+  args: { portfolioId: v.id('portfolios') },
   handler: async (ctx, args) => {
     const userId = await getAuthUserId(ctx)
     if (!userId) return []
     const accounts = await ctx.db
       .query('bankAccounts')
-      .withIndex('by_profileId', (q) => q.eq('profileId', args.profileId))
+      .withIndex('by_portfolioId', (q) => q.eq('portfolioId', args.portfolioId))
       .collect()
     const connectionIds = [...new Set(accounts.map((a) => a.connectionId))]
     const connections = await Promise.all(
@@ -1005,15 +1005,15 @@ export const listBankAccounts = query({
 })
 
 export const listAllBankAccounts = query({
-  args: { profileIds: v.array(v.id('profiles')) },
+  args: { portfolioIds: v.array(v.id('portfolios')) },
   handler: async (ctx, args) => {
     const userId = await getAuthUserId(ctx)
     if (!userId) return []
     const allAccounts = await Promise.all(
-      args.profileIds.map((profileId) =>
+      args.portfolioIds.map((portfolioId) =>
         ctx.db
           .query('bankAccounts')
-          .withIndex('by_profileId', (q) => q.eq('profileId', profileId))
+          .withIndex('by_portfolioId', (q) => q.eq('portfolioId', portfolioId))
           .collect(),
       ),
     )
@@ -1082,7 +1082,7 @@ function mapPowensInvestment(raw: PowensRawInvestment): MappedInvestment {
 export const upsertInvestments = internalMutation({
   args: {
     bankAccountId: v.id('bankAccounts'),
-    profileId: v.id('profiles'),
+    portfolioId: v.id('portfolios'),
     investments: v.array(
       v.object({
         powensInvestmentId: v.number(),
@@ -1125,7 +1125,7 @@ export const upsertInvestments = internalMutation({
         await ctx.db.patch('investments', existing._id, {
           ...invFields,
           bankAccountId: args.bankAccountId,
-          profileId: args.profileId,
+          portfolioId: args.portfolioId,
           encryptedData,
           encrypted: invEncrypted,
         })
@@ -1133,7 +1133,7 @@ export const upsertInvestments = internalMutation({
       } else {
         investmentId = await ctx.db.insert('investments', {
           bankAccountId: args.bankAccountId,
-          profileId: args.profileId,
+          portfolioId: args.portfolioId,
           ...invFields,
           encryptedData,
           encrypted: invEncrypted,
@@ -1148,12 +1148,12 @@ export const upsertInvestments = internalMutation({
   },
 })
 
-export const listConnectionsByProfile = internalQuery({
-  args: { profileId: v.id('profiles') },
+export const listConnectionsByPortfolio = internalQuery({
+  args: { portfolioId: v.id('portfolios') },
   handler: async (ctx, args) => {
     return await ctx.db
       .query('connections')
-      .withIndex('by_profileId', (q) => q.eq('profileId', args.profileId))
+      .withIndex('by_portfolioId', (q) => q.eq('portfolioId', args.portfolioId))
       .collect()
   },
 })
@@ -1172,20 +1172,20 @@ export const listBankAccountsByConnection = internalQuery({
 
 export const syncInvestmentsFromWebhook = internalAction({
   args: {
-    profileId: v.id('profiles'),
+    portfolioId: v.id('portfolios'),
     powensConnectionId: v.number(),
   },
   handler: async (ctx, args) => {
     const { baseUrl } = getPowensConfig()
 
-    const profile = await ctx.runQuery(internal.powens.getProfileInternal, {
-      profileId: args.profileId,
+    const portfolio = await ctx.runQuery(internal.powens.getPortfolioInternal, {
+      portfolioId: args.portfolioId,
     })
-    if (!profile?.powensUserToken) return
+    if (!portfolio?.powensUserToken) return
 
     const publicKey: string | null = await ctx.runQuery(
-      internal.encryptionKeys.getPublicKeyForProfile,
-      { profileId: args.profileId },
+      internal.encryptionKeys.getPublicKeyForPortfolio,
+      { portfolioId: args.portfolioId },
     )
 
     // Find the connection doc
@@ -1205,7 +1205,7 @@ export const syncInvestmentsFromWebhook = internalAction({
 
       const response = await fetch(
         `${baseUrl}/users/me/accounts/${ba.powensBankAccountId}/investments`,
-        { headers: { Authorization: `Bearer ${profile.powensUserToken}` } },
+        { headers: { Authorization: `Bearer ${portfolio.powensUserToken}` } },
       )
 
       if (!response.ok) continue
@@ -1234,7 +1234,7 @@ export const syncInvestmentsFromWebhook = internalAction({
           internal.powens.upsertInvestments,
           {
             bankAccountId: ba._id,
-            profileId: args.profileId,
+            portfolioId: args.portfolioId,
             investments: plainInvestments,
           },
         )) as Array<{ powensInvestmentId: number; id: Id<'investments'> }>
@@ -1276,7 +1276,7 @@ export const syncInvestmentsFromWebhook = internalAction({
       } else {
         await ctx.runMutation(internal.powens.upsertInvestments, {
           bankAccountId: ba._id,
-          profileId: args.profileId,
+          portfolioId: args.portfolioId,
           investments: rawInvestments,
         })
       }
@@ -1338,7 +1338,7 @@ function mapPowensTransaction(raw: PowensRawTransaction): MappedTransaction {
 export const upsertTransactions = internalMutation({
   args: {
     bankAccountId: v.id('bankAccounts'),
-    profileId: v.id('profiles'),
+    portfolioId: v.id('portfolios'),
     transactions: v.array(
       v.object({
         powensTransactionId: v.number(),
@@ -1380,7 +1380,7 @@ export const upsertTransactions = internalMutation({
         await ctx.db.patch('transactions', existing._id, {
           ...txnFields,
           bankAccountId: args.bankAccountId,
-          profileId: args.profileId,
+          portfolioId: args.portfolioId,
           encryptedData,
           encrypted: txnEncrypted,
           // Preserve manual category overrides — never overwrite userCategoryKey
@@ -1393,7 +1393,7 @@ export const upsertTransactions = internalMutation({
       } else {
         await ctx.db.insert('transactions', {
           bankAccountId: args.bankAccountId,
-          profileId: args.profileId,
+          portfolioId: args.portfolioId,
           ...txnFields,
           ...(userCategoryKey ? { userCategoryKey } : {}),
           encryptedData,
@@ -1406,20 +1406,20 @@ export const upsertTransactions = internalMutation({
 
 export const syncTransactionsFromWebhook = internalAction({
   args: {
-    profileId: v.id('profiles'),
+    portfolioId: v.id('portfolios'),
     powensConnectionId: v.number(),
   },
   handler: async (ctx, args) => {
     const { baseUrl } = getPowensConfig()
 
-    const profile = await ctx.runQuery(internal.powens.getProfileInternal, {
-      profileId: args.profileId,
+    const portfolio = await ctx.runQuery(internal.powens.getPortfolioInternal, {
+      portfolioId: args.portfolioId,
     })
-    if (!profile?.powensUserToken) return
+    if (!portfolio?.powensUserToken) return
 
     const publicKey: string | null = await ctx.runQuery(
-      internal.encryptionKeys.getPublicKeyForProfile,
-      { profileId: args.profileId },
+      internal.encryptionKeys.getPublicKeyForPortfolio,
+      { portfolioId: args.portfolioId },
     )
 
     const connection = await ctx.runQuery(
@@ -1431,7 +1431,7 @@ export const syncTransactionsFromWebhook = internalAction({
     // Load category rules for auto-categorization
     const categoryRules = await ctx.runQuery(
       internal.categoryRules.listRulesForWorkspace,
-      { workspaceId: profile.workspaceId },
+      { workspaceId: portfolio.workspaceId },
     )
 
     const bankAccounts = await ctx.runQuery(
@@ -1458,7 +1458,7 @@ export const syncTransactionsFromWebhook = internalAction({
       for (;;) {
         const url = `${baseUrl}/users/me/accounts/${ba.powensBankAccountId}/transactions?limit=${limit}&offset=${offset}&expand=categories`
         const response = await fetch(url, {
-          headers: { Authorization: `Bearer ${profile.powensUserToken}` },
+          headers: { Authorization: `Bearer ${portfolio.powensUserToken}` },
         })
 
         if (!response.ok) {
@@ -1546,7 +1546,7 @@ export const syncTransactionsFromWebhook = internalAction({
 
         await ctx.runMutation(internal.powens.upsertTransactions, {
           bankAccountId: ba._id,
-          profileId: args.profileId,
+          portfolioId: args.portfolioId,
           transactions,
         })
 
@@ -1559,32 +1559,32 @@ export const syncTransactionsFromWebhook = internalAction({
 
 export const backfillTransactions = internalAction({
   args: {
-    profileId: v.id('profiles'),
+    portfolioId: v.id('portfolios'),
     minDate: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
     const { baseUrl } = getPowensConfig()
 
-    const profile = await ctx.runQuery(internal.powens.getProfileInternal, {
-      profileId: args.profileId,
+    const portfolio = await ctx.runQuery(internal.powens.getPortfolioInternal, {
+      portfolioId: args.portfolioId,
     })
-    if (!profile?.powensUserToken) {
-      throw new Error('No Powens token found for this profile')
+    if (!portfolio?.powensUserToken) {
+      throw new Error('No Powens token found for this portfolio')
     }
 
     const publicKey: string | null = await ctx.runQuery(
-      internal.encryptionKeys.getPublicKeyForProfile,
-      { profileId: args.profileId },
+      internal.encryptionKeys.getPublicKeyForPortfolio,
+      { portfolioId: args.portfolioId },
     )
 
     const categoryRules = await ctx.runQuery(
       internal.categoryRules.listRulesForWorkspace,
-      { workspaceId: profile.workspaceId },
+      { workspaceId: portfolio.workspaceId },
     )
 
     const connections = await ctx.runQuery(
-      internal.powens.listConnectionsByProfile,
-      { profileId: args.profileId },
+      internal.powens.listConnectionsByPortfolio,
+      { portfolioId: args.portfolioId },
     )
 
     const bankAccounts = (
@@ -1617,7 +1617,7 @@ export const backfillTransactions = internalAction({
 
         const response = await fetch(
           `${baseUrl}/users/me/accounts/${ba.powensBankAccountId}/transactions?${params.toString()}`,
-          { headers: { Authorization: `Bearer ${profile.powensUserToken}` } },
+          { headers: { Authorization: `Bearer ${portfolio.powensUserToken}` } },
         )
 
         if (!response.ok) break
@@ -1693,7 +1693,7 @@ export const backfillTransactions = internalAction({
 
         await ctx.runMutation(internal.powens.upsertTransactions, {
           bankAccountId: ba._id,
-          profileId: args.profileId,
+          portfolioId: args.portfolioId,
           transactions,
         })
 

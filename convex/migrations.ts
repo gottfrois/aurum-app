@@ -26,7 +26,7 @@ export const backfillBalanceSnapshots = internalMutation({
       toInsert.map((ba) =>
         ctx.db.insert('balanceSnapshots', {
           bankAccountId: ba._id,
-          profileId: ba.profileId,
+          portfolioId: ba.portfolioId,
           balance: ba.balance,
           currency: ba.currency,
           date,
@@ -60,7 +60,7 @@ export const seedBalanceSnapshots = internalMutation({
 
         await ctx.db.insert('balanceSnapshots', {
           bankAccountId: ba._id,
-          profileId: ba.profileId,
+          portfolioId: ba.portfolioId,
           balance,
           currency: ba.currency,
           date,
@@ -78,20 +78,20 @@ export const seedBalanceSnapshots = internalMutation({
 export const backfillDailyNetWorth = internalMutation({
   args: {},
   handler: async (ctx) => {
-    const [snapshots, profiles] = await Promise.all([
+    const [snapshots, portfolios] = await Promise.all([
       ctx.db.query('balanceSnapshots').collect(),
-      ctx.db.query('profiles').collect(),
+      ctx.db.query('portfolios').collect(),
     ])
 
-    const profileWorkspaceMap = new Map<string, Id<'workspaces'>>(
-      profiles.map((p) => [p._id, p.workspaceId]),
+    const portfolioWorkspaceMap = new Map<string, Id<'workspaces'>>(
+      portfolios.map((p) => [p._id, p.workspaceId]),
     )
 
-    // Group by profileId + date, summing balances
+    // Group by portfolioId + date, summing balances
     const aggregates = new Map<
       string,
       {
-        profileId: Id<'profiles'>
+        portfolioId: Id<'portfolios'>
         workspaceId: Id<'workspaces'>
         date: string
         timestamp: number
@@ -101,9 +101,9 @@ export const backfillDailyNetWorth = internalMutation({
     >()
 
     for (const s of snapshots) {
-      const workspaceId = profileWorkspaceMap.get(s.profileId)
+      const workspaceId = portfolioWorkspaceMap.get(s.portfolioId)
       if (!workspaceId) continue
-      const key = `${s.profileId}:${s.date}`
+      const key = `${s.portfolioId}:${s.date}`
       const existing = aggregates.get(key)
       if (existing) {
         existing.balance += s.balance
@@ -112,7 +112,7 @@ export const backfillDailyNetWorth = internalMutation({
         }
       } else {
         aggregates.set(key, {
-          profileId: s.profileId,
+          portfolioId: s.portfolioId,
           workspaceId,
           date: s.date,
           timestamp: s.timestamp,
@@ -128,8 +128,8 @@ export const backfillDailyNetWorth = internalMutation({
       aggValues.map((agg) =>
         ctx.db
           .query('dailyNetWorth')
-          .withIndex('by_profileId_date', (q) =>
-            q.eq('profileId', agg.profileId).eq('date', agg.date),
+          .withIndex('by_portfolioId_date', (q) =>
+            q.eq('portfolioId', agg.portfolioId).eq('date', agg.date),
           )
           .first(),
       ),
@@ -147,7 +147,7 @@ export const backfillDailyNetWorth = internalMutation({
         } else {
           count++
           return ctx.db.insert('dailyNetWorth', {
-            profileId: agg.profileId,
+            portfolioId: agg.portfolioId,
             workspaceId: agg.workspaceId,
             date: agg.date,
             timestamp: agg.timestamp,
@@ -164,22 +164,22 @@ export const backfillDailyNetWorth = internalMutation({
 export const backfillDailyCategoryBalance = internalMutation({
   args: {},
   handler: async (ctx) => {
-    const [snapshots, bankAccounts, profiles] = await Promise.all([
+    const [snapshots, bankAccounts, portfolios] = await Promise.all([
       ctx.db.query('balanceSnapshots').collect(),
       ctx.db.query('bankAccounts').collect(),
-      ctx.db.query('profiles').collect(),
+      ctx.db.query('portfolios').collect(),
     ])
 
     const bankAccountMap = new Map(bankAccounts.map((ba) => [ba._id, ba]))
-    const profileWorkspaceMap = new Map<string, Id<'workspaces'>>(
-      profiles.map((p) => [p._id, p.workspaceId]),
+    const portfolioWorkspaceMap = new Map<string, Id<'workspaces'>>(
+      portfolios.map((p) => [p._id, p.workspaceId]),
     )
 
-    // Group by profileId + category + date
+    // Group by portfolioId + category + date
     const aggregates = new Map<
       string,
       {
-        profileId: Id<'profiles'>
+        portfolioId: Id<'portfolios'>
         workspaceId: Id<'workspaces'>
         category: string
         date: string
@@ -191,10 +191,10 @@ export const backfillDailyCategoryBalance = internalMutation({
 
     for (const s of snapshots) {
       const ba = bankAccountMap.get(s.bankAccountId)
-      const workspaceId = profileWorkspaceMap.get(s.profileId)
+      const workspaceId = portfolioWorkspaceMap.get(s.portfolioId)
       if (!workspaceId) continue
       const category = getCategoryKey(ba?.type)
-      const key = `${s.profileId}:${category}:${s.date}`
+      const key = `${s.portfolioId}:${category}:${s.date}`
       const existing = aggregates.get(key)
       if (existing) {
         existing.balance += s.balance
@@ -203,7 +203,7 @@ export const backfillDailyCategoryBalance = internalMutation({
         }
       } else {
         aggregates.set(key, {
-          profileId: s.profileId,
+          portfolioId: s.portfolioId,
           workspaceId,
           category,
           date: s.date,
@@ -220,9 +220,9 @@ export const backfillDailyCategoryBalance = internalMutation({
       aggValues.map((agg) =>
         ctx.db
           .query('dailyCategoryBalance')
-          .withIndex('by_profileId_category_date', (q) =>
+          .withIndex('by_portfolioId_category_date', (q) =>
             q
-              .eq('profileId', agg.profileId)
+              .eq('portfolioId', agg.portfolioId)
               .eq('category', agg.category)
               .eq('date', agg.date),
           )
@@ -241,7 +241,7 @@ export const backfillDailyCategoryBalance = internalMutation({
         } else {
           count++
           return ctx.db.insert('dailyCategoryBalance', {
-            profileId: agg.profileId,
+            portfolioId: agg.portfolioId,
             workspaceId: agg.workspaceId,
             category: agg.category,
             date: agg.date,

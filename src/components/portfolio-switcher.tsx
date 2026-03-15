@@ -1,7 +1,7 @@
 import * as React from 'react'
 import { Link } from '@tanstack/react-router'
 import { ChevronsUpDown, Plus, Settings, Users } from 'lucide-react'
-import { useProfile } from '~/contexts/profile-context'
+import { usePortfolio } from '~/contexts/portfolio-context'
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -17,13 +17,13 @@ import {
   useSidebar,
 } from '~/components/ui/sidebar'
 import { Skeleton } from '~/components/ui/skeleton'
-import { ProfileAvatar } from '~/components/profile-avatar'
-import { CreateProfileDialog } from '~/components/create-profile-dialog'
+import { PortfolioAvatar } from '~/components/portfolio-avatar'
+import { CreatePortfolioDialog } from '~/components/create-portfolio-dialog'
 
-export function ProfileSwitcher() {
+export function PortfolioSwitcher() {
   const { isMobile } = useSidebar()
-  const { profiles, activeProfile, setActiveProfileId, isLoading } =
-    useProfile()
+  const { portfolios, activePortfolio, setActivePortfolioId, isLoading } =
+    usePortfolio()
   const [dialogOpen, setDialogOpen] = React.useState(false)
 
   if (isLoading) {
@@ -39,10 +39,11 @@ export function ProfileSwitcher() {
     )
   }
 
-  const isAllProfiles = !activeProfile && profiles && profiles.length > 0
-  const activeLabel = isAllProfiles
-    ? 'All Profiles'
-    : (activeProfile?.name ?? 'Select Profile')
+  const isAllPortfolios =
+    !activePortfolio && portfolios && portfolios.length > 0
+  const activeLabel = isAllPortfolios
+    ? 'All Portfolios'
+    : (activePortfolio?.name ?? 'Select Portfolio')
 
   return (
     <>
@@ -54,13 +55,13 @@ export function ProfileSwitcher() {
                 size="lg"
                 className="data-[state=open]:bg-sidebar-accent data-[state=open]:text-sidebar-accent-foreground"
               >
-                {isAllProfiles ? (
+                {isAllPortfolios ? (
                   <div className="flex aspect-square size-8 items-center justify-center rounded-lg bg-sidebar-primary text-sidebar-primary-foreground">
                     <Users className="size-4" />
                   </div>
-                ) : activeProfile ? (
-                  <ProfileAvatar
-                    name={activeProfile.name}
+                ) : activePortfolio ? (
+                  <PortfolioAvatar
+                    name={activePortfolio.name}
                     className="aspect-square size-8"
                   />
                 ) : (
@@ -81,26 +82,26 @@ export function ProfileSwitcher() {
               sideOffset={4}
             >
               <DropdownMenuLabel className="text-xs text-muted-foreground">
-                Profiles
+                Portfolios
               </DropdownMenuLabel>
               <DropdownMenuItem
-                onClick={() => setActiveProfileId('all')}
+                onClick={() => setActivePortfolioId('all')}
                 className="gap-2 p-2"
               >
                 <div className="flex size-6 items-center justify-center rounded-sm border">
                   <Users className="size-4 shrink-0" />
                 </div>
-                All Profiles
+                All Portfolios
               </DropdownMenuItem>
               <DropdownMenuSeparator />
-              {profiles?.map((profile) => (
+              {portfolios?.map((portfolio) => (
                 <DropdownMenuItem
-                  key={profile._id}
-                  onClick={() => setActiveProfileId(profile._id)}
+                  key={portfolio._id}
+                  onClick={() => setActivePortfolioId(portfolio._id)}
                   className="gap-2 p-2"
                 >
-                  <ProfileAvatar name={profile.name} className="size-6" />
-                  {profile.name}
+                  <PortfolioAvatar name={portfolio.name} className="size-6" />
+                  {portfolio.name}
                 </DropdownMenuItem>
               ))}
               <DropdownMenuSeparator />
@@ -112,16 +113,16 @@ export function ProfileSwitcher() {
                   <Plus className="size-4" />
                 </div>
                 <span className="font-medium text-muted-foreground">
-                  Add profile
+                  Add portfolio
                 </span>
               </DropdownMenuItem>
               <DropdownMenuItem className="gap-2 p-2" asChild>
-                <Link to="/profiles">
+                <Link to="/portfolios">
                   <div className="flex size-6 items-center justify-center rounded-md border bg-background">
                     <Settings className="size-4" />
                   </div>
                   <span className="font-medium text-muted-foreground">
-                    Manage profiles
+                    Manage portfolios
                   </span>
                 </Link>
               </DropdownMenuItem>
@@ -130,7 +131,7 @@ export function ProfileSwitcher() {
         </SidebarMenuItem>
       </SidebarMenu>
 
-      <CreateProfileDialog open={dialogOpen} onOpenChange={setDialogOpen} />
+      <CreatePortfolioDialog open={dialogOpen} onOpenChange={setDialogOpen} />
     </>
   )
 }

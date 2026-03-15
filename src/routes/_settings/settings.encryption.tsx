@@ -29,7 +29,7 @@ import {
   importPublicKey,
   storePrivateKey,
 } from '~/lib/crypto'
-import { useProfile } from '~/contexts/profile-context'
+import { usePortfolio } from '~/contexts/portfolio-context'
 import {
   ItemCard,
   ItemCardItem,
@@ -67,7 +67,7 @@ function EncryptionPage() {
     hasWorkspaceAccess,
     role,
   } = useEncryption()
-  const { allProfileIds } = useProfile()
+  const { allPortfolioIds } = usePortfolio()
   const [setupOpen, setSetupOpen] = useState(false)
   const [memberSetupOpen, setMemberSetupOpen] = useState(false)
   const [migrateOpen, setMigrateOpen] = useState(false)
@@ -75,28 +75,28 @@ function EncryptionPage() {
   const [rotateOpen, setRotateOpen] = useState(false)
 
   const shouldQueryMigration =
-    isEncryptionEnabled && isUnlocked && allProfileIds.length > 0
+    isEncryptionEnabled && isUnlocked && allPortfolioIds.length > 0
   const allConnections = useQuery(
     api.powens.listAllConnections,
-    shouldQueryMigration ? { profileIds: allProfileIds } : 'skip',
+    shouldQueryMigration ? { portfolioIds: allPortfolioIds } : 'skip',
   )
   const allBankAccounts = useQuery(
     api.powens.listAllBankAccounts,
-    shouldQueryMigration ? { profileIds: allProfileIds } : 'skip',
+    shouldQueryMigration ? { portfolioIds: allPortfolioIds } : 'skip',
   )
   const allSnapshots = useQuery(
-    api.balanceSnapshots.listAllSnapshotsByProfiles,
+    api.balanceSnapshots.listAllSnapshotsByPortfolios,
     shouldQueryMigration
-      ? { profileIds: allProfileIds, startTimestamp: 0 }
+      ? { portfolioIds: allPortfolioIds, startTimestamp: 0 }
       : 'skip',
   )
   const allInvestments = useQuery(
-    api.investments.listAllInvestmentsByProfiles,
-    shouldQueryMigration ? { profileIds: allProfileIds } : 'skip',
+    api.investments.listAllInvestmentsByPortfolios,
+    shouldQueryMigration ? { portfolioIds: allPortfolioIds } : 'skip',
   )
   const allTransactions = useQuery(
     api.transactions.listAllTransactions,
-    shouldQueryMigration ? { profileIds: allProfileIds } : 'skip',
+    shouldQueryMigration ? { portfolioIds: allPortfolioIds } : 'skip',
   )
 
   const unencryptedCount =
@@ -659,29 +659,29 @@ function MigrateDialog({
   onOpenChange: (open: boolean) => void
 }) {
   const { privateKey, workspacePublicKey } = useEncryption()
-  const { allProfileIds } = useProfile()
+  const { allPortfolioIds } = usePortfolio()
 
   const allConnections = useQuery(
     api.powens.listAllConnections,
-    allProfileIds.length > 0 ? { profileIds: allProfileIds } : 'skip',
+    allPortfolioIds.length > 0 ? { portfolioIds: allPortfolioIds } : 'skip',
   )
   const allBankAccounts = useQuery(
     api.powens.listAllBankAccounts,
-    allProfileIds.length > 0 ? { profileIds: allProfileIds } : 'skip',
+    allPortfolioIds.length > 0 ? { portfolioIds: allPortfolioIds } : 'skip',
   )
   const allSnapshots = useQuery(
-    api.balanceSnapshots.listAllSnapshotsByProfiles,
-    allProfileIds.length > 0
-      ? { profileIds: allProfileIds, startTimestamp: 0 }
+    api.balanceSnapshots.listAllSnapshotsByPortfolios,
+    allPortfolioIds.length > 0
+      ? { portfolioIds: allPortfolioIds, startTimestamp: 0 }
       : 'skip',
   )
   const allInvestments = useQuery(
-    api.investments.listAllInvestmentsByProfiles,
-    allProfileIds.length > 0 ? { profileIds: allProfileIds } : 'skip',
+    api.investments.listAllInvestmentsByPortfolios,
+    allPortfolioIds.length > 0 ? { portfolioIds: allPortfolioIds } : 'skip',
   )
   const allTransactions = useQuery(
     api.transactions.listAllTransactions,
-    allProfileIds.length > 0 ? { profileIds: allProfileIds } : 'skip',
+    allPortfolioIds.length > 0 ? { portfolioIds: allPortfolioIds } : 'skip',
   )
 
   const BATCH_SIZE = 50
@@ -939,29 +939,29 @@ function DisableDialog({
   onOpenChange: (open: boolean) => void
 }) {
   const { privateKey } = useEncryption()
-  const { allProfileIds } = useProfile()
+  const { allPortfolioIds } = usePortfolio()
 
   const allConnections = useQuery(
     api.powens.listAllConnections,
-    allProfileIds.length > 0 ? { profileIds: allProfileIds } : 'skip',
+    allPortfolioIds.length > 0 ? { portfolioIds: allPortfolioIds } : 'skip',
   )
   const allBankAccounts = useQuery(
     api.powens.listAllBankAccounts,
-    allProfileIds.length > 0 ? { profileIds: allProfileIds } : 'skip',
+    allPortfolioIds.length > 0 ? { portfolioIds: allPortfolioIds } : 'skip',
   )
   const allSnapshots = useQuery(
-    api.balanceSnapshots.listAllSnapshotsByProfiles,
-    allProfileIds.length > 0
-      ? { profileIds: allProfileIds, startTimestamp: 0 }
+    api.balanceSnapshots.listAllSnapshotsByPortfolios,
+    allPortfolioIds.length > 0
+      ? { portfolioIds: allPortfolioIds, startTimestamp: 0 }
       : 'skip',
   )
   const allInvestments = useQuery(
-    api.investments.listAllInvestmentsByProfiles,
-    allProfileIds.length > 0 ? { profileIds: allProfileIds } : 'skip',
+    api.investments.listAllInvestmentsByPortfolios,
+    allPortfolioIds.length > 0 ? { portfolioIds: allPortfolioIds } : 'skip',
   )
   const allTransactions = useQuery(
     api.transactions.listAllTransactions,
-    allProfileIds.length > 0 ? { profileIds: allProfileIds } : 'skip',
+    allPortfolioIds.length > 0 ? { portfolioIds: allPortfolioIds } : 'skip',
   )
 
   const BATCH_SIZE = 50
@@ -1255,25 +1255,25 @@ function KeyRotationDialog({
   onOpenChange: (open: boolean) => void
 }) {
   const { privateKey, workspacePublicKey } = useEncryption()
-  const { allProfileIds } = useProfile()
+  const { allPortfolioIds } = usePortfolio()
 
   const allConnections = useQuery(
     api.powens.listAllConnections,
-    allProfileIds.length > 0 ? { profileIds: allProfileIds } : 'skip',
+    allPortfolioIds.length > 0 ? { portfolioIds: allPortfolioIds } : 'skip',
   )
   const allBankAccounts = useQuery(
     api.powens.listAllBankAccounts,
-    allProfileIds.length > 0 ? { profileIds: allProfileIds } : 'skip',
+    allPortfolioIds.length > 0 ? { portfolioIds: allPortfolioIds } : 'skip',
   )
   const allSnapshots = useQuery(
-    api.balanceSnapshots.listAllSnapshotsByProfiles,
-    allProfileIds.length > 0
-      ? { profileIds: allProfileIds, startTimestamp: 0 }
+    api.balanceSnapshots.listAllSnapshotsByPortfolios,
+    allPortfolioIds.length > 0
+      ? { portfolioIds: allPortfolioIds, startTimestamp: 0 }
       : 'skip',
   )
   const allInvestments = useQuery(
-    api.investments.listAllInvestmentsByProfiles,
-    allProfileIds.length > 0 ? { profileIds: allProfileIds } : 'skip',
+    api.investments.listAllInvestmentsByPortfolios,
+    allPortfolioIds.length > 0 ? { portfolioIds: allPortfolioIds } : 'skip',
   )
 
   const BATCH_SIZE = 50

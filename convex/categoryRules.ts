@@ -125,17 +125,17 @@ export const applyRuleToExisting = internalAction({
     })
     if (!rule) return
 
-    const profiles = await ctx.runQuery(
-      internal.categoryRules.getWorkspaceProfiles,
+    const portfolios = await ctx.runQuery(
+      internal.categoryRules.getWorkspacePortfolios,
       {
         workspaceId: rule.workspaceId,
       },
     )
 
-    for (const profile of profiles) {
+    for (const portfolio of portfolios) {
       const transactions = await ctx.runQuery(
         internal.categoryRules.getUncategorizedTransactions,
-        { profileId: profile._id },
+        { portfolioId: portfolio._id },
       )
 
       const matches: Array<{
@@ -185,22 +185,22 @@ export const getRuleInternal = internalQuery({
   },
 })
 
-export const getWorkspaceProfiles = internalQuery({
+export const getWorkspacePortfolios = internalQuery({
   args: { workspaceId: v.id('workspaces') },
   handler: async (ctx, args) => {
     return await ctx.db
-      .query('profiles')
+      .query('portfolios')
       .withIndex('by_workspaceId', (q) => q.eq('workspaceId', args.workspaceId))
       .collect()
   },
 })
 
 export const getUncategorizedTransactions = internalQuery({
-  args: { profileId: v.id('profiles') },
+  args: { portfolioId: v.id('portfolios') },
   handler: async (ctx, args) => {
     const all = await ctx.db
       .query('transactions')
-      .withIndex('by_profileId', (q) => q.eq('profileId', args.profileId))
+      .withIndex('by_portfolioId', (q) => q.eq('portfolioId', args.portfolioId))
       .collect()
     return all.filter((t) => !t.deleted && !t.userCategoryKey)
   },

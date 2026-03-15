@@ -5,7 +5,7 @@ import { Check, Copy, MoreVertical, Pencil, Trash2 } from 'lucide-react'
 import { api } from '../../../convex/_generated/api'
 import type { Doc } from '../../../convex/_generated/dataModel'
 import { SiteHeader } from '~/components/site-header'
-import { useProfile } from '~/contexts/profile-context'
+import { usePortfolio } from '~/contexts/portfolio-context'
 import { Button } from '~/components/ui/button'
 import { Input } from '~/components/ui/input'
 import { Label } from '~/components/ui/label'
@@ -37,78 +37,80 @@ import {
 } from '~/components/ui/dropdown-menu'
 import { Skeleton } from '~/components/ui/skeleton'
 import { Badge } from '~/components/ui/badge'
-import { ProfileAvatar } from '~/components/profile-avatar'
-import { CreateProfileDialog } from '~/components/create-profile-dialog'
+import { PortfolioAvatar } from '~/components/portfolio-avatar'
+import { CreatePortfolioDialog } from '~/components/create-portfolio-dialog'
 
-export const Route = createFileRoute('/_app/profiles')({
-  component: ProfilesPage,
+export const Route = createFileRoute('/_app/portfolios')({
+  component: PortfoliosPage,
 })
 
-function ProfilesPage() {
-  const { profiles, isLoading, setActiveProfileId } = useProfile()
-  const updateProfile = useMutation(api.profiles.updateProfile)
-  const deleteProfile = useMutation(api.profiles.deleteProfile)
+function PortfoliosPage() {
+  const { portfolios, isLoading, setActivePortfolioId } = usePortfolio()
+  const updatePortfolio = useMutation(api.portfolios.updatePortfolio)
+  const deletePortfolio = useMutation(api.portfolios.deletePortfolio)
 
   const [createDialogOpen, setCreateDialogOpen] = React.useState(false)
-  const [editingProfile, setEditingProfile] =
-    React.useState<Doc<'profiles'> | null>(null)
+  const [editingPortfolio, setEditingPortfolio] =
+    React.useState<Doc<'portfolios'> | null>(null)
   const [editName, setEditName] = React.useState('')
-  const [deletingProfile, setDeletingProfile] =
-    React.useState<Doc<'profiles'> | null>(null)
+  const [deletingPortfolio, setDeletingPortfolio] =
+    React.useState<Doc<'portfolios'> | null>(null)
   const [deleteConfirmName, setDeleteConfirmName] = React.useState('')
   const [isDeleting, setIsDeleting] = React.useState(false)
   const [copied, setCopied] = React.useState(false)
 
-  function openEdit(profile: Doc<'profiles'>) {
-    setEditingProfile(profile)
-    setEditName(profile.name)
+  function openEdit(portfolio: Doc<'portfolios'>) {
+    setEditingPortfolio(portfolio)
+    setEditName(portfolio.name)
   }
 
   async function handleSaveEdit() {
-    if (!editingProfile || !editName.trim()) return
-    await updateProfile({
-      profileId: editingProfile._id,
+    if (!editingPortfolio || !editName.trim()) return
+    await updatePortfolio({
+      portfolioId: editingPortfolio._id,
       name: editName.trim(),
     })
-    setEditingProfile(null)
+    setEditingPortfolio(null)
   }
 
-  function openDelete(profile: Doc<'profiles'>) {
-    setDeletingProfile(profile)
+  function openDelete(portfolio: Doc<'portfolios'>) {
+    setDeletingPortfolio(portfolio)
     setDeleteConfirmName('')
     setCopied(false)
   }
 
   async function handleCopyName() {
-    if (!deletingProfile) return
-    await navigator.clipboard.writeText(deletingProfile.name)
+    if (!deletingPortfolio) return
+    await navigator.clipboard.writeText(deletingPortfolio.name)
     setCopied(true)
     setTimeout(() => setCopied(false), 2000)
   }
 
   async function handleDelete() {
-    if (!deletingProfile) return
+    if (!deletingPortfolio) return
     setIsDeleting(true)
     try {
-      await deleteProfile({ profileId: deletingProfile._id })
-      const remaining = profiles?.filter((p) => p._id !== deletingProfile._id)
+      await deletePortfolio({ portfolioId: deletingPortfolio._id })
+      const remaining = portfolios?.filter(
+        (p) => p._id !== deletingPortfolio._id,
+      )
       if (remaining && remaining.length > 0) {
-        setActiveProfileId(remaining[0]._id)
+        setActivePortfolioId(remaining[0]._id)
       }
-      setDeletingProfile(null)
+      setDeletingPortfolio(null)
     } catch (err) {
-      console.error('Failed to delete profile:', err)
+      console.error('Failed to delete portfolio:', err)
     } finally {
       setIsDeleting(false)
     }
   }
 
-  const canDelete = (profiles?.length ?? 0) > 1
+  const canDelete = (portfolios?.length ?? 0) > 1
 
-  if (isLoading || !profiles) {
+  if (isLoading || !portfolios) {
     return (
       <>
-        <SiteHeader title="Manage Profiles" />
+        <SiteHeader title="Manage Portfolios" />
         <div className="mx-auto w-full max-w-3xl flex-1 px-10 py-16">
           <div className="mt-8 space-y-6">
             <Skeleton className="h-48 w-full rounded-lg" />
@@ -120,34 +122,34 @@ function ProfilesPage() {
 
   return (
     <>
-      <SiteHeader title="Manage Profiles" />
+      <SiteHeader title="Manage Portfolios" />
       <div className="mx-auto w-full max-w-3xl flex-1 px-10 py-16">
         <header>
-          <h1 className="text-3xl font-semibold">Profiles</h1>
+          <h1 className="text-3xl font-semibold">Portfolios</h1>
         </header>
         <div className="mt-8 space-y-6">
           <ItemCard>
             <ItemCardHeader>
               <ItemCardHeaderContent>
                 <ItemCardHeaderTitle>
-                  {profiles.length}{' '}
-                  {profiles.length === 1 ? 'profile' : 'profiles'}
+                  {portfolios.length}{' '}
+                  {portfolios.length === 1 ? 'portfolio' : 'portfolios'}
                 </ItemCardHeaderTitle>
               </ItemCardHeaderContent>
               <Button size="sm" onClick={() => setCreateDialogOpen(true)}>
-                Add profile
+                Add portfolio
               </Button>
             </ItemCardHeader>
             <ItemCardItems>
-              {profiles.map((profile) => (
-                <ItemCardItem key={profile._id}>
+              {portfolios.map((portfolio) => (
+                <ItemCardItem key={portfolio._id}>
                   <div className="flex items-center gap-3">
-                    <ProfileAvatar name={profile.name} className="size-8" />
+                    <PortfolioAvatar name={portfolio.name} className="size-8" />
                     <ItemCardItemContent>
-                      <ItemCardItemTitle>{profile.name}</ItemCardItemTitle>
+                      <ItemCardItemTitle>{portfolio.name}</ItemCardItemTitle>
                       <ItemCardItemDescription>
                         Created{' '}
-                        {new Date(profile._creationTime).toLocaleDateString(
+                        {new Date(portfolio._creationTime).toLocaleDateString(
                           'fr-FR',
                         )}
                       </ItemCardItemDescription>
@@ -162,13 +164,13 @@ function ProfilesPage() {
                         </Button>
                       </DropdownMenuTrigger>
                       <DropdownMenuContent align="end">
-                        <DropdownMenuItem onClick={() => openEdit(profile)}>
+                        <DropdownMenuItem onClick={() => openEdit(portfolio)}>
                           <Pencil className="size-4" />
                           Rename
                         </DropdownMenuItem>
                         <DropdownMenuItem
                           variant="destructive"
-                          onClick={() => openDelete(profile)}
+                          onClick={() => openDelete(portfolio)}
                           disabled={!canDelete}
                         >
                           <Trash2 className="size-4" />
@@ -185,20 +187,20 @@ function ProfilesPage() {
       </div>
 
       <Dialog
-        open={!!editingProfile}
+        open={!!editingPortfolio}
         onOpenChange={(open) => {
-          if (!open) setEditingProfile(null)
+          if (!open) setEditingPortfolio(null)
         }}
       >
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Edit Profile</DialogTitle>
+            <DialogTitle>Edit Portfolio</DialogTitle>
           </DialogHeader>
           <div className="grid gap-4 py-4">
             <div className="grid gap-2">
-              <Label htmlFor="edit-profile-name">Name</Label>
+              <Label htmlFor="edit-portfolio-name">Name</Label>
               <Input
-                id="edit-profile-name"
+                id="edit-portfolio-name"
                 value={editName}
                 onChange={(e) => setEditName(e.target.value)}
                 onKeyDown={(e) => {
@@ -208,7 +210,7 @@ function ProfilesPage() {
             </div>
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setEditingProfile(null)}>
+            <Button variant="outline" onClick={() => setEditingPortfolio(null)}>
               Cancel
             </Button>
             <Button onClick={handleSaveEdit} disabled={!editName.trim()}>
@@ -219,19 +221,19 @@ function ProfilesPage() {
       </Dialog>
 
       <Dialog
-        open={!!deletingProfile}
+        open={!!deletingPortfolio}
         onOpenChange={(open) => {
-          if (!open) setDeletingProfile(null)
+          if (!open) setDeletingPortfolio(null)
         }}
       >
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Delete Profile</DialogTitle>
+            <DialogTitle>Delete Portfolio</DialogTitle>
             <DialogDescription>
               Deleting{' '}
-              <span className="font-semibold">{deletingProfile?.name}</span> is
-              permanent and cannot be undone. Deleting a profile also deletes
-              all associated accounts & connections.
+              <span className="font-semibold">{deletingPortfolio?.name}</span>{' '}
+              is permanent and cannot be undone. Deleting a portfolio also
+              deletes all associated accounts & connections.
             </DialogDescription>
           </DialogHeader>
           <div className="grid gap-4 py-4">
@@ -246,7 +248,7 @@ function ProfilesPage() {
                   className="cursor-pointer gap-1 font-mono"
                   onClick={handleCopyName}
                 >
-                  {deletingProfile?.name}
+                  {deletingPortfolio?.name}
                   {copied ? (
                     <Check className="size-3" />
                   ) : (
@@ -259,14 +261,14 @@ function ProfilesPage() {
                 id="delete-confirm"
                 value={deleteConfirmName}
                 onChange={(e) => setDeleteConfirmName(e.target.value)}
-                placeholder={deletingProfile?.name}
+                placeholder={deletingPortfolio?.name}
               />
             </div>
           </div>
           <DialogFooter>
             <Button
               variant="outline"
-              onClick={() => setDeletingProfile(null)}
+              onClick={() => setDeletingPortfolio(null)}
               disabled={isDeleting}
             >
               Cancel
@@ -275,7 +277,7 @@ function ProfilesPage() {
               variant="destructive"
               onClick={handleDelete}
               disabled={
-                deleteConfirmName !== deletingProfile?.name || isDeleting
+                deleteConfirmName !== deletingPortfolio?.name || isDeleting
               }
             >
               Delete
@@ -284,7 +286,7 @@ function ProfilesPage() {
         </DialogContent>
       </Dialog>
 
-      <CreateProfileDialog
+      <CreatePortfolioDialog
         open={createDialogOpen}
         onOpenChange={setCreateDialogOpen}
       />

@@ -21,9 +21,9 @@ export const listSnapshots = query({
   },
 })
 
-export const listSnapshotsByProfile = query({
+export const listSnapshotsByPortfolio = query({
   args: {
-    profileId: v.id('profiles'),
+    portfolioId: v.id('portfolios'),
     startTimestamp: v.number(),
   },
   handler: async (ctx, args) => {
@@ -31,27 +31,31 @@ export const listSnapshotsByProfile = query({
     if (!userId) return []
     return await ctx.db
       .query('balanceSnapshots')
-      .withIndex('by_profileId_timestamp', (q) =>
-        q.eq('profileId', args.profileId).gte('timestamp', args.startTimestamp),
+      .withIndex('by_portfolioId_timestamp', (q) =>
+        q
+          .eq('portfolioId', args.portfolioId)
+          .gte('timestamp', args.startTimestamp),
       )
       .collect()
   },
 })
 
-export const listAllSnapshotsByProfiles = query({
+export const listAllSnapshotsByPortfolios = query({
   args: {
-    profileIds: v.array(v.id('profiles')),
+    portfolioIds: v.array(v.id('portfolios')),
     startTimestamp: v.number(),
   },
   handler: async (ctx, args) => {
     const userId = await getAuthUserId(ctx)
     if (!userId) return []
     const results = await Promise.all(
-      args.profileIds.map((profileId) =>
+      args.portfolioIds.map((portfolioId) =>
         ctx.db
           .query('balanceSnapshots')
-          .withIndex('by_profileId_timestamp', (q) =>
-            q.eq('profileId', profileId).gte('timestamp', args.startTimestamp),
+          .withIndex('by_portfolioId_timestamp', (q) =>
+            q
+              .eq('portfolioId', portfolioId)
+              .gte('timestamp', args.startTimestamp),
           )
           .collect(),
       ),
@@ -62,7 +66,7 @@ export const listAllSnapshotsByProfiles = query({
 
 export const listDailyNetWorth = query({
   args: {
-    profileId: v.id('profiles'),
+    portfolioId: v.id('portfolios'),
     startTimestamp: v.number(),
   },
   handler: async (ctx, args) => {
@@ -70,8 +74,10 @@ export const listDailyNetWorth = query({
     if (!userId) return []
     return await ctx.db
       .query('dailyNetWorth')
-      .withIndex('by_profileId_timestamp', (q) =>
-        q.eq('profileId', args.profileId).gte('timestamp', args.startTimestamp),
+      .withIndex('by_portfolioId_timestamp', (q) =>
+        q
+          .eq('portfolioId', args.portfolioId)
+          .gte('timestamp', args.startTimestamp),
       )
       .collect()
   },
@@ -98,7 +104,7 @@ export const listAllDailyNetWorth = query({
 
 export const listDailyCategoryBalance = query({
   args: {
-    profileId: v.id('profiles'),
+    portfolioId: v.id('portfolios'),
     startTimestamp: v.number(),
   },
   handler: async (ctx, args) => {
@@ -106,8 +112,10 @@ export const listDailyCategoryBalance = query({
     if (!userId) return []
     return await ctx.db
       .query('dailyCategoryBalance')
-      .withIndex('by_profileId_timestamp', (q) =>
-        q.eq('profileId', args.profileId).gte('timestamp', args.startTimestamp),
+      .withIndex('by_portfolioId_timestamp', (q) =>
+        q
+          .eq('portfolioId', args.portfolioId)
+          .gte('timestamp', args.startTimestamp),
       )
       .collect()
   },

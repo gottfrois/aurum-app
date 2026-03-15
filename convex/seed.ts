@@ -11,24 +11,24 @@ function seededRandom(seed: number): number {
 export const seedDemoData = internalMutation({
   args: { userId: v.string() },
   handler: async (ctx, { userId }) => {
-    // Find user's workspace and profile
+    // Find user's workspace and portfolio
     const membership = await ctx.db
       .query('workspaceMembers')
       .withIndex('by_userId', (q) => q.eq('userId', userId))
       .first()
     if (!membership) throw new Error('No workspace found')
 
-    const profile = await ctx.db
-      .query('profiles')
+    const portfolio = await ctx.db
+      .query('portfolios')
       .withIndex('by_workspaceId', (q) =>
         q.eq('workspaceId', membership.workspaceId),
       )
       .first()
-    if (!profile) throw new Error('No profile found')
+    if (!portfolio) throw new Error('No portfolio found')
 
     // --- Connections ---
     const bnpConnection = await ctx.db.insert('connections', {
-      profileId: profile._id,
+      portfolioId: portfolio._id,
       powensConnectionId: 90001,
       connectorName: 'BNP Paribas',
       state: 'SyncDone',
@@ -37,7 +37,7 @@ export const seedDemoData = internalMutation({
     })
 
     const boursoConnection = await ctx.db.insert('connections', {
-      profileId: profile._id,
+      portfolioId: portfolio._id,
       powensConnectionId: 90002,
       connectorName: 'Boursorama',
       state: 'SyncDone',
@@ -46,7 +46,7 @@ export const seedDemoData = internalMutation({
     })
 
     const fortuneoConnection = await ctx.db.insert('connections', {
-      profileId: profile._id,
+      portfolioId: portfolio._id,
       powensConnectionId: 90003,
       connectorName: 'Fortuneo',
       state: 'SyncDone',
@@ -57,7 +57,7 @@ export const seedDemoData = internalMutation({
     // --- Bank Accounts ---
     const bnpChecking = await ctx.db.insert('bankAccounts', {
       connectionId: bnpConnection,
-      profileId: profile._id,
+      portfolioId: portfolio._id,
       powensBankAccountId: 80001,
       name: 'Compte Courant',
       iban: 'FR7630004000031234567890143',
@@ -72,7 +72,7 @@ export const seedDemoData = internalMutation({
 
     const bnpLivretA = await ctx.db.insert('bankAccounts', {
       connectionId: bnpConnection,
-      profileId: profile._id,
+      portfolioId: portfolio._id,
       powensBankAccountId: 80002,
       name: 'Livret A',
       type: 'livret_a',
@@ -86,7 +86,7 @@ export const seedDemoData = internalMutation({
 
     const boursoChecking = await ctx.db.insert('bankAccounts', {
       connectionId: boursoConnection,
-      profileId: profile._id,
+      portfolioId: portfolio._id,
       powensBankAccountId: 80003,
       name: 'Compte Courant',
       iban: 'FR7640618000011234567890189',
@@ -101,7 +101,7 @@ export const seedDemoData = internalMutation({
 
     const boursoPEA = await ctx.db.insert('bankAccounts', {
       connectionId: boursoConnection,
-      profileId: profile._id,
+      portfolioId: portfolio._id,
       powensBankAccountId: 80004,
       name: 'PEA',
       type: 'pea',
@@ -115,7 +115,7 @@ export const seedDemoData = internalMutation({
 
     const boursoAV = await ctx.db.insert('bankAccounts', {
       connectionId: boursoConnection,
-      profileId: profile._id,
+      portfolioId: portfolio._id,
       powensBankAccountId: 80005,
       name: 'Assurance Vie',
       type: 'lifeinsurance',
@@ -129,7 +129,7 @@ export const seedDemoData = internalMutation({
 
     const fortuneoCTO = await ctx.db.insert('bankAccounts', {
       connectionId: fortuneoConnection,
-      profileId: profile._id,
+      portfolioId: portfolio._id,
       powensBankAccountId: 80006,
       name: 'Compte-Titres',
       type: 'market',
@@ -143,7 +143,7 @@ export const seedDemoData = internalMutation({
 
     const fortuneoLDDS = await ctx.db.insert('bankAccounts', {
       connectionId: fortuneoConnection,
-      profileId: profile._id,
+      portfolioId: portfolio._id,
       powensBankAccountId: 80007,
       name: 'LDDS',
       type: 'ldds',
@@ -158,7 +158,7 @@ export const seedDemoData = internalMutation({
     // --- Investments (PEA) ---
     await ctx.db.insert('investments', {
       bankAccountId: boursoPEA,
-      profileId: profile._id,
+      portfolioId: portfolio._id,
       powensInvestmentId: 70001,
       code: 'LU1681043599',
       codeType: 'ISIN',
@@ -176,7 +176,7 @@ export const seedDemoData = internalMutation({
 
     await ctx.db.insert('investments', {
       bankAccountId: boursoPEA,
-      profileId: profile._id,
+      portfolioId: portfolio._id,
       powensInvestmentId: 70002,
       code: 'LU1681044480',
       codeType: 'ISIN',
@@ -194,7 +194,7 @@ export const seedDemoData = internalMutation({
 
     await ctx.db.insert('investments', {
       bankAccountId: boursoPEA,
-      profileId: profile._id,
+      portfolioId: portfolio._id,
       powensInvestmentId: 70003,
       code: 'FR0010315770',
       codeType: 'ISIN',
@@ -213,7 +213,7 @@ export const seedDemoData = internalMutation({
     // --- Investments (CTO) ---
     await ctx.db.insert('investments', {
       bankAccountId: fortuneoCTO,
-      profileId: profile._id,
+      portfolioId: portfolio._id,
       powensInvestmentId: 70004,
       code: 'US0378331005',
       codeType: 'ISIN',
@@ -233,7 +233,7 @@ export const seedDemoData = internalMutation({
 
     await ctx.db.insert('investments', {
       bankAccountId: fortuneoCTO,
-      profileId: profile._id,
+      portfolioId: portfolio._id,
       powensInvestmentId: 70005,
       code: 'US5949181045',
       codeType: 'ISIN',
@@ -253,7 +253,7 @@ export const seedDemoData = internalMutation({
 
     await ctx.db.insert('investments', {
       bankAccountId: fortuneoCTO,
-      profileId: profile._id,
+      portfolioId: portfolio._id,
       powensInvestmentId: 70006,
       code: 'IE00BK5BQT80',
       codeType: 'ISIN',
@@ -272,7 +272,7 @@ export const seedDemoData = internalMutation({
     // --- Investments (Assurance Vie) ---
     await ctx.db.insert('investments', {
       bankAccountId: boursoAV,
-      profileId: profile._id,
+      portfolioId: portfolio._id,
       powensInvestmentId: 70007,
       label: 'Fonds Euro Exclusif',
       quantity: 1,
@@ -288,7 +288,7 @@ export const seedDemoData = internalMutation({
 
     await ctx.db.insert('investments', {
       bankAccountId: boursoAV,
-      profileId: profile._id,
+      portfolioId: portfolio._id,
       powensInvestmentId: 70008,
       code: 'FR0010135103',
       codeType: 'ISIN',
@@ -306,7 +306,7 @@ export const seedDemoData = internalMutation({
 
     await ctx.db.insert('investments', {
       bankAccountId: boursoAV,
-      profileId: profile._id,
+      portfolioId: portfolio._id,
       powensInvestmentId: 70009,
       code: 'FR0011869320',
       codeType: 'ISIN',
@@ -429,7 +429,7 @@ export const seedDemoData = internalMutation({
         if (dayOfMonth === checking.salaryDay) {
           await ctx.db.insert('transactions', {
             bankAccountId: checking.id,
-            profileId: profile._id,
+            portfolioId: portfolio._id,
             powensTransactionId: txnPowensId++,
             date: dateStr,
             value: checking.salary,
@@ -449,7 +449,7 @@ export const seedDemoData = internalMutation({
           if (cat.monthly && dayOfMonth === cat.day) {
             await ctx.db.insert('transactions', {
               bankAccountId: checking.id,
-              profileId: profile._id,
+              portfolioId: portfolio._id,
               powensTransactionId: txnPowensId++,
               date: dateStr,
               value: -(
@@ -487,7 +487,7 @@ export const seedDemoData = internalMutation({
 
           await ctx.db.insert('transactions', {
             bankAccountId: checking.id,
-            profileId: profile._id,
+            portfolioId: portfolio._id,
             powensTransactionId: txnPowensId++,
             date: dateStr,
             value: -Math.round(amount * 100) / 100,
@@ -627,7 +627,7 @@ export const seedDemoData = internalMutation({
 
         await ctx.db.insert('balanceSnapshots', {
           bankAccountId: account.id,
-          profileId: profile._id,
+          portfolioId: portfolio._id,
           balance: snapshotBalance,
           currency: 'EUR',
           date: dateStr,
@@ -640,15 +640,15 @@ export const seedDemoData = internalMutation({
         const [existingDnw, existingDcb] = await Promise.all([
           ctx.db
             .query('dailyNetWorth')
-            .withIndex('by_profileId_date', (q) =>
-              q.eq('profileId', profile._id).eq('date', dateStr),
+            .withIndex('by_portfolioId_date', (q) =>
+              q.eq('portfolioId', portfolio._id).eq('date', dateStr),
             )
             .first(),
           ctx.db
             .query('dailyCategoryBalance')
-            .withIndex('by_profileId_category_date', (q) =>
+            .withIndex('by_portfolioId_category_date', (q) =>
               q
-                .eq('profileId', profile._id)
+                .eq('portfolioId', portfolio._id)
                 .eq('category', category)
                 .eq('date', dateStr),
             )
@@ -663,8 +663,8 @@ export const seedDemoData = internalMutation({
                   100,
               })
             : ctx.db.insert('dailyNetWorth', {
-                profileId: profile._id,
-                workspaceId: profile.workspaceId,
+                portfolioId: portfolio._id,
+                workspaceId: portfolio.workspaceId,
                 date: dateStr,
                 timestamp,
                 balance: snapshotBalance,
@@ -677,8 +677,8 @@ export const seedDemoData = internalMutation({
                   100,
               })
             : ctx.db.insert('dailyCategoryBalance', {
-                profileId: profile._id,
-                workspaceId: profile.workspaceId,
+                portfolioId: portfolio._id,
+                workspaceId: portfolio.workspaceId,
                 category,
                 date: dateStr,
                 timestamp,
@@ -705,33 +705,33 @@ export const clearDemoData = internalMutation({
       .first()
     if (!membership) throw new Error('No workspace found')
 
-    const profile = await ctx.db
-      .query('profiles')
+    const portfolio = await ctx.db
+      .query('portfolios')
       .withIndex('by_workspaceId', (q) =>
         q.eq('workspaceId', membership.workspaceId),
       )
       .first()
-    if (!profile) throw new Error('No profile found')
+    if (!portfolio) throw new Error('No portfolio found')
 
-    // Delete all seeded snapshots and aggregate entries for this profile
+    // Delete all seeded snapshots and aggregate entries for this portfolio
     const [snapshots, dailyNetWorthEntries, dailyCategoryEntries] =
       await Promise.all([
         ctx.db
           .query('balanceSnapshots')
-          .withIndex('by_profileId_timestamp', (q) =>
-            q.eq('profileId', profile._id),
+          .withIndex('by_portfolioId_timestamp', (q) =>
+            q.eq('portfolioId', portfolio._id),
           )
           .collect(),
         ctx.db
           .query('dailyNetWorth')
-          .withIndex('by_profileId_timestamp', (q) =>
-            q.eq('profileId', profile._id),
+          .withIndex('by_portfolioId_timestamp', (q) =>
+            q.eq('portfolioId', portfolio._id),
           )
           .collect(),
         ctx.db
           .query('dailyCategoryBalance')
-          .withIndex('by_profileId_timestamp', (q) =>
-            q.eq('profileId', profile._id),
+          .withIndex('by_portfolioId_timestamp', (q) =>
+            q.eq('portfolioId', portfolio._id),
           )
           .collect(),
       ])
@@ -745,37 +745,37 @@ export const clearDemoData = internalMutation({
       ),
     ])
 
-    // Delete all transactions for this profile
+    // Delete all transactions for this portfolio
     const transactions = await ctx.db
       .query('transactions')
-      .withIndex('by_profileId', (q) => q.eq('profileId', profile._id))
+      .withIndex('by_portfolioId', (q) => q.eq('portfolioId', portfolio._id))
       .collect()
     for (const txn of transactions) {
       await ctx.db.delete('transactions', txn._id)
     }
 
-    // Delete all investments for this profile
+    // Delete all investments for this portfolio
     const investments = await ctx.db
       .query('investments')
-      .withIndex('by_profileId', (q) => q.eq('profileId', profile._id))
+      .withIndex('by_portfolioId', (q) => q.eq('portfolioId', portfolio._id))
       .collect()
     for (const inv of investments) {
       await ctx.db.delete('investments', inv._id)
     }
 
-    // Delete all bank accounts for this profile
+    // Delete all bank accounts for this portfolio
     const bankAccounts = await ctx.db
       .query('bankAccounts')
-      .withIndex('by_profileId', (q) => q.eq('profileId', profile._id))
+      .withIndex('by_portfolioId', (q) => q.eq('portfolioId', portfolio._id))
       .collect()
     for (const ba of bankAccounts) {
       await ctx.db.delete('bankAccounts', ba._id)
     }
 
-    // Delete all connections for this profile
+    // Delete all connections for this portfolio
     const connections = await ctx.db
       .query('connections')
-      .withIndex('by_profileId', (q) => q.eq('profileId', profile._id))
+      .withIndex('by_portfolioId', (q) => q.eq('portfolioId', portfolio._id))
       .collect()
     for (const conn of connections) {
       await ctx.db.delete('connections', conn._id)

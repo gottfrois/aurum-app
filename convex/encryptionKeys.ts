@@ -315,16 +315,16 @@ export const disableWorkspaceEncryption = mutation({
   },
 })
 
-// Get workspace public key via profile → workspace → workspaceEncryption
-export const getPublicKeyForProfile = internalQuery({
-  args: { profileId: v.id('profiles') },
+// Get workspace public key via portfolio → workspace → workspaceEncryption
+export const getPublicKeyForPortfolio = internalQuery({
+  args: { portfolioId: v.id('portfolios') },
   handler: async (ctx, args) => {
-    const profile = await ctx.db.get('profiles', args.profileId)
-    if (!profile) return null
+    const portfolio = await ctx.db.get('portfolios', args.portfolioId)
+    if (!portfolio) return null
     const wsEnc = await ctx.db
       .query('workspaceEncryption')
       .withIndex('by_workspaceId', (q) =>
-        q.eq('workspaceId', profile.workspaceId),
+        q.eq('workspaceId', portfolio.workspaceId),
       )
       .first()
     return wsEnc?.publicKey ?? null

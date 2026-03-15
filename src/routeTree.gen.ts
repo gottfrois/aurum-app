@@ -16,7 +16,7 @@ import { Route as AppIndexRouteImport } from './routes/_app/index'
 import { Route as SignInSplatRouteImport } from './routes/sign-in/$'
 import { Route as PowensCallbackRouteImport } from './routes/powens/callback'
 import { Route as AppTransactionsRouteImport } from './routes/_app/transactions'
-import { Route as AppProfilesRouteImport } from './routes/_app/profiles'
+import { Route as AppPortfoliosRouteImport } from './routes/_app/portfolios'
 import { Route as SettingsSettingsIndexRouteImport } from './routes/_settings/settings.index'
 import { Route as AppAccountsIndexRouteImport } from './routes/_app/accounts.index'
 import { Route as SettingsSettingsSecurityRouteImport } from './routes/_settings/settings.security'
@@ -61,9 +61,9 @@ const AppTransactionsRoute = AppTransactionsRouteImport.update({
   path: '/transactions',
   getParentRoute: () => AppRoute,
 } as any)
-const AppProfilesRoute = AppProfilesRouteImport.update({
-  id: '/profiles',
-  path: '/profiles',
+const AppPortfoliosRoute = AppPortfoliosRouteImport.update({
+  id: '/portfolios',
+  path: '/portfolios',
   getParentRoute: () => AppRoute,
 } as any)
 const SettingsSettingsIndexRoute = SettingsSettingsIndexRouteImport.update({
@@ -124,7 +124,7 @@ const AppAccountsAccountIdRoute = AppAccountsAccountIdRouteImport.update({
 export interface FileRoutesByFullPath {
   '/': typeof AppIndexRoute
   '/checkout': typeof CheckoutRoute
-  '/profiles': typeof AppProfilesRoute
+  '/portfolios': typeof AppPortfoliosRoute
   '/transactions': typeof AppTransactionsRoute
   '/powens/callback': typeof PowensCallbackRoute
   '/sign-in/$': typeof SignInSplatRoute
@@ -142,7 +142,7 @@ export interface FileRoutesByFullPath {
 export interface FileRoutesByTo {
   '/': typeof AppIndexRoute
   '/checkout': typeof CheckoutRoute
-  '/profiles': typeof AppProfilesRoute
+  '/portfolios': typeof AppPortfoliosRoute
   '/transactions': typeof AppTransactionsRoute
   '/powens/callback': typeof PowensCallbackRoute
   '/sign-in/$': typeof SignInSplatRoute
@@ -162,7 +162,7 @@ export interface FileRoutesById {
   '/_app': typeof AppRouteWithChildren
   '/_settings': typeof SettingsRouteWithChildren
   '/checkout': typeof CheckoutRoute
-  '/_app/profiles': typeof AppProfilesRoute
+  '/_app/portfolios': typeof AppPortfoliosRoute
   '/_app/transactions': typeof AppTransactionsRoute
   '/powens/callback': typeof PowensCallbackRoute
   '/sign-in/$': typeof SignInSplatRoute
@@ -183,7 +183,7 @@ export interface FileRouteTypes {
   fullPaths:
     | '/'
     | '/checkout'
-    | '/profiles'
+    | '/portfolios'
     | '/transactions'
     | '/powens/callback'
     | '/sign-in/$'
@@ -201,7 +201,7 @@ export interface FileRouteTypes {
   to:
     | '/'
     | '/checkout'
-    | '/profiles'
+    | '/portfolios'
     | '/transactions'
     | '/powens/callback'
     | '/sign-in/$'
@@ -220,7 +220,7 @@ export interface FileRouteTypes {
     | '/_app'
     | '/_settings'
     | '/checkout'
-    | '/_app/profiles'
+    | '/_app/portfolios'
     | '/_app/transactions'
     | '/powens/callback'
     | '/sign-in/$'
@@ -296,11 +296,11 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppTransactionsRouteImport
       parentRoute: typeof AppRoute
     }
-    '/_app/profiles': {
-      id: '/_app/profiles'
-      path: '/profiles'
-      fullPath: '/profiles'
-      preLoaderRoute: typeof AppProfilesRouteImport
+    '/_app/portfolios': {
+      id: '/_app/portfolios'
+      path: '/portfolios'
+      fullPath: '/portfolios'
+      preLoaderRoute: typeof AppPortfoliosRouteImport
       parentRoute: typeof AppRoute
     }
     '/_settings/settings/': {
@@ -377,7 +377,7 @@ declare module '@tanstack/react-router' {
 }
 
 interface AppRouteChildren {
-  AppProfilesRoute: typeof AppProfilesRoute
+  AppPortfoliosRoute: typeof AppPortfoliosRoute
   AppTransactionsRoute: typeof AppTransactionsRoute
   AppIndexRoute: typeof AppIndexRoute
   AppAccountsAccountIdRoute: typeof AppAccountsAccountIdRoute
@@ -385,7 +385,7 @@ interface AppRouteChildren {
 }
 
 const AppRouteChildren: AppRouteChildren = {
-  AppProfilesRoute: AppProfilesRoute,
+  AppPortfoliosRoute: AppPortfoliosRoute,
   AppTransactionsRoute: AppTransactionsRoute,
   AppIndexRoute: AppIndexRoute,
   AppAccountsAccountIdRoute: AppAccountsAccountIdRoute,

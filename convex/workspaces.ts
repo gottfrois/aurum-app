@@ -21,14 +21,15 @@ export const ensureWorkspace = mutation({
       createdBy: userId,
     })
 
-    await ctx.db.insert('workspaceMembers', {
+    const memberId = await ctx.db.insert('workspaceMembers', {
       workspaceId,
       userId,
       role: 'owner',
     })
 
-    await ctx.db.insert('profiles', {
+    await ctx.db.insert('portfolios', {
       workspaceId,
+      memberId,
       name: 'Personal',
       icon: 'User',
     })

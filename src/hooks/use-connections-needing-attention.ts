@@ -1,7 +1,7 @@
 import { useQuery } from 'convex/react'
 import { api } from '../../convex/_generated/api'
 import type { Doc } from '../../convex/_generated/dataModel'
-import { useProfile } from '~/contexts/profile-context'
+import { usePortfolio } from '~/contexts/portfolio-context'
 import { isConnectionStateActionNeeded } from '~/lib/connection-states'
 
 interface ConnectionsNeedingAttention {
@@ -14,30 +14,30 @@ interface ConnectionsNeedingAttention {
 }
 
 /**
- * Hook that returns connections needing user attention across all active profiles.
+ * Hook that returns connections needing user attention across all active portfolios.
  * Reusable across banner, sidebar badge, and inline alerts.
  */
 export function useConnectionsNeedingAttention(): ConnectionsNeedingAttention {
   const {
-    isLoading: profileLoading,
-    isAllProfiles,
-    allProfileIds,
-    singleProfileId,
-  } = useProfile()
+    isLoading: portfolioLoading,
+    isAllPortfolios,
+    allPortfolioIds,
+    singlePortfolioId,
+  } = usePortfolio()
 
   const connectionsSingle = useQuery(
     api.powens.listConnections,
-    singleProfileId ? { profileId: singleProfileId } : 'skip',
+    singlePortfolioId ? { portfolioId: singlePortfolioId } : 'skip',
   )
   const connectionsAll = useQuery(
     api.powens.listAllConnections,
-    isAllProfiles && allProfileIds.length > 0
-      ? { profileIds: allProfileIds }
+    isAllPortfolios && allPortfolioIds.length > 0
+      ? { portfolioIds: allPortfolioIds }
       : 'skip',
   )
 
-  const rawConnections = isAllProfiles ? connectionsAll : connectionsSingle
-  const isLoading = profileLoading || rawConnections === undefined
+  const rawConnections = isAllPortfolios ? connectionsAll : connectionsSingle
+  const isLoading = portfolioLoading || rawConnections === undefined
 
   const problemConnections = (rawConnections ?? []).filter((c) =>
     isConnectionStateActionNeeded(c.state),

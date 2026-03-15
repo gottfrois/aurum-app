@@ -13,7 +13,7 @@ import {
   EmptyTitle,
 } from '~/components/ui/empty'
 import { SiteHeader } from '~/components/site-header'
-import { useProfile } from '~/contexts/profile-context'
+import { usePortfolio } from '~/contexts/portfolio-context'
 import { AddConnectionDialog } from '~/components/add-connection-dialog'
 import { Button } from '~/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '~/components/ui/card'
@@ -46,13 +46,13 @@ function Dashboard() {
 
 function BankAccountsSection() {
   const {
-    isLoading: profileLoading,
-    isAllProfiles,
-    allProfileIds,
-    singleProfileId,
-    profiles,
-  } = useProfile()
-  const workspaceId = profiles?.[0]?.workspaceId ?? null
+    isLoading: portfolioLoading,
+    isAllPortfolios,
+    allPortfolioIds,
+    singlePortfolioId,
+    portfolios,
+  } = usePortfolio()
+  const workspaceId = portfolios?.[0]?.workspaceId ?? null
   const [period, setPeriod] = React.useState<Period>('1M')
   const startTimestamp = React.useMemo(
     () => getStartTimestamp(period),
@@ -61,38 +61,40 @@ function BankAccountsSection() {
 
   const bankAccountsSingle = useQuery(
     api.powens.listBankAccounts,
-    singleProfileId ? { profileId: singleProfileId } : 'skip',
+    singlePortfolioId ? { portfolioId: singlePortfolioId } : 'skip',
   )
   const bankAccountsAll = useQuery(
     api.powens.listAllBankAccounts,
-    isAllProfiles && allProfileIds.length > 0
-      ? { profileIds: allProfileIds }
+    isAllPortfolios && allPortfolioIds.length > 0
+      ? { portfolioIds: allPortfolioIds }
       : 'skip',
   )
-  const rawBankAccounts = isAllProfiles ? bankAccountsAll : bankAccountsSingle
+  const rawBankAccounts = isAllPortfolios ? bankAccountsAll : bankAccountsSingle
   const bankAccounts = useCachedDecryptRecords('bankAccounts', rawBankAccounts)
 
   const netWorthSingle = useQuery(
     api.balanceSnapshots.listDailyNetWorth,
-    singleProfileId ? { profileId: singleProfileId, startTimestamp } : 'skip',
+    singlePortfolioId
+      ? { portfolioId: singlePortfolioId, startTimestamp }
+      : 'skip',
   )
   const netWorthAll = useQuery(
     api.balanceSnapshots.listAllDailyNetWorth,
-    isAllProfiles && workspaceId ? { workspaceId, startTimestamp } : 'skip',
+    isAllPortfolios && workspaceId ? { workspaceId, startTimestamp } : 'skip',
   )
-  const dailyNetWorth = isAllProfiles ? netWorthAll : netWorthSingle
+  const dailyNetWorth = isAllPortfolios ? netWorthAll : netWorthSingle
 
   const investmentsSingle = useQuery(
-    api.investments.listInvestmentsByProfile,
-    singleProfileId ? { profileId: singleProfileId } : 'skip',
+    api.investments.listInvestmentsByPortfolio,
+    singlePortfolioId ? { portfolioId: singlePortfolioId } : 'skip',
   )
   const investmentsAll = useQuery(
-    api.investments.listAllInvestmentsByProfiles,
-    isAllProfiles && allProfileIds.length > 0
-      ? { profileIds: allProfileIds }
+    api.investments.listAllInvestmentsByPortfolios,
+    isAllPortfolios && allPortfolioIds.length > 0
+      ? { portfolioIds: allPortfolioIds }
       : 'skip',
   )
-  const rawInvestments = isAllProfiles ? investmentsAll : investmentsSingle
+  const rawInvestments = isAllPortfolios ? investmentsAll : investmentsSingle
   const investments = useCachedDecryptRecords('investments', rawInvestments)
 
   const formatCurrency = useFormatCurrency()
@@ -131,7 +133,7 @@ function BankAccountsSection() {
       }))
   }, [activeAccounts])
 
-  if (profileLoading || bankAccounts === undefined) {
+  if (portfolioLoading || bankAccounts === undefined) {
     return (
       <div className="space-y-6">
         <Skeleton className="h-[250px] w-full" />

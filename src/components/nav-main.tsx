@@ -5,7 +5,7 @@ import { useQuery } from 'convex/react'
 import { api } from '../../convex/_generated/api'
 import type { LucideIcon } from 'lucide-react'
 
-import { useProfile } from '~/contexts/profile-context'
+import { usePortfolio } from '~/contexts/portfolio-context'
 import { AddConnectionDialog } from '~/components/add-connection-dialog'
 import {
   Collapsible,
@@ -44,30 +44,30 @@ export function NavMain({
   }>
 }) {
   const [dialogOpen, setDialogOpen] = React.useState(false)
-  const { isAllProfiles, allProfileIds, singleProfileId } = useProfile()
+  const { isAllPortfolios, allPortfolioIds, singlePortfolioId } = usePortfolio()
   const bankAccountsSingle = useQuery(
     api.powens.listBankAccounts,
-    singleProfileId ? { profileId: singleProfileId } : 'skip',
+    singlePortfolioId ? { portfolioId: singlePortfolioId } : 'skip',
   )
   const bankAccountsAll = useQuery(
     api.powens.listAllBankAccounts,
-    isAllProfiles && allProfileIds.length > 0
-      ? { profileIds: allProfileIds }
+    isAllPortfolios && allPortfolioIds.length > 0
+      ? { portfolioIds: allPortfolioIds }
       : 'skip',
   )
-  const bankAccounts = isAllProfiles ? bankAccountsAll : bankAccountsSingle
+  const bankAccounts = isAllPortfolios ? bankAccountsAll : bankAccountsSingle
 
   const connectionsSingle = useQuery(
     api.powens.listConnections,
-    singleProfileId ? { profileId: singleProfileId } : 'skip',
+    singlePortfolioId ? { portfolioId: singlePortfolioId } : 'skip',
   )
   const connectionsAll = useQuery(
     api.powens.listAllConnections,
-    isAllProfiles && allProfileIds.length > 0
-      ? { profileIds: allProfileIds }
+    isAllPortfolios && allPortfolioIds.length > 0
+      ? { portfolioIds: allPortfolioIds }
       : 'skip',
   )
-  const connections = isAllProfiles ? connectionsAll : connectionsSingle
+  const connections = isAllPortfolios ? connectionsAll : connectionsSingle
 
   const hasConnectionAlert = React.useMemo(
     () =>

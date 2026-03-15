@@ -16,7 +16,7 @@ import type { QueryClient } from '@tanstack/react-query'
 import type { ConvexQueryClient } from '@convex-dev/react-query'
 import type { ConvexReactClient } from 'convex/react'
 import { TooltipProvider } from '~/components/ui/tooltip'
-import { ProfileProvider } from '~/contexts/profile-context'
+import { PortfolioProvider } from '~/contexts/portfolio-context'
 import { PrivacyProvider } from '~/contexts/privacy-context'
 import { EncryptionProvider } from '~/contexts/encryption-context'
 import { Toaster } from '~/components/ui/sonner'
@@ -166,7 +166,7 @@ function RootComponent() {
             enableSystem
             disableTransitionOnChange
           >
-            <ProfileProvider>
+            <PortfolioProvider>
               <EncryptionProvider>
                 <PrivacyProvider>
                   <RootDocument>
@@ -174,7 +174,7 @@ function RootComponent() {
                   </RootDocument>
                 </PrivacyProvider>
               </EncryptionProvider>
-            </ProfileProvider>
+            </PortfolioProvider>
           </ThemeProvider>
         </TooltipProvider>
       </ConvexProviderWithClerk>

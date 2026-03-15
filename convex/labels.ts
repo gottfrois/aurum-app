@@ -90,17 +90,17 @@ export const deleteLabel = mutation({
     }
 
     // Remove this label from all transactions that reference it
-    const profiles = await ctx.db
-      .query('profiles')
+    const portfolios = await ctx.db
+      .query('portfolios')
       .withIndex('by_workspaceId', (q) =>
         q.eq('workspaceId', label.workspaceId),
       )
       .collect()
 
-    for (const profile of profiles) {
+    for (const portfolio of portfolios) {
       const transactions = await ctx.db
         .query('transactions')
-        .withIndex('by_profileId', (q) => q.eq('profileId', profile._id))
+        .withIndex('by_portfolioId', (q) => q.eq('portfolioId', portfolio._id))
         .collect()
 
       for (const txn of transactions) {

@@ -9,7 +9,7 @@ function getInitials(name: string): string {
     .join('')
 }
 
-export function ProfileAvatar({
+export function PortfolioAvatar({
   name,
   className,
 }: {

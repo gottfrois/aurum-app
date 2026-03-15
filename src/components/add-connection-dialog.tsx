@@ -2,7 +2,7 @@ import * as React from 'react'
 import { Landmark, Loader2 } from 'lucide-react'
 import { useAction } from 'convex/react'
 import { api } from '../../convex/_generated/api'
-import { useProfile } from '~/contexts/profile-context'
+import { usePortfolio } from '~/contexts/portfolio-context'
 import {
   Dialog,
   DialogContent,
@@ -21,18 +21,18 @@ export function AddConnectionDialog({
   open,
   onOpenChange,
 }: AddConnectionDialogProps) {
-  const { singleProfileId } = useProfile()
+  const { singlePortfolioId } = usePortfolio()
   const generateConnectUrl = useAction(api.powens.generateConnectUrl)
   const [loading, setLoading] = React.useState(false)
   const [error, setError] = React.useState<string | null>(null)
 
   async function handleConnect() {
-    if (!singleProfileId) return
+    if (!singlePortfolioId) return
     setLoading(true)
     setError(null)
 
     try {
-      const url = await generateConnectUrl({ profileId: singleProfileId })
+      const url = await generateConnectUrl({ portfolioId: singlePortfolioId })
       window.location.href = url
     } catch (err) {
       console.error('Failed to generate connect URL:', err)
@@ -59,7 +59,7 @@ export function AddConnectionDialog({
           <Button
             size="lg"
             onClick={handleConnect}
-            disabled={loading || !singleProfileId}
+            disabled={loading || !singlePortfolioId}
           >
             {loading && <Loader2 className="mr-2 size-4 animate-spin" />}
             {loading ? 'Connecting...' : 'Add Connection'}

@@ -1,7 +1,7 @@
 import * as React from 'react'
 import { useMutation } from 'convex/react'
 import { api } from '../../convex/_generated/api'
-import { useProfile } from '~/contexts/profile-context'
+import { usePortfolio } from '~/contexts/portfolio-context'
 import {
   Dialog,
   DialogContent,
@@ -13,21 +13,21 @@ import { Button } from '~/components/ui/button'
 import { Input } from '~/components/ui/input'
 import { Label } from '~/components/ui/label'
 
-export function CreateProfileDialog({
+export function CreatePortfolioDialog({
   open,
   onOpenChange,
 }: {
   open: boolean
   onOpenChange: (open: boolean) => void
 }) {
-  const createProfile = useMutation(api.profiles.createProfile)
-  const { setActiveProfileId } = useProfile()
+  const createPortfolio = useMutation(api.portfolios.createPortfolio)
+  const { setActivePortfolioId } = usePortfolio()
   const [newName, setNewName] = React.useState('')
 
   async function handleCreate() {
     if (!newName.trim()) return
-    const id = await createProfile({ name: newName.trim(), icon: 'User' })
-    setActiveProfileId(id)
+    const id = await createPortfolio({ name: newName.trim(), icon: 'User' })
+    setActivePortfolioId(id)
     setNewName('')
     onOpenChange(false)
   }
@@ -36,13 +36,13 @@ export function CreateProfileDialog({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>Create Profile</DialogTitle>
+          <DialogTitle>Create Portfolio</DialogTitle>
         </DialogHeader>
         <div className="grid gap-4 py-4">
           <div className="grid gap-2">
-            <Label htmlFor="profile-name">Name</Label>
+            <Label htmlFor="portfolio-name">Name</Label>
             <Input
-              id="profile-name"
+              id="portfolio-name"
               value={newName}
               onChange={(e) => setNewName(e.target.value)}
               placeholder="e.g. SASU Pro, Joint Account"

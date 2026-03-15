@@ -13,7 +13,7 @@ import {
   EmptyTitle,
 } from '~/components/ui/empty'
 import { SiteHeader } from '~/components/site-header'
-import { useProfile } from '~/contexts/profile-context'
+import { usePortfolio } from '~/contexts/portfolio-context'
 import { AddConnectionDialog } from '~/components/add-connection-dialog'
 import { Button } from '~/components/ui/button'
 import {
@@ -73,13 +73,13 @@ const BANK_CHART_COLORS = [
 
 function BankAccountsList({ categoryFilter }: { categoryFilter?: string }) {
   const {
-    isLoading: profileLoading,
-    isAllProfiles,
-    allProfileIds,
-    singleProfileId,
-    profiles,
-  } = useProfile()
-  const workspaceId = profiles?.[0]?.workspaceId ?? null
+    isLoading: portfolioLoading,
+    isAllPortfolios,
+    allPortfolioIds,
+    singlePortfolioId,
+    portfolios,
+  } = usePortfolio()
+  const workspaceId = portfolios?.[0]?.workspaceId ?? null
   const [period, setPeriod] = React.useState<Period>('1M')
   const startTimestamp = React.useMemo(
     () => getStartTimestamp(period),
@@ -88,15 +88,15 @@ function BankAccountsList({ categoryFilter }: { categoryFilter?: string }) {
 
   const allBankAccountsSingle = useQuery(
     api.powens.listBankAccounts,
-    singleProfileId ? { profileId: singleProfileId } : 'skip',
+    singlePortfolioId ? { portfolioId: singlePortfolioId } : 'skip',
   )
   const allBankAccountsAll = useQuery(
     api.powens.listAllBankAccounts,
-    isAllProfiles && allProfileIds.length > 0
-      ? { profileIds: allProfileIds }
+    isAllPortfolios && allPortfolioIds.length > 0
+      ? { portfolioIds: allPortfolioIds }
       : 'skip',
   )
-  const rawAllBankAccounts = isAllProfiles
+  const rawAllBankAccounts = isAllPortfolios
     ? allBankAccountsAll
     : allBankAccountsSingle
   const allBankAccounts = useCachedDecryptRecords(
@@ -106,13 +106,15 @@ function BankAccountsList({ categoryFilter }: { categoryFilter?: string }) {
 
   const categoryBalanceSingle = useQuery(
     api.balanceSnapshots.listDailyCategoryBalance,
-    singleProfileId ? { profileId: singleProfileId, startTimestamp } : 'skip',
+    singlePortfolioId
+      ? { portfolioId: singlePortfolioId, startTimestamp }
+      : 'skip',
   )
   const categoryBalanceAll = useQuery(
     api.balanceSnapshots.listAllDailyCategoryBalance,
-    isAllProfiles && workspaceId ? { workspaceId, startTimestamp } : 'skip',
+    isAllPortfolios && workspaceId ? { workspaceId, startTimestamp } : 'skip',
   )
-  const categoryBalances = isAllProfiles
+  const categoryBalances = isAllPortfolios
     ? categoryBalanceAll
     : categoryBalanceSingle
   const formatCurrency = useFormatCurrency()
@@ -230,7 +232,7 @@ function BankAccountsList({ categoryFilter }: { categoryFilter?: string }) {
 
   const showAllocationChart = allocationByBank.length >= 2
 
-  if (profileLoading || bankAccounts === undefined) {
+  if (portfolioLoading || bankAccounts === undefined) {
     return (
       <>
         <Skeleton className="h-[250px] w-full" />

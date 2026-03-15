@@ -61,13 +61,13 @@ http.route({
       return new Response('OK', { status: 200 })
     }
 
-    const profile = await ctx.runQuery(
-      internal.powens.findProfileByPowensUserId,
+    const portfolio = await ctx.runQuery(
+      internal.powens.findPortfolioByPowensUserId,
       { powensUserId: conn.id_user },
     )
-    if (!profile) {
+    if (!portfolio) {
       console.warn(
-        `[powens/webhook/connection-synced] No profile for Powens user ${conn.id_user}`,
+        `[powens/webhook/connection-synced] No portfolio for Powens user ${conn.id_user}`,
       )
       return new Response('OK', { status: 200 })
     }
@@ -79,7 +79,7 @@ http.route({
     })
 
     await ctx.runAction(internal.powens.syncConnectionFromPowens, {
-      profileId: profile._id,
+      portfolioId: portfolio._id,
       powensConnectionId: conn.id,
       state: conn.state ?? undefined,
       lastSync: conn.last_update ?? undefined,
@@ -105,13 +105,13 @@ http.route({
       return new Response('OK', { status: 200 })
     }
 
-    const profile = await ctx.runQuery(
-      internal.powens.findProfileByPowensUserId,
+    const portfolio = await ctx.runQuery(
+      internal.powens.findPortfolioByPowensUserId,
       { powensUserId: payload.id_user },
     )
-    if (!profile) {
+    if (!portfolio) {
       console.warn(
-        `[powens/webhook/connection-deleted] No profile for Powens user ${payload.id_user}`,
+        `[powens/webhook/connection-deleted] No portfolio for Powens user ${payload.id_user}`,
       )
       return new Response('OK', { status: 200 })
     }
@@ -133,7 +133,7 @@ http.route({
 
     await ctx.runMutation(internal.powens.deleteConnectionData, {
       connectionId: connection._id,
-      profileId: profile._id,
+      portfolioId: portfolio._id,
     })
 
     return new Response('OK', { status: 200 })
@@ -163,13 +163,13 @@ http.route({
       return new Response('OK', { status: 200 })
     }
 
-    const profile = await ctx.runQuery(
-      internal.powens.findProfileByPowensUserId,
+    const portfolio = await ctx.runQuery(
+      internal.powens.findPortfolioByPowensUserId,
       { powensUserId: conn.id_user },
     )
-    if (!profile) {
+    if (!portfolio) {
       console.warn(
-        `[powens/webhook/accounts-fetched] No profile for Powens user ${conn.id_user}`,
+        `[powens/webhook/accounts-fetched] No portfolio for Powens user ${conn.id_user}`,
       )
       return new Response('OK', { status: 200 })
     }
@@ -181,7 +181,7 @@ http.route({
 
     // Reuse the same sync — it fetches everything from the API
     await ctx.runAction(internal.powens.syncConnectionFromPowens, {
-      profileId: profile._id,
+      portfolioId: portfolio._id,
       powensConnectionId: conn.id,
       state: conn.state ?? undefined,
       lastSync: conn.last_update ?? undefined,
@@ -209,13 +209,13 @@ http.route({
       return new Response('OK', { status: 200 })
     }
 
-    const profile = await ctx.runQuery(
-      internal.powens.findProfileByPowensUserId,
+    const portfolio = await ctx.runQuery(
+      internal.powens.findPortfolioByPowensUserId,
       { powensUserId: payload.id_user },
     )
-    if (!profile) {
+    if (!portfolio) {
       console.warn(
-        `[powens/webhook/account-synced] No profile for Powens user ${payload.id_user}`,
+        `[powens/webhook/account-synced] No portfolio for Powens user ${payload.id_user}`,
       )
       return new Response('OK', { status: 200 })
     }
@@ -226,7 +226,7 @@ http.route({
 
     // Sync the full connection — simpler than handling individual accounts
     await ctx.runAction(internal.powens.syncConnectionFromPowens, {
-      profileId: profile._id,
+      portfolioId: portfolio._id,
       powensConnectionId: payload.id_connection,
     })
 
@@ -252,13 +252,13 @@ http.route({
       return new Response('OK', { status: 200 })
     }
 
-    const profile = await ctx.runQuery(
-      internal.powens.findProfileByPowensUserId,
+    const portfolio = await ctx.runQuery(
+      internal.powens.findPortfolioByPowensUserId,
       { powensUserId: payload.id_user },
     )
-    if (!profile) {
+    if (!portfolio) {
       console.warn(
-        `[powens/webhook/account-found] No profile for Powens user ${payload.id_user}`,
+        `[powens/webhook/account-found] No portfolio for Powens user ${payload.id_user}`,
       )
       return new Response('OK', { status: 200 })
     }
@@ -268,7 +268,7 @@ http.route({
     })
 
     await ctx.runAction(internal.powens.syncConnectionFromPowens, {
-      profileId: profile._id,
+      portfolioId: portfolio._id,
       powensConnectionId: payload.id_connection,
     })
 

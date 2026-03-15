@@ -6,7 +6,7 @@ import {
   Settings,
 } from 'lucide-react'
 
-import { ProfileSwitcher } from '~/components/profile-switcher'
+import { PortfolioSwitcher } from '~/components/portfolio-switcher'
 import { NavMain } from '~/components/nav-main'
 import { NavSecondary } from '~/components/nav-secondary'
 import { NavUser } from '~/components/nav-user'
@@ -48,7 +48,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
   return (
     <Sidebar collapsible="offcanvas" {...props}>
       <SidebarHeader>
-        <ProfileSwitcher />
+        <PortfolioSwitcher />
       </SidebarHeader>
       <SidebarContent>
         <NavMain items={data.navMain} />
