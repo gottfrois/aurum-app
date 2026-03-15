@@ -153,7 +153,9 @@ export const createCategory = mutation({
       .query('workspaceMembers')
       .withIndex('by_userId', (q) => q.eq('userId', userId))
       .first()
-    if (!member) throw new Error('Not a workspace member')
+    if (!member || member.role !== 'owner') {
+      throw new Error('Only workspace owners can create categories')
+    }
 
     const key = args.label
       .toLowerCase()
@@ -194,7 +196,9 @@ export const updateCategory = mutation({
       .query('workspaceMembers')
       .withIndex('by_userId', (q) => q.eq('userId', userId))
       .first()
-    if (!member) throw new Error('Not a workspace member')
+    if (!member || member.role !== 'owner') {
+      throw new Error('Only workspace owners can update categories')
+    }
 
     const category = await ctx.db.get('transactionCategories', args.categoryId)
     if (!category || category.workspaceId !== member.workspaceId) {
@@ -219,7 +223,9 @@ export const deleteCategory = mutation({
       .query('workspaceMembers')
       .withIndex('by_userId', (q) => q.eq('userId', userId))
       .first()
-    if (!member) throw new Error('Not a workspace member')
+    if (!member || member.role !== 'owner') {
+      throw new Error('Only workspace owners can delete categories')
+    }
 
     const category = await ctx.db.get('transactionCategories', args.categoryId)
     if (!category || category.workspaceId !== member.workspaceId) {

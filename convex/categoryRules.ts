@@ -43,7 +43,9 @@ export const createRule = mutation({
       .query('workspaceMembers')
       .withIndex('by_userId', (q) => q.eq('userId', userId))
       .first()
-    if (!member) throw new Error('Not a workspace member')
+    if (!member || member.role !== 'owner') {
+      throw new Error('Only workspace owners can create rules')
+    }
 
     const ruleId = await ctx.db.insert('categoryRules', {
       workspaceId: member.workspaceId,
@@ -81,7 +83,9 @@ export const updateRule = mutation({
       .query('workspaceMembers')
       .withIndex('by_userId', (q) => q.eq('userId', userId))
       .first()
-    if (!member) throw new Error('Not a workspace member')
+    if (!member || member.role !== 'owner') {
+      throw new Error('Only workspace owners can update rules')
+    }
 
     const rule = await ctx.db.get('categoryRules', args.ruleId)
     if (!rule || rule.workspaceId !== member.workspaceId) {
@@ -105,7 +109,9 @@ export const deleteRule = mutation({
       .query('workspaceMembers')
       .withIndex('by_userId', (q) => q.eq('userId', userId))
       .first()
-    if (!member) throw new Error('Not a workspace member')
+    if (!member || member.role !== 'owner') {
+      throw new Error('Only workspace owners can delete rules')
+    }
 
     const rule = await ctx.db.get('categoryRules', args.ruleId)
     if (!rule || rule.workspaceId !== member.workspaceId) {

@@ -1,5 +1,5 @@
 import { v } from 'convex/values'
-import { components } from './_generated/api'
+import { components, internal } from './_generated/api'
 import { action, internalQuery, query } from './_generated/server'
 import { getAuthUserId } from './lib/auth'
 import { getWorkspaceSubscription } from './lib/billing'
@@ -101,6 +101,14 @@ export const createPortalSession = action({
     const identity = await ctx.auth.getUserIdentity()
     if (!identity) throw new Error('Not authenticated')
 
+    const membership = await ctx.runQuery(
+      internal.members.getMembershipByUserId,
+      { userId: identity.subject },
+    )
+    if (!membership || membership.role !== 'owner') {
+      throw new Error('Only workspace owners can manage billing')
+    }
+
     const customer = await stripe.getOrCreateCustomer(ctx, {
       userId: identity.subject,
       email: identity.email ?? undefined,
@@ -121,6 +129,14 @@ export const updateSeatCount = action({
   handler: async (ctx, { seats }) => {
     const identity = await ctx.auth.getUserIdentity()
     if (!identity) throw new Error('Not authenticated')
+
+    const membership = await ctx.runQuery(
+      internal.members.getMembershipByUserId,
+      { userId: identity.subject },
+    )
+    if (!membership || membership.role !== 'owner') {
+      throw new Error('Only workspace owners can update seat count')
+    }
 
     const subscriptions = await ctx.runQuery(
       components.stripe.public.listSubscriptionsByUserId,
@@ -148,6 +164,14 @@ export const listRecentInvoices = action({
   handler: async (ctx) => {
     const identity = await ctx.auth.getUserIdentity()
     if (!identity) throw new Error('Not authenticated')
+
+    const membership = await ctx.runQuery(
+      internal.members.getMembershipByUserId,
+      { userId: identity.subject },
+    )
+    if (!membership || membership.role !== 'owner') {
+      throw new Error('Only workspace owners can view invoices')
+    }
 
     const invoices = await ctx.runQuery(
       components.stripe.public.listInvoicesByUserId,

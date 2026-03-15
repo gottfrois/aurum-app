@@ -16,6 +16,7 @@ import {
   ItemCardItems,
   ItemCardItemTitle,
 } from '~/components/item-card'
+import { RequireOwner } from '~/components/require-owner'
 import { Badge } from '~/components/ui/badge'
 import { Button } from '~/components/ui/button'
 import {
@@ -44,15 +45,17 @@ export const Route = createFileRoute('/_settings/settings/categories')({
 
 function CategoriesPage() {
   return (
-    <div className="mx-auto flex w-full max-w-3xl flex-1 flex-col px-10 py-16">
-      <header>
-        <h1 className="text-3xl font-semibold">Categories</h1>
-      </header>
-      <div className="mt-8 space-y-6">
-        <CategoriesList />
-        <RulesList />
+    <RequireOwner>
+      <div className="mx-auto flex w-full max-w-3xl flex-1 flex-col px-10 py-16">
+        <header>
+          <h1 className="text-3xl font-semibold">Categories</h1>
+        </header>
+        <div className="mt-8 space-y-6">
+          <CategoriesList />
+          <RulesList />
+        </div>
       </div>
-    </div>
+    </RequireOwner>
   )
 }
 

@@ -30,8 +30,12 @@ export const createLabel = mutation({
       .query('workspaceMembers')
       .withIndex('by_userId', (q) => q.eq('userId', userId))
       .first()
-    if (!member || member.workspaceId !== args.workspaceId) {
-      throw new Error('Not authorized')
+    if (
+      !member ||
+      member.workspaceId !== args.workspaceId ||
+      member.role !== 'owner'
+    ) {
+      throw new Error('Only workspace owners can create labels')
     }
 
     return ctx.db.insert('labels', {
@@ -59,8 +63,12 @@ export const updateLabel = mutation({
       .query('workspaceMembers')
       .withIndex('by_userId', (q) => q.eq('userId', userId))
       .first()
-    if (!member || member.workspaceId !== label.workspaceId) {
-      throw new Error('Not authorized')
+    if (
+      !member ||
+      member.workspaceId !== label.workspaceId ||
+      member.role !== 'owner'
+    ) {
+      throw new Error('Only workspace owners can update labels')
     }
 
     const patch: Record<string, string> = {}
@@ -85,8 +93,12 @@ export const deleteLabel = mutation({
       .query('workspaceMembers')
       .withIndex('by_userId', (q) => q.eq('userId', userId))
       .first()
-    if (!member || member.workspaceId !== label.workspaceId) {
-      throw new Error('Not authorized')
+    if (
+      !member ||
+      member.workspaceId !== label.workspaceId ||
+      member.role !== 'owner'
+    ) {
+      throw new Error('Only workspace owners can delete labels')
     }
 
     // Remove this label from all transactions that reference it

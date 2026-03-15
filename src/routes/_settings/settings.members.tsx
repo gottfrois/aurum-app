@@ -16,6 +16,7 @@ import {
   ItemCardItems,
   ItemCardItemTitle,
 } from '~/components/item-card'
+import { RequireOwner } from '~/components/require-owner'
 import { Avatar, AvatarFallback, AvatarImage } from '~/components/ui/avatar'
 import { Badge } from '~/components/ui/badge'
 import { Button } from '~/components/ui/button'
@@ -106,124 +107,133 @@ function MembersPage() {
   const isOwner = role === 'owner'
 
   return (
-    <div className="mx-auto flex w-full max-w-3xl flex-1 flex-col px-10 py-16">
-      <header>
-        <h1 className="text-3xl font-semibold">Members</h1>
-      </header>
-      <div className="mt-8 space-y-6">
-        <ItemCard>
-          <ItemCardHeader>
-            <ItemCardHeaderContent>
-              <ItemCardHeaderTitle>
-                {data.members.length}{' '}
-                {data.members.length === 1 ? 'member' : 'members'}
-                {subscription?.isActive && (
-                  <span className="text-sm font-normal text-muted-foreground">
-                    / {subscription.seats} seat
-                    {subscription.seats !== 1 ? 's' : ''}
-                  </span>
-                )}
-              </ItemCardHeaderTitle>
-            </ItemCardHeaderContent>
-            <InviteDialog
-              existingEmails={[
-                ...Object.values(users)
-                  .map((u) => u.email.toLowerCase())
-                  .filter(Boolean),
-                ...data.invitations.map((i) => i.email.toLowerCase()),
-              ]}
-              atSeatLimit={
-                subscription?.isActive
-                  ? subscription.currentSeats +
-                      subscription.pendingInvitations >=
-                    subscription.seats
-                  : false
-              }
-            />
-          </ItemCardHeader>
-          <ItemCardItems>
-            {usersLoading
-              ? data.members.map((member) => (
-                  <ItemCardItem key={member._id}>
-                    <div className="flex items-center gap-3">
-                      <Skeleton className="size-8 rounded-full" />
-                      <ItemCardItemContent>
-                        <Skeleton className="h-4 w-32" />
-                        <Skeleton className="h-3 w-48" />
-                      </ItemCardItemContent>
-                    </div>
-                    <ItemCardItemAction>
-                      <Skeleton className="h-5 w-14 rounded-full" />
-                    </ItemCardItemAction>
-                  </ItemCardItem>
-                ))
-              : data.members.map((member) => {
-                  const user = users[member.userId] as ResolvedUser | undefined
-                  const name = user
-                    ? [user.firstName, user.lastName].filter(Boolean).join(' ')
-                    : member.userId
-                  const email = user?.email ?? ''
-                  const initials = name
-                    .split(' ')
-                    .map((n) => n[0])
-                    .join('')
-                    .toUpperCase()
-                    .slice(0, 2)
-
-                  const encStatus = encryptionStatusMap.get(member.userId)
-
-                  return (
+    <RequireOwner>
+      <div className="mx-auto flex w-full max-w-3xl flex-1 flex-col px-10 py-16">
+        <header>
+          <h1 className="text-3xl font-semibold">Members</h1>
+        </header>
+        <div className="mt-8 space-y-6">
+          <ItemCard>
+            <ItemCardHeader>
+              <ItemCardHeaderContent>
+                <ItemCardHeaderTitle>
+                  {data.members.length}{' '}
+                  {data.members.length === 1 ? 'member' : 'members'}
+                  {subscription?.isActive && (
+                    <span className="text-sm font-normal text-muted-foreground">
+                      / {subscription.seats} seat
+                      {subscription.seats !== 1 ? 's' : ''}
+                    </span>
+                  )}
+                </ItemCardHeaderTitle>
+              </ItemCardHeaderContent>
+              {isOwner && (
+                <InviteDialog
+                  existingEmails={[
+                    ...Object.values(users)
+                      .map((u) => u.email.toLowerCase())
+                      .filter(Boolean),
+                    ...data.invitations.map((i) => i.email.toLowerCase()),
+                  ]}
+                  atSeatLimit={
+                    subscription?.isActive
+                      ? subscription.currentSeats +
+                          subscription.pendingInvitations >=
+                        subscription.seats
+                      : false
+                  }
+                />
+              )}
+            </ItemCardHeader>
+            <ItemCardItems>
+              {usersLoading
+                ? data.members.map((member) => (
                     <ItemCardItem key={member._id}>
                       <div className="flex items-center gap-3">
-                        <Avatar className="size-8 rounded-full">
-                          <AvatarImage src={user?.imageUrl} alt={name} />
-                          <AvatarFallback className="rounded-full text-xs">
-                            {initials}
-                          </AvatarFallback>
-                        </Avatar>
+                        <Skeleton className="size-8 rounded-full" />
                         <ItemCardItemContent>
-                          <ItemCardItemTitle>
-                            {name}
-                            {member.userId === data.currentUserId && (
-                              <span className="text-sm text-muted-foreground">
-                                (you)
-                              </span>
-                            )}
-                          </ItemCardItemTitle>
-                          <ItemCardItemDescription>
-                            {email}
-                          </ItemCardItemDescription>
+                          <Skeleton className="h-4 w-32" />
+                          <Skeleton className="h-3 w-48" />
                         </ItemCardItemContent>
                       </div>
                       <ItemCardItemAction>
-                        <div className="flex items-center gap-2">
-                          <MemberActionBadge
-                            encStatus={encStatus}
-                            isOwner={isOwner}
-                            isUnlocked={isUnlocked}
-                            isEncryptionEnabled={isEncryptionEnabled}
-                          />
-                          {isOwner && member.userId !== data.currentUserId && (
-                            <RemoveMemberMenu
-                              memberId={member._id}
-                              memberName={name}
-                            />
-                          )}
-                        </div>
+                        <Skeleton className="h-5 w-14 rounded-full" />
                       </ItemCardItemAction>
                     </ItemCardItem>
-                  )
-                })}
-            {data.invitations.map((invitation) => (
-              <PendingInvitationItem
-                key={invitation._id}
-                invitation={invitation}
-              />
-            ))}
-          </ItemCardItems>
-        </ItemCard>
+                  ))
+                : data.members.map((member) => {
+                    const user = users[member.userId] as
+                      | ResolvedUser
+                      | undefined
+                    const name = user
+                      ? [user.firstName, user.lastName]
+                          .filter(Boolean)
+                          .join(' ')
+                      : member.userId
+                    const email = user?.email ?? ''
+                    const initials = name
+                      .split(' ')
+                      .map((n) => n[0])
+                      .join('')
+                      .toUpperCase()
+                      .slice(0, 2)
+
+                    const encStatus = encryptionStatusMap.get(member.userId)
+
+                    return (
+                      <ItemCardItem key={member._id}>
+                        <div className="flex items-center gap-3">
+                          <Avatar className="size-8 rounded-full">
+                            <AvatarImage src={user?.imageUrl} alt={name} />
+                            <AvatarFallback className="rounded-full text-xs">
+                              {initials}
+                            </AvatarFallback>
+                          </Avatar>
+                          <ItemCardItemContent>
+                            <ItemCardItemTitle>
+                              {name}
+                              {member.userId === data.currentUserId && (
+                                <span className="text-sm text-muted-foreground">
+                                  (you)
+                                </span>
+                              )}
+                            </ItemCardItemTitle>
+                            <ItemCardItemDescription>
+                              {email}
+                            </ItemCardItemDescription>
+                          </ItemCardItemContent>
+                        </div>
+                        <ItemCardItemAction>
+                          <div className="flex items-center gap-2">
+                            <MemberActionBadge
+                              encStatus={encStatus}
+                              isOwner={isOwner}
+                              isUnlocked={isUnlocked}
+                              isEncryptionEnabled={isEncryptionEnabled}
+                            />
+                            {isOwner &&
+                              member.userId !== data.currentUserId && (
+                                <RemoveMemberMenu
+                                  memberId={member._id}
+                                  memberName={name}
+                                />
+                              )}
+                          </div>
+                        </ItemCardItemAction>
+                      </ItemCardItem>
+                    )
+                  })}
+              {data.invitations.map((invitation) => (
+                <PendingInvitationItem
+                  key={invitation._id}
+                  invitation={invitation}
+                />
+              ))}
+            </ItemCardItems>
+          </ItemCard>
+        </div>
       </div>
-    </div>
+    </RequireOwner>
   )
 }
 
