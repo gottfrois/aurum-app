@@ -46,6 +46,7 @@ export function SettingsSidebar({
       </SidebarHeader>
       <SidebarContent>
         <SidebarGroup>
+          <SidebarGroupLabel>Account</SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu>
               <SidebarMenuItem>
@@ -88,6 +89,19 @@ export function SettingsSidebar({
                   </Link>
                 </SidebarMenuButton>
               </SidebarMenuItem>
+              <SidebarMenuItem>
+                <SidebarMenuButton asChild>
+                  <Link to="/settings/connections">
+                    <Link2 />
+                    <span>Connections</span>
+                  </Link>
+                </SidebarMenuButton>
+                {connectionIssueCount > 0 && (
+                  <SidebarMenuBadge className="bg-amber-500 text-white">
+                    {connectionIssueCount}
+                  </SidebarMenuBadge>
+                )}
+              </SidebarMenuItem>
             </SidebarMenu>
           </SidebarGroupContent>
         </SidebarGroup>
@@ -102,19 +116,6 @@ export function SettingsSidebar({
                     <span>Categories</span>
                   </Link>
                 </SidebarMenuButton>
-              </SidebarMenuItem>
-              <SidebarMenuItem>
-                <SidebarMenuButton asChild>
-                  <Link to="/settings/connections">
-                    <Link2 />
-                    <span>Connections</span>
-                  </Link>
-                </SidebarMenuButton>
-                {connectionIssueCount > 0 && (
-                  <SidebarMenuBadge className="bg-amber-500 text-white">
-                    {connectionIssueCount}
-                  </SidebarMenuBadge>
-                )}
               </SidebarMenuItem>
               <SidebarMenuItem>
                 <SidebarMenuButton asChild>
