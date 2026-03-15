@@ -103,10 +103,12 @@ function EncryptionStatusButton({ onLock }: { onLock: () => void }) {
           <TooltipTrigger asChild>
             <span className="inline-flex items-center gap-1.5 rounded-l-md px-2.5 py-1.5 text-xs font-medium text-emerald-600 dark:text-emerald-400">
               <ShieldCheck className="size-3.5" />
-              <span className="hidden sm:inline">End-to-end encrypted</span>
+              <span className="hidden sm:inline">Encrypted</span>
             </span>
           </TooltipTrigger>
-          <TooltipContent>All your data is end-to-end encrypted</TooltipContent>
+          <TooltipContent>
+            Your data is encrypted using zero-knowledge encryption
+          </TooltipContent>
         </Tooltip>
         <Tooltip>
           <TooltipTrigger asChild>
