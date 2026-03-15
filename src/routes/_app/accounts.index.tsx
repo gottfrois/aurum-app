@@ -1,9 +1,13 @@
-import * as React from 'react'
-import { Link, createFileRoute } from '@tanstack/react-router'
+import { createFileRoute, Link } from '@tanstack/react-router'
 import { useQuery } from 'convex/react'
 import { Landmark } from 'lucide-react'
-import { api } from '../../../convex/_generated/api'
-import type { Period } from '~/lib/chart-periods'
+import * as React from 'react'
+import { AddConnectionDialog } from '~/components/add-connection-dialog'
+import { AllocationChart } from '~/components/allocation-chart'
+import { BalanceChart } from '~/components/balance-chart'
+import { SiteHeader } from '~/components/site-header'
+import { StackedBalanceChart } from '~/components/stacked-balance-chart'
+import { Button } from '~/components/ui/button'
 import {
   Empty,
   EmptyContent,
@@ -12,10 +16,6 @@ import {
   EmptyMedia,
   EmptyTitle,
 } from '~/components/ui/empty'
-import { SiteHeader } from '~/components/site-header'
-import { usePortfolio } from '~/contexts/portfolio-context'
-import { AddConnectionDialog } from '~/components/add-connection-dialog'
-import { Button } from '~/components/ui/button'
 import {
   Item,
   ItemContent,
@@ -26,18 +26,18 @@ import {
   ItemTitle,
 } from '~/components/ui/item'
 import { Skeleton } from '~/components/ui/skeleton'
-import { BalanceChart } from '~/components/balance-chart'
-import { StackedBalanceChart } from '~/components/stacked-balance-chart'
-import { AllocationChart } from '~/components/allocation-chart'
-import { getStartTimestamp } from '~/lib/chart-periods'
+import { usePortfolio } from '~/contexts/portfolio-context'
+import { useFormatCurrency } from '~/contexts/privacy-context'
+import { useCachedDecryptRecords } from '~/hooks/use-cached-decrypt'
 import { ACCOUNT_CATEGORIES, getCategoryKey } from '~/lib/account-categories'
-import { computePnL } from '~/lib/pnl'
+import type { Period } from '~/lib/chart-periods'
+import { getStartTimestamp } from '~/lib/chart-periods'
 import {
   fillMissingDates,
   fillMissingDatesStacked,
 } from '~/lib/fill-missing-dates'
-import { useFormatCurrency } from '~/contexts/privacy-context'
-import { useCachedDecryptRecords } from '~/hooks/use-cached-decrypt'
+import { computePnL } from '~/lib/pnl'
+import { api } from '../../../convex/_generated/api'
 
 export const Route = createFileRoute('/_app/accounts/')({
   component: AccountsPage,
@@ -211,7 +211,7 @@ function BankAccountsList({ categoryFilter }: { categoryFilter?: string }) {
         label: cat.label,
         color: categoryColors[key] ?? 'var(--color-chart-5)',
       }))
-  }, [activeCategoryKeys])
+  }, [activeCategoryKeys, categoryColors])
 
   const allocationByBank = React.useMemo(() => {
     if (!bankAccounts) return []

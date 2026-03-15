@@ -1,9 +1,7 @@
-import * as React from 'react'
 import { useMutation } from 'convex/react'
 import { Check, ChevronsUpDown } from 'lucide-react'
+import * as React from 'react'
 import { toast } from 'sonner'
-import { api } from '../../convex/_generated/api'
-import type { Id } from '../../convex/_generated/dataModel'
 import { Button } from '~/components/ui/button'
 import {
   Command,
@@ -20,6 +18,8 @@ import {
 } from '~/components/ui/popover'
 import { useCategories } from '~/lib/categories'
 import { cn } from '~/lib/utils'
+import { api } from '../../convex/_generated/api'
+import type { Id } from '../../convex/_generated/dataModel'
 
 interface CategoryPickerProps {
   transactionId: string

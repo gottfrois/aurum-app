@@ -1,5 +1,5 @@
-import { cva } from 'class-variance-authority'
 import type { VariantProps } from 'class-variance-authority'
+import { cva } from 'class-variance-authority'
 
 import { cn } from '~/lib/utils'
 
@@ -97,9 +97,9 @@ function EmptyContent({ className, ...props }: React.ComponentProps<'div'>) {
 
 export {
   Empty,
-  EmptyHeader,
-  EmptyTitle,
-  EmptyDescription,
   EmptyContent,
+  EmptyDescription,
+  EmptyHeader,
   EmptyMedia,
+  EmptyTitle,
 }

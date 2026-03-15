@@ -104,7 +104,7 @@ export const deleteLabel = mutation({
         .collect()
 
       for (const txn of transactions) {
-        if (txn.labelIds && txn.labelIds.includes(args.labelId)) {
+        if (txn.labelIds?.includes(args.labelId)) {
           await ctx.db.patch('transactions', txn._id, {
             labelIds: txn.labelIds.filter((id) => id !== args.labelId),
           })

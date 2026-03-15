@@ -1,6 +1,6 @@
 import { TrendingDown, TrendingUp } from 'lucide-react'
-import { cn } from '~/lib/utils'
 import { useFormatCurrency, usePrivacy } from '~/contexts/privacy-context'
+import { cn } from '~/lib/utils'
 
 interface Investment {
   _id: string

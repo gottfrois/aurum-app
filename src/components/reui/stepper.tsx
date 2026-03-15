@@ -1,3 +1,4 @@
+import type { HTMLAttributes, ReactElement } from 'react'
 import {
   Children,
   createContext,
@@ -9,7 +10,6 @@ import {
   useRef,
   useState,
 } from 'react'
-import type { HTMLAttributes, ReactElement } from 'react'
 
 import { cn } from '~/lib/utils'
 
@@ -145,6 +145,11 @@ function Stepper({
       orientation,
       registerTrigger,
       triggerNodes,
+      focusFirst,
+      focusLast,
+      focusNext,
+      focusPrev,
+      indicators,
     ],
   )
 
@@ -211,7 +216,8 @@ function StepperItem({
   )
 }
 
-interface StepperTriggerProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
+interface StepperTriggerProps
+  extends React.ButtonHTMLAttributes<HTMLButtonElement> {
   asChild?: boolean
 }
 
@@ -245,13 +251,13 @@ function StepperTrigger({
     if (btnRef.current) {
       registerTrigger(btnRef.current)
     }
-  }, [btnRef.current])
+  }, [registerTrigger])
 
   // Find our index among triggers for navigation
   const myIdx = useMemo(
     () =>
       triggerNodes.findIndex((n: HTMLButtonElement) => n === btnRef.current),
-    [triggerNodes, btnRef.current],
+    [triggerNodes],
   )
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLButtonElement>) => {
@@ -461,20 +467,20 @@ function StepperContent({
 }
 
 export {
-  useStepper,
-  useStepItem,
   Stepper,
-  StepperItem,
-  StepperTrigger,
+  StepperContent,
+  type StepperContentProps,
+  StepperDescription,
   StepperIndicator,
+  StepperItem,
+  type StepperItemProps,
+  StepperNav,
+  StepperPanel,
+  type StepperProps,
   StepperSeparator,
   StepperTitle,
-  StepperDescription,
-  StepperPanel,
-  StepperContent,
-  StepperNav,
-  type StepperProps,
-  type StepperItemProps,
+  StepperTrigger,
   type StepperTriggerProps,
-  type StepperContentProps,
+  useStepItem,
+  useStepper,
 }

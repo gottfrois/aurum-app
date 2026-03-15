@@ -1,10 +1,32 @@
-import { useRef, useState } from 'react'
 import { createFileRoute } from '@tanstack/react-router'
 import { useMutation, useQuery } from 'convex/react'
-import { toast } from 'sonner'
 import { KeyRound, ShieldCheck, TriangleAlert } from 'lucide-react'
-import { api } from '../../../convex/_generated/api'
+import { useRef, useState } from 'react'
+import { toast } from 'sonner'
+import {
+  ItemCard,
+  ItemCardItem,
+  ItemCardItemAction,
+  ItemCardItemContent,
+  ItemCardItemDescription,
+  ItemCardItems,
+  ItemCardItemTitle,
+} from '~/components/item-card'
+import { Alert, AlertDescription, AlertTitle } from '~/components/ui/alert'
+import { Badge } from '~/components/ui/badge'
+import { Button } from '~/components/ui/button'
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '~/components/ui/dialog'
+import { Input } from '~/components/ui/input'
+import { Skeleton } from '~/components/ui/skeleton'
 import { useEncryption } from '~/contexts/encryption-context'
+import { usePortfolio } from '~/contexts/portfolio-context'
 import {
   decryptData,
   encryptData,
@@ -16,29 +38,7 @@ import {
   importPublicKey,
   storePrivateKey,
 } from '~/lib/crypto'
-import { usePortfolio } from '~/contexts/portfolio-context'
-import {
-  ItemCard,
-  ItemCardItem,
-  ItemCardItemAction,
-  ItemCardItemContent,
-  ItemCardItemDescription,
-  ItemCardItemTitle,
-  ItemCardItems,
-} from '~/components/item-card'
-import { Alert, AlertDescription, AlertTitle } from '~/components/ui/alert'
-import { Button } from '~/components/ui/button'
-import { Badge } from '~/components/ui/badge'
-import { Input } from '~/components/ui/input'
-import { Skeleton } from '~/components/ui/skeleton'
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from '~/components/ui/dialog'
+import { api } from '../../../convex/_generated/api'
 
 export const Route = createFileRoute('/_settings/settings/encryption')({
   component: EncryptionPage,

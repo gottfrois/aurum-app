@@ -1,4 +1,7 @@
 import { v } from 'convex/values'
+import { internal } from './_generated/api'
+import type { Doc, Id } from './_generated/dataModel'
+import type { MutationCtx } from './_generated/server'
 import {
   action,
   internalAction,
@@ -6,12 +9,9 @@ import {
   internalQuery,
   query,
 } from './_generated/server'
-import { internal } from './_generated/api'
-import { getAuthUserId, requireAuthUserId } from './lib/auth'
 import { getCategoryKey } from './lib/accountCategories'
+import { getAuthUserId, requireAuthUserId } from './lib/auth'
 import { encryptForProfile } from './lib/serverCrypto'
-import type { Doc, Id } from './_generated/dataModel'
-import type { MutationCtx } from './_generated/server'
 
 interface PowensAuthResponse {
   auth_token: string

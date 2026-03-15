@@ -42,7 +42,7 @@ function evaluateNumber(
   if (operator === 'is_not_empty') return rawValue != null
 
   const value = Number(rawValue)
-  if (isNaN(value)) return false
+  if (Number.isNaN(value)) return false
 
   switch (operator) {
     case 'eq':

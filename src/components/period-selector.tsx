@@ -1,6 +1,3 @@
-import type { Period } from '~/lib/chart-periods'
-import { PERIODS } from '~/lib/chart-periods'
-import { ToggleGroup, ToggleGroupItem } from '~/components/ui/toggle-group'
 import {
   Select,
   SelectContent,
@@ -8,6 +5,9 @@ import {
   SelectTrigger,
   SelectValue,
 } from '~/components/ui/select'
+import { ToggleGroup, ToggleGroupItem } from '~/components/ui/toggle-group'
+import type { Period } from '~/lib/chart-periods'
+import { PERIODS } from '~/lib/chart-periods'
 
 interface PeriodSelectorProps {
   period: Period

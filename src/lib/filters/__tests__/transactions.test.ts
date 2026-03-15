@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
-import { createTransactionFilterConfig } from '../transactions'
 import { applyFilters } from '../engine'
+import { createTransactionFilterConfig } from '../transactions'
 import type { FilterCondition } from '../types'
 
 const deps = {

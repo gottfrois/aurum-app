@@ -1,10 +1,9 @@
-import * as React from 'react'
 import { createFileRoute } from '@tanstack/react-router'
 import { useMutation, useQuery } from 'convex/react'
 import { Lock, MoreHorizontal, Plus, Trash2 } from 'lucide-react'
+import * as React from 'react'
 import { toast } from 'sonner'
-import { api } from '../../../convex/_generated/api'
-import type { Id } from '../../../convex/_generated/dataModel'
+import { CreateRuleDialog } from '~/components/create-rule-dialog'
 import {
   ItemCard,
   ItemCardHeader,
@@ -14,9 +13,10 @@ import {
   ItemCardItemAction,
   ItemCardItemContent,
   ItemCardItemDescription,
-  ItemCardItemTitle,
   ItemCardItems,
+  ItemCardItemTitle,
 } from '~/components/item-card'
+import { Badge } from '~/components/ui/badge'
 import { Button } from '~/components/ui/button'
 import {
   Dialog,
@@ -35,8 +35,8 @@ import {
 import { Input } from '~/components/ui/input'
 import { Label } from '~/components/ui/label'
 import { Skeleton } from '~/components/ui/skeleton'
-import { Badge } from '~/components/ui/badge'
-import { CreateRuleDialog } from '~/components/create-rule-dialog'
+import { api } from '../../../convex/_generated/api'
+import type { Id } from '../../../convex/_generated/dataModel'
 
 export const Route = createFileRoute('/_settings/settings/categories')({
   component: CategoriesPage,

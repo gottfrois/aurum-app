@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import type { FilterCondition, FilterConfig } from '~/lib/filters/types'
 import { applyFilters } from '~/lib/filters/engine'
+import type { FilterCondition, FilterConfig } from '~/lib/filters/types'
 
 export interface UseFiltersOptions<TField extends string> {
   initialConditions?: Array<FilterCondition<TField>>

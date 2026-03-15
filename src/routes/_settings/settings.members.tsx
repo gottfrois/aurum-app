@@ -1,12 +1,9 @@
-import { useCallback, useEffect, useState } from 'react'
 import { createFileRoute } from '@tanstack/react-router'
 import { useAction, useMutation, useQuery } from 'convex/react'
-import { toast } from 'sonner'
 import { Ellipsis, Mail, UserX, X } from 'lucide-react'
-import { api } from '../../../convex/_generated/api'
+import { useCallback, useEffect, useState } from 'react'
+import { toast } from 'sonner'
 import { ConfirmDialog } from '~/components/confirm-dialog'
-import { useEncryption } from '~/contexts/encryption-context'
-import { envelopeEncryptString, importPublicKey } from '~/lib/crypto'
 import {
   ItemCard,
   ItemCardHeader,
@@ -16,8 +13,8 @@ import {
   ItemCardItemAction,
   ItemCardItemContent,
   ItemCardItemDescription,
-  ItemCardItemTitle,
   ItemCardItems,
+  ItemCardItemTitle,
 } from '~/components/item-card'
 import { Avatar, AvatarFallback, AvatarImage } from '~/components/ui/avatar'
 import { Badge } from '~/components/ui/badge'
@@ -40,6 +37,9 @@ import {
 import { Input } from '~/components/ui/input'
 import { Label } from '~/components/ui/label'
 import { Skeleton } from '~/components/ui/skeleton'
+import { useEncryption } from '~/contexts/encryption-context'
+import { envelopeEncryptString, importPublicKey } from '~/lib/crypto'
+import { api } from '../../../convex/_generated/api'
 
 export const Route = createFileRoute('/_settings/settings/members')({
   component: MembersPage,

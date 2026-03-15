@@ -1,8 +1,6 @@
-import { useEffect, useRef, useState } from 'react'
+import { useUser } from '@clerk/tanstack-react-start'
 import { createFileRoute, useNavigate } from '@tanstack/react-router'
 import { useAction, useConvexAuth, useMutation, useQuery } from 'convex/react'
-import { useUser } from '@clerk/tanstack-react-start'
-import { toast } from 'sonner'
 import {
   Briefcase,
   Check,
@@ -17,19 +15,8 @@ import {
   User,
   Wallet,
 } from 'lucide-react'
-import { api } from '../../convex/_generated/api'
-import { Button } from '~/components/ui/button'
-import { Input } from '~/components/ui/input'
-import { Label } from '~/components/ui/label'
-import { Switch } from '~/components/ui/switch'
-import { Alert, AlertDescription, AlertTitle } from '~/components/ui/alert'
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from '~/components/ui/card'
+import { useEffect, useRef, useState } from 'react'
+import { toast } from 'sonner'
 import {
   Stepper,
   StepperIndicator,
@@ -39,6 +26,18 @@ import {
   StepperTitle,
   StepperTrigger,
 } from '~/components/reui/stepper'
+import { Alert, AlertDescription, AlertTitle } from '~/components/ui/alert'
+import { Button } from '~/components/ui/button'
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from '~/components/ui/card'
+import { Input } from '~/components/ui/input'
+import { Label } from '~/components/ui/label'
+import { Switch } from '~/components/ui/switch'
 import {
   deriveKeyFromPassphrase,
   encryptPrivateKey,
@@ -49,6 +48,7 @@ import {
   importPrivateKey,
   storePrivateKey,
 } from '~/lib/crypto'
+import { api } from '../../convex/_generated/api'
 
 export const Route = createFileRoute('/onboarding')({
   validateSearch: (search: Record<string, unknown>) => ({
@@ -103,7 +103,7 @@ function OnboardingPage() {
   // Reset submitting state when step changes
   useEffect(() => {
     setSubmitting(false)
-  }, [step])
+  }, [])
 
   // Check for pending invitations on first load
   useEffect(() => {

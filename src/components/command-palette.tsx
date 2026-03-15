@@ -1,4 +1,3 @@
-import * as React from 'react'
 import { useNavigate } from '@tanstack/react-router'
 import { useAction } from 'convex/react'
 import {
@@ -9,10 +8,8 @@ import {
   Settings,
   Sparkles,
 } from 'lucide-react'
+import * as React from 'react'
 import { toast } from 'sonner'
-import { api } from '../../convex/_generated/api'
-import type { FilterCondition } from '~/lib/filters/types'
-import type { CommandEntry } from '~/contexts/command-context'
 import {
   CommandDialog,
   CommandEmpty,
@@ -23,9 +20,12 @@ import {
   CommandSeparator,
   CommandShortcut,
 } from '~/components/ui/command'
+import type { CommandEntry } from '~/contexts/command-context'
+import { useCommandRegistry } from '~/contexts/command-context'
 import { serializeFilterConfig } from '~/lib/filters/ai/prompt'
 import { createTransactionFilterConfig } from '~/lib/filters/transactions'
-import { useCommandRegistry } from '~/contexts/command-context'
+import type { FilterCondition } from '~/lib/filters/types'
+import { api } from '../../convex/_generated/api'
 
 const NAV_ITEMS = [
   { title: 'Dashboard', url: '/', icon: LayoutDashboard },
@@ -179,7 +179,6 @@ export function CommandPalette() {
           <div className="flex items-center gap-2 border-b px-3 h-12">
             <Sparkles className="size-4 shrink-0 text-muted-foreground" />
             <input
-              autoFocus
               value={aiQuery}
               onChange={(e) => setAIQuery(e.target.value)}
               onKeyDown={(e) => {

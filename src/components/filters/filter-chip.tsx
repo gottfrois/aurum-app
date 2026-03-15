@@ -1,16 +1,5 @@
-import * as React from 'react'
 import { X } from 'lucide-react'
-import { FilterValueInput } from './filter-value-input'
-import type {
-  EnumOption,
-  FilterCondition,
-  FilterFieldDescriptor,
-} from '~/lib/filters/types'
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from '~/components/ui/popover'
+import * as React from 'react'
 import {
   Command,
   CommandGroup,
@@ -18,10 +7,21 @@ import {
   CommandList,
 } from '~/components/ui/command'
 import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from '~/components/ui/popover'
+import {
+  getOperatorLabel,
   RANGE_OPERATORS,
   VALUELESS_OPERATORS,
-  getOperatorLabel,
 } from '~/lib/filters/operators'
+import type {
+  EnumOption,
+  FilterCondition,
+  FilterFieldDescriptor,
+} from '~/lib/filters/types'
+import { FilterValueInput } from './filter-value-input'
 
 interface FilterChipProps {
   condition: FilterCondition

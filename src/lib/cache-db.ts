@@ -15,8 +15,8 @@ cacheDb.version(1).stores({
   records: '_id, _table',
 })
 
-export { cacheDb }
 export type { CachedRecord }
+export { cacheDb }
 
 export async function clearCache(): Promise<void> {
   await cacheDb.records.clear()

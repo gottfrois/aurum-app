@@ -2,7 +2,6 @@ import { useClerk, useUser } from '@clerk/tanstack-react-start'
 import { LogOut, MoreVertical } from 'lucide-react'
 
 import { Avatar, AvatarFallback, AvatarImage } from '~/components/ui/avatar'
-import { Skeleton } from '~/components/ui/skeleton'
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -17,6 +16,7 @@ import {
   SidebarMenuItem,
   useSidebar,
 } from '~/components/ui/sidebar'
+import { Skeleton } from '~/components/ui/skeleton'
 
 export function NavUser() {
   const { isMobile } = useSidebar()

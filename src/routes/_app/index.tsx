@@ -1,9 +1,13 @@
-import * as React from 'react'
 import { createFileRoute } from '@tanstack/react-router'
 import { useQuery } from 'convex/react'
 import { Landmark } from 'lucide-react'
-import { api } from '../../../convex/_generated/api'
-import type { Period } from '~/lib/chart-periods'
+import * as React from 'react'
+import { AddConnectionDialog } from '~/components/add-connection-dialog'
+import { AllocationChart, CATEGORY_COLORS } from '~/components/allocation-chart'
+import { BalanceChart } from '~/components/balance-chart'
+import { SiteHeader } from '~/components/site-header'
+import { Button } from '~/components/ui/button'
+import { Card, CardContent, CardHeader, CardTitle } from '~/components/ui/card'
 import {
   Empty,
   EmptyContent,
@@ -12,20 +16,16 @@ import {
   EmptyMedia,
   EmptyTitle,
 } from '~/components/ui/empty'
-import { SiteHeader } from '~/components/site-header'
-import { usePortfolio } from '~/contexts/portfolio-context'
-import { AddConnectionDialog } from '~/components/add-connection-dialog'
-import { Button } from '~/components/ui/button'
-import { Card, CardContent, CardHeader, CardTitle } from '~/components/ui/card'
 import { Skeleton } from '~/components/ui/skeleton'
-import { BalanceChart } from '~/components/balance-chart'
-import { getStartTimestamp } from '~/lib/chart-periods'
-import { fillMissingDates } from '~/lib/fill-missing-dates'
-import { AllocationChart, CATEGORY_COLORS } from '~/components/allocation-chart'
-import { ACCOUNT_CATEGORIES, getCategoryKey } from '~/lib/account-categories'
+import { WinnersLosers } from '~/components/winners-losers'
+import { usePortfolio } from '~/contexts/portfolio-context'
 import { useFormatCurrency } from '~/contexts/privacy-context'
 import { useCachedDecryptRecords } from '~/hooks/use-cached-decrypt'
-import { WinnersLosers } from '~/components/winners-losers'
+import { ACCOUNT_CATEGORIES, getCategoryKey } from '~/lib/account-categories'
+import type { Period } from '~/lib/chart-periods'
+import { getStartTimestamp } from '~/lib/chart-periods'
+import { fillMissingDates } from '~/lib/fill-missing-dates'
+import { api } from '../../../convex/_generated/api'
 
 export const Route = createFileRoute('/_app/')({
   component: Dashboard,

@@ -1,31 +1,31 @@
+import { ClerkProvider, useAuth } from '@clerk/tanstack-react-start'
+import { auth } from '@clerk/tanstack-react-start/server'
+import type { ConvexQueryClient } from '@convex-dev/react-query'
+import type { QueryClient } from '@tanstack/react-query'
 import {
+  createRootRouteWithContext,
   HeadContent,
   Outlet,
-  Scripts,
-  createRootRouteWithContext,
   redirect,
+  Scripts,
   useLocation,
   useNavigate,
   useRouteContext,
 } from '@tanstack/react-router'
-import { ClerkProvider, useAuth } from '@clerk/tanstack-react-start'
-import { auth } from '@clerk/tanstack-react-start/server'
 import { createServerFn } from '@tanstack/react-start'
-import { ConvexProviderWithClerk } from 'convex/react-clerk'
-import { useConvexAuth, useQuery } from 'convex/react'
-import * as React from 'react'
-import { ThemeProvider } from 'next-themes'
-import { api } from '../../convex/_generated/api'
-import type { QueryClient } from '@tanstack/react-query'
-import type { ConvexQueryClient } from '@convex-dev/react-query'
 import type { ConvexReactClient } from 'convex/react'
+import { useConvexAuth, useQuery } from 'convex/react'
+import { ConvexProviderWithClerk } from 'convex/react-clerk'
+import { ThemeProvider } from 'next-themes'
+import * as React from 'react'
+import { PassphrasePrompt } from '~/components/passphrase-prompt'
+import { Toaster } from '~/components/ui/sonner'
 import { TooltipProvider } from '~/components/ui/tooltip'
+import { EncryptionProvider } from '~/contexts/encryption-context'
 import { PortfolioProvider } from '~/contexts/portfolio-context'
 import { PrivacyProvider } from '~/contexts/privacy-context'
-import { EncryptionProvider } from '~/contexts/encryption-context'
-import { Toaster } from '~/components/ui/sonner'
-import { PassphrasePrompt } from '~/components/passphrase-prompt'
 import appCss from '~/styles/app.css?url'
+import { api } from '../../convex/_generated/api'
 
 const fetchClerkAuth = createServerFn({ method: 'GET' }).handler(async () => {
   const { userId, getToken } = await auth()

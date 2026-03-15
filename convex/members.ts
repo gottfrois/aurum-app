@@ -1,13 +1,13 @@
 import { v } from 'convex/values'
+import { internal } from './_generated/api'
 import {
   action,
   internalMutation,
   internalQuery,
   query,
 } from './_generated/server'
-import { internal } from './_generated/api'
-import { getAuthUserId, requireAuthUserId } from './lib/auth'
 import { resend } from './email'
+import { getAuthUserId, requireAuthUserId } from './lib/auth'
 
 export const listMembers = query({
   args: {},

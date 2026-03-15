@@ -1,6 +1,6 @@
 import { AnimatePresence, motion, useReducedMotion } from 'motion/react'
-import { useCallback, useState } from 'react'
 import type { KeyboardEvent, ReactNode } from 'react'
+import { useCallback, useState } from 'react'
 import { cn } from '~/lib/utils'
 
 export interface AnimatedToggleProps {

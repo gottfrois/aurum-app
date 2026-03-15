@@ -6,8 +6,8 @@ import {
   TableHeader,
   TableRow,
 } from '~/components/ui/table'
-import { cn } from '~/lib/utils'
 import { usePrivacy } from '~/contexts/privacy-context'
+import { cn } from '~/lib/utils'
 
 interface Investment {
   _id: string

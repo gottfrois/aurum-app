@@ -1,11 +1,8 @@
-import * as React from 'react'
 import { Link } from '@tanstack/react-router'
-import { ChevronRight, CirclePlus } from 'lucide-react'
 import { useQuery } from 'convex/react'
-import { api } from '../../convex/_generated/api'
 import type { LucideIcon } from 'lucide-react'
-
-import { usePortfolio } from '~/contexts/portfolio-context'
+import { ChevronRight, CirclePlus } from 'lucide-react'
+import * as React from 'react'
 import { AddConnectionDialog } from '~/components/add-connection-dialog'
 import {
   Collapsible,
@@ -24,7 +21,9 @@ import {
   SidebarMenuSubButton,
   SidebarMenuSubItem,
 } from '~/components/ui/sidebar'
+import { usePortfolio } from '~/contexts/portfolio-context'
 import { ACCOUNT_CATEGORIES, getCategoryKey } from '~/lib/account-categories'
+import { api } from '../../convex/_generated/api'
 
 const CONNECTION_ALERT_STATES = new Set([
   'SCARequired',

@@ -1,5 +1,3 @@
-import * as React from 'react'
-import { CalendarDays, ChevronDown } from 'lucide-react'
 import {
   endOfMonth,
   endOfYear,
@@ -8,6 +6,8 @@ import {
   startOfMonth,
   startOfYear,
 } from 'date-fns'
+import { CalendarDays, ChevronDown } from 'lucide-react'
+import * as React from 'react'
 import type { DateSelectorValue } from '~/components/reui/date-selector'
 import { DateSelector } from '~/components/reui/date-selector'
 

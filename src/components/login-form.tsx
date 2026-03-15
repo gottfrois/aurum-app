@@ -1,8 +1,7 @@
-import { useState } from 'react'
-import { useNavigate } from '@tanstack/react-router'
 import { useSignIn, useSignUp } from '@clerk/tanstack-react-start/legacy'
+import { useNavigate } from '@tanstack/react-router'
 import { Loader2 } from 'lucide-react'
-import { cn } from '~/lib/utils'
+import { useState } from 'react'
 import { Button } from '~/components/ui/button'
 import {
   Field,
@@ -13,6 +12,7 @@ import {
   FieldSeparator,
 } from '~/components/ui/field'
 import { Input } from '~/components/ui/input'
+import { cn } from '~/lib/utils'
 
 type Mode = 'sign-in' | 'sign-up'
 type VerifyState = 'idle' | 'verifying'

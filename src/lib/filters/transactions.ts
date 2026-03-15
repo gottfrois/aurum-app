@@ -10,8 +10,8 @@ import {
   Text,
   Users,
 } from 'lucide-react'
-import type { EnumOption, FilterConfig, FilterFieldDescriptor } from './types'
 import { resolveTransactionCategoryKey } from '~/lib/categories'
+import type { EnumOption, FilterConfig, FilterFieldDescriptor } from './types'
 
 export type TransactionFilterField =
   | 'account'

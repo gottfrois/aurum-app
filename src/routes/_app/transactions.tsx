@@ -1,16 +1,20 @@
-import * as React from 'react'
 import { createFileRoute } from '@tanstack/react-router'
 import { useQuery } from 'convex/react'
 import { format, subMonths } from 'date-fns'
 import { ArrowLeftRight } from 'lucide-react'
-import { api } from '../../../convex/_generated/api'
+import * as React from 'react'
 import type { CashFlowData } from '~/components/cash-flow-chart'
+import { CashFlowChart } from '~/components/cash-flow-chart'
+import { CategoryPieChart } from '~/components/category-pie-chart'
+import { useAIFilterListener } from '~/components/command-palette'
+import { DateRangePickerDropdown } from '~/components/date-range-picker-dropdown'
+import { ActiveFilters, FilterActions } from '~/components/filters/filter-bar'
+import { SankeyChart } from '~/components/sankey-chart'
+import { SiteHeader } from '~/components/site-header'
+import { TimelineBrush } from '~/components/timeline-brush'
 import type { TransactionRow } from '~/components/transactions-list'
-import type {
-  EnumOption,
-  FilterCondition,
-  FilterConfig,
-} from '~/lib/filters/types'
+import { TransactionsList } from '~/components/transactions-list'
+import { Card, CardContent, CardHeader, CardTitle } from '~/components/ui/card'
 import {
   Empty,
   EmptyDescription,
@@ -18,24 +22,20 @@ import {
   EmptyMedia,
   EmptyTitle,
 } from '~/components/ui/empty'
-import { SiteHeader } from '~/components/site-header'
-import { usePortfolio } from '~/contexts/portfolio-context'
 import { Skeleton } from '~/components/ui/skeleton'
-import { Card, CardContent, CardHeader, CardTitle } from '~/components/ui/card'
-import { CashFlowChart } from '~/components/cash-flow-chart'
-import { CategoryPieChart } from '~/components/category-pie-chart'
-import { SankeyChart } from '~/components/sankey-chart'
-import { TransactionsList } from '~/components/transactions-list'
+import { usePortfolio } from '~/contexts/portfolio-context'
 import { useCachedDecryptRecords } from '~/hooks/use-cached-decrypt'
 import { useDateRange } from '~/hooks/use-date-range'
-import { DateRangePickerDropdown } from '~/components/date-range-picker-dropdown'
-import { TimelineBrush } from '~/components/timeline-brush'
-import { resolveTransactionCategoryKey, useCategories } from '~/lib/categories'
 import { useFilters } from '~/hooks/use-filters'
-import { createTransactionFilterConfig } from '~/lib/filters/transactions'
-import { ActiveFilters, FilterActions } from '~/components/filters/filter-bar'
-import { useAIFilterListener } from '~/components/command-palette'
+import { resolveTransactionCategoryKey, useCategories } from '~/lib/categories'
 import { deserializeFilters, serializeFilters } from '~/lib/filters/serialize'
+import { createTransactionFilterConfig } from '~/lib/filters/transactions'
+import type {
+  EnumOption,
+  FilterCondition,
+  FilterConfig,
+} from '~/lib/filters/types'
+import { api } from '../../../convex/_generated/api'
 
 interface TransactionRecord {
   _id: string
@@ -300,7 +300,7 @@ function TransactionsContent() {
     return [...monthMap.entries()]
       .sort(([a], [b]) => a.localeCompare(b))
       .map(([month, data]) => ({
-        month: new Date(month + '-01').toLocaleDateString('fr-FR', {
+        month: new Date(`${month}-01`).toLocaleDateString('fr-FR', {
           month: 'short',
           year: '2-digit',
         }),

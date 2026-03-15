@@ -1,7 +1,7 @@
 import { TrendingDown, TrendingUp } from 'lucide-react'
-import type { PnL } from '~/lib/pnl'
 import { Badge } from '~/components/ui/badge'
 import { usePrivacy } from '~/contexts/privacy-context'
+import type { PnL } from '~/lib/pnl'
 
 interface PnLBadgeProps {
   pnl: PnL | null

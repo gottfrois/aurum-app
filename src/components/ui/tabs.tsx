@@ -1,9 +1,9 @@
 'use client'
 
-import * as React from 'react'
+import type { VariantProps } from 'class-variance-authority'
 import { cva } from 'class-variance-authority'
 import { Tabs as TabsPrimitive } from 'radix-ui'
-import type { VariantProps } from 'class-variance-authority'
+import type * as React from 'react'
 
 import { cn } from '~/lib/utils'
 
@@ -89,4 +89,4 @@ function TabsContent({
   )
 }
 
-export { Tabs, TabsList, TabsTrigger, TabsContent, tabsListVariants }
+export { Tabs, TabsContent, TabsList, TabsTrigger, tabsListVariants }

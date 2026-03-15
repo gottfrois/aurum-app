@@ -1,13 +1,13 @@
-import { Outlet, createFileRoute, useNavigate } from '@tanstack/react-router'
+import { createFileRoute, Outlet, useNavigate } from '@tanstack/react-router'
 import { useQuery } from 'convex/react'
 import { useEffect } from 'react'
-import { api } from '../../convex/_generated/api'
 import { AppSidebar } from '~/components/app-sidebar'
-import { SidebarInset, SidebarProvider } from '~/components/ui/sidebar'
-import { TrialBanner } from '~/components/trial-banner'
-import { ConnectionAlertBanner } from '~/components/connection-alert-banner'
 import { CommandPalette } from '~/components/command-palette'
+import { ConnectionAlertBanner } from '~/components/connection-alert-banner'
+import { TrialBanner } from '~/components/trial-banner'
+import { SidebarInset, SidebarProvider } from '~/components/ui/sidebar'
 import { CommandProvider } from '~/contexts/command-context'
+import { api } from '../../convex/_generated/api'
 
 export const Route = createFileRoute('/_app')({
   component: AppLayout,

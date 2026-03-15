@@ -1,9 +1,9 @@
 import * as React from 'react'
-import type { CachedRecord } from '~/lib/cache-db'
 import {
   useDecryptRecord,
   useDecryptRecords,
 } from '~/contexts/encryption-context'
+import type { CachedRecord } from '~/lib/cache-db'
 import { cacheDb } from '~/lib/cache-db'
 
 interface HasId {
@@ -53,7 +53,7 @@ export function useCachedDecryptRecords<T extends HasId>(
       .catch(() => {
         cacheLoadedRef.current = true
       })
-  }, [rawRecords, tableName])
+  }, [rawRecords])
 
   // Write fresh decrypted data to cache
   React.useEffect(() => {
