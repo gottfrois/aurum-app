@@ -242,9 +242,8 @@ export function FilterDropdown({
       <PopoverTrigger asChild>
         <span ref={triggerRef} className="inline-flex">
           {trigger ?? (
-            <Button variant="ghost" size="sm" className="gap-1.5">
-              <ListFilter className="size-3.5" />
-              Filter
+            <Button variant="ghost" size="icon" className="rounded-full">
+              <ListFilter />
             </Button>
           )}
         </span>
