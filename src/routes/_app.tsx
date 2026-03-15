@@ -23,10 +23,10 @@ function AppLayout() {
     // subscription is null if unauthenticated or no workspace — do nothing (other guards handle this)
     if (subscription === undefined || subscription === null) return
 
-    // If no active subscription, redirect to checkout
-    if (!subscription.isActive) {
-      void navigate({ to: '/checkout' })
-    }
+    // TODO: Re-enable once Stripe account is set up
+    // if (!subscription.isActive) {
+    //   void navigate({ to: '/checkout' })
+    // }
   }, [subscription, navigate])
 
   // While loading subscription status, render the layout without blocking
