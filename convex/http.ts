@@ -1,12 +1,14 @@
+import { registerRoutes } from '@convex-dev/stripe'
 import { httpRouter } from 'convex/server'
+import { components, internal } from './_generated/api'
 import { httpAction } from './_generated/server'
-import { internal } from './_generated/api'
-import { polar } from './polar'
 
 const http = httpRouter()
 
-// Polar webhook routes (POST /polar/events)
-polar.registerRoutes(http)
+// Stripe webhook routes
+registerRoutes(http, components.stripe, {
+  webhookPath: '/stripe/webhook',
+})
 
 http.route({
   path: '/powens/callback',

@@ -7,6 +7,7 @@ import {
 } from './_generated/server'
 import { internal } from './_generated/api'
 import { getAuthUserId, requireAuthUserId } from './lib/auth'
+import { resend } from './email'
 
 export const listMembers = query({
   args: {},
@@ -81,11 +82,6 @@ export const sendInvitation = action({
       }
     }
 
-    const resendApiKey = process.env.RESEND_API_KEY
-    if (!resendApiKey) {
-      throw new Error('RESEND_API_KEY not configured')
-    }
-
     const siteUrl = process.env.SITE_URL ?? 'http://localhost:3000'
 
     const members = await ctx.runQuery(internal.members.getMembersByWorkspace, {
@@ -127,32 +123,12 @@ export const sendInvitation = action({
 
       if (existing) continue
 
-      await ctx.runMutation(internal.members.createInvitation, {
+      await ctx.runMutation(internal.members.sendInvitationEmail, {
         workspaceId: membership.workspaceId,
         email,
         invitedBy: userId,
+        siteUrl,
       })
-
-      const res = await fetch('https://api.resend.com/emails', {
-        method: 'POST',
-        headers: {
-          Authorization: `Bearer ${resendApiKey}`,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          from:
-            process.env.RESEND_FROM_EMAIL ?? 'Bunkr <onboarding@resend.dev>',
-          to: [email],
-          subject: 'You have been invited to join a workspace on Bunkr',
-          html: `<p>You have been invited to join a workspace on Bunkr.</p><p><a href="${siteUrl}">Sign in to accept the invitation</a></p>`,
-        }),
-      })
-
-      if (!res.ok) {
-        const body = await res.text()
-        console.error(`Resend error for ${email}:`, res.status, body)
-        throw new Error(`Failed to send invitation to ${email}`)
-      }
     }
   },
 })
@@ -335,6 +311,37 @@ export const createInvitation = internalMutation({
     return await ctx.db.insert('workspaceInvitations', {
       ...args,
       status: 'pending',
+    })
+  },
+})
+
+export const sendInvitationEmail = internalMutation({
+  args: {
+    workspaceId: v.id('workspaces'),
+    email: v.string(),
+    invitedBy: v.string(),
+    siteUrl: v.string(),
+  },
+  handler: async (ctx, { workspaceId, email, invitedBy, siteUrl }) => {
+    await ctx.db.insert('workspaceInvitations', {
+      workspaceId,
+      email,
+      invitedBy,
+      status: 'pending',
+    })
+
+    const fromEmail = process.env.RESEND_FROM_EMAIL
+    if (!fromEmail) {
+      throw new Error(
+        'RESEND_FROM_EMAIL environment variable is not configured',
+      )
+    }
+
+    await resend.sendEmail(ctx, {
+      from: fromEmail,
+      to: [email],
+      subject: 'You have been invited to join a workspace on Bunkr',
+      html: `<p>You have been invited to join a workspace on Bunkr.</p><p><a href="${siteUrl}">Sign in to accept the invitation</a></p>`,
     })
   },
 })

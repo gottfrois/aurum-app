@@ -13,6 +13,7 @@ import type * as balanceSnapshots from "../balanceSnapshots.js";
 import type * as billing from "../billing.js";
 import type * as categories from "../categories.js";
 import type * as categoryRules from "../categoryRules.js";
+import type * as email from "../email.js";
 import type * as encryptionKeys from "../encryptionKeys.js";
 import type * as filterViews from "../filterViews.js";
 import type * as http from "../http.js";
@@ -24,10 +25,10 @@ import type * as lib_billing from "../lib/billing.js";
 import type * as lib_serverCrypto from "../lib/serverCrypto.js";
 import type * as members from "../members.js";
 import type * as migrations from "../migrations.js";
-import type * as polar from "../polar.js";
 import type * as powens from "../powens.js";
 import type * as profiles from "../profiles.js";
 import type * as seed from "../seed.js";
+import type * as stripe from "../stripe.js";
 import type * as transactions from "../transactions.js";
 import type * as workspaces from "../workspaces.js";
 
@@ -43,6 +44,7 @@ declare const fullApi: ApiFromModules<{
   billing: typeof billing;
   categories: typeof categories;
   categoryRules: typeof categoryRules;
+  email: typeof email;
   encryptionKeys: typeof encryptionKeys;
   filterViews: typeof filterViews;
   http: typeof http;
@@ -54,10 +56,10 @@ declare const fullApi: ApiFromModules<{
   "lib/serverCrypto": typeof lib_serverCrypto;
   members: typeof members;
   migrations: typeof migrations;
-  polar: typeof polar;
   powens: typeof powens;
   profiles: typeof profiles;
   seed: typeof seed;
+  stripe: typeof stripe;
   transactions: typeof transactions;
   workspaces: typeof workspaces;
 }>;
@@ -89,868 +91,586 @@ export declare const internal: FilterApi<
 >;
 
 export declare const components: {
-  polar: {
+  resend: {
     lib: {
-      createProduct: FunctionReference<
+      cancelEmail: FunctionReference<
+        "mutation",
+        "internal",
+        { emailId: string },
+        null
+      >;
+      cleanupAbandonedEmails: FunctionReference<
+        "mutation",
+        "internal",
+        { olderThan?: number },
+        null
+      >;
+      cleanupOldEmails: FunctionReference<
+        "mutation",
+        "internal",
+        { olderThan?: number },
+        null
+      >;
+      createManualEmail: FunctionReference<
         "mutation",
         "internal",
         {
-          product: {
-            benefits?: Array<{
-              createdAt: string;
-              deletable: boolean;
-              description: string;
-              id: string;
-              metadata?: Record<string, any>;
-              modifiedAt: string | null;
-              organizationId: string;
-              properties?: any;
-              selectable: boolean;
-              type: string;
-            }>;
-            createdAt: string;
-            description: string | null;
-            id: string;
-            isArchived: boolean;
-            isRecurring: boolean;
-            medias: Array<{
-              checksumEtag: string | null;
-              checksumSha256Base64: string | null;
-              checksumSha256Hex: string | null;
-              createdAt: string;
-              id: string;
-              isUploaded: boolean;
-              lastModifiedAt: string | null;
-              mimeType: string;
-              name: string;
-              organizationId: string;
-              path: string;
-              publicUrl: string;
-              service?: string;
-              size: number;
-              sizeReadable: string;
-              storageVersion: string | null;
-              version: string | null;
-            }>;
-            metadata?: Record<string, any>;
-            modifiedAt: string | null;
-            name: string;
-            organizationId: string;
-            prices: Array<{
-              amountType?: string;
-              capAmount?: number | null;
-              createdAt: string;
-              id: string;
-              isArchived: boolean;
-              maximumAmount?: number | null;
-              meter?: { id: string; name: string };
-              meterId?: string;
-              minimumAmount?: number | null;
-              modifiedAt: string | null;
-              presetAmount?: number | null;
-              priceAmount?: number;
-              priceCurrency?: string;
-              productId: string;
-              recurringInterval?: string | null;
-              seatTiers?: Array<{
-                maxSeats: number | null;
-                minSeats: number;
-                pricePerSeat: number;
-              }>;
-              source?: string;
-              type?: string;
-              unitAmount?: string;
-            }>;
-            recurringInterval?: string | null;
-            recurringIntervalCount?: number | null;
-            trialInterval?: string | null;
-            trialIntervalCount?: number | null;
-          };
+          from: string;
+          headers?: Array<{ name: string; value: string }>;
+          replyTo?: Array<string>;
+          subject: string;
+          to: Array<string> | string;
         },
-        any
+        string
       >;
-      createSubscription: FunctionReference<
-        "mutation",
-        "internal",
-        {
-          subscription: {
-            amount: number | null;
-            cancelAtPeriodEnd: boolean;
-            canceledAt?: string | null;
-            checkoutId: string | null;
-            createdAt: string;
-            currency: string | null;
-            currentPeriodEnd: string | null;
-            currentPeriodStart: string;
-            customFieldData?: Record<string, any>;
-            customerCancellationComment?: string | null;
-            customerCancellationReason?: string | null;
-            customerId: string;
-            discountId?: string | null;
-            endedAt: string | null;
-            endsAt?: string | null;
-            id: string;
-            metadata: Record<string, any>;
-            modifiedAt: string | null;
-            priceId?: string;
-            productId: string;
-            recurringInterval: string | null;
-            recurringIntervalCount?: number;
-            seats?: number | null;
-            startedAt: string | null;
-            status: string;
-            trialEnd?: string | null;
-            trialStart?: string | null;
-          };
-        },
-        any
-      >;
-      getCurrentSubscription: FunctionReference<
+      get: FunctionReference<
         "query",
         "internal",
-        { userId: string },
+        { emailId: string },
         {
-          amount: number | null;
-          cancelAtPeriodEnd: boolean;
-          canceledAt?: string | null;
-          checkoutId: string | null;
-          createdAt: string;
-          currency: string | null;
-          currentPeriodEnd: string | null;
-          currentPeriodStart: string;
-          customFieldData?: Record<string, any>;
-          customerCancellationComment?: string | null;
-          customerCancellationReason?: string | null;
-          customerId: string;
-          discountId?: string | null;
-          endedAt: string | null;
-          endsAt?: string | null;
-          id: string;
-          metadata: Record<string, any>;
-          modifiedAt: string | null;
-          priceId?: string;
-          product: {
-            benefits?: Array<{
-              createdAt: string;
-              deletable: boolean;
-              description: string;
-              id: string;
-              metadata?: Record<string, any>;
-              modifiedAt: string | null;
-              organizationId: string;
-              properties?: any;
-              selectable: boolean;
-              type: string;
-            }>;
-            createdAt: string;
-            description: string | null;
+          bcc?: Array<string>;
+          bounced?: boolean;
+          cc?: Array<string>;
+          clicked?: boolean;
+          complained: boolean;
+          createdAt: number;
+          deliveryDelayed?: boolean;
+          errorMessage?: string;
+          failed?: boolean;
+          finalizedAt: number;
+          from: string;
+          headers?: Array<{ name: string; value: string }>;
+          html?: string;
+          opened: boolean;
+          replyTo: Array<string>;
+          resendId?: string;
+          segment: number;
+          status:
+            | "waiting"
+            | "queued"
+            | "cancelled"
+            | "sent"
+            | "delivered"
+            | "delivery_delayed"
+            | "bounced"
+            | "failed";
+          subject?: string;
+          template?: {
             id: string;
-            isArchived: boolean;
-            isRecurring: boolean;
-            medias: Array<{
-              checksumEtag: string | null;
-              checksumSha256Base64: string | null;
-              checksumSha256Hex: string | null;
-              createdAt: string;
-              id: string;
-              isUploaded: boolean;
-              lastModifiedAt: string | null;
-              mimeType: string;
-              name: string;
-              organizationId: string;
-              path: string;
-              publicUrl: string;
-              service?: string;
-              size: number;
-              sizeReadable: string;
-              storageVersion: string | null;
-              version: string | null;
-            }>;
-            metadata?: Record<string, any>;
-            modifiedAt: string | null;
-            name: string;
-            organizationId: string;
-            prices: Array<{
-              amountType?: string;
-              capAmount?: number | null;
-              createdAt: string;
-              id: string;
-              isArchived: boolean;
-              maximumAmount?: number | null;
-              meter?: { id: string; name: string };
-              meterId?: string;
-              minimumAmount?: number | null;
-              modifiedAt: string | null;
-              presetAmount?: number | null;
-              priceAmount?: number;
-              priceCurrency?: string;
-              productId: string;
-              recurringInterval?: string | null;
-              seatTiers?: Array<{
-                maxSeats: number | null;
-                minSeats: number;
-                pricePerSeat: number;
-              }>;
-              source?: string;
-              type?: string;
-              unitAmount?: string;
-            }>;
-            recurringInterval?: string | null;
-            recurringIntervalCount?: number | null;
-            trialInterval?: string | null;
-            trialIntervalCount?: number | null;
+            variables?: Record<string, string | number>;
           };
-          productId: string;
-          recurringInterval: string | null;
-          recurringIntervalCount?: number;
-          seats?: number | null;
-          startedAt: string | null;
+          text?: string;
+          to: Array<string>;
+        } | null
+      >;
+      getStatus: FunctionReference<
+        "query",
+        "internal",
+        { emailId: string },
+        {
+          bounced: boolean;
+          clicked: boolean;
+          complained: boolean;
+          deliveryDelayed: boolean;
+          errorMessage: string | null;
+          failed: boolean;
+          opened: boolean;
+          status:
+            | "waiting"
+            | "queued"
+            | "cancelled"
+            | "sent"
+            | "delivered"
+            | "delivery_delayed"
+            | "bounced"
+            | "failed";
+        } | null
+      >;
+      handleEmailEvent: FunctionReference<
+        "mutation",
+        "internal",
+        { event: any },
+        null
+      >;
+      sendEmail: FunctionReference<
+        "mutation",
+        "internal",
+        {
+          bcc?: Array<string>;
+          cc?: Array<string>;
+          from: string;
+          headers?: Array<{ name: string; value: string }>;
+          html?: string;
+          options: {
+            apiKey: string;
+            initialBackoffMs: number;
+            onEmailEvent?: { fnHandle: string };
+            retryAttempts: number;
+            testMode: boolean;
+          };
+          replyTo?: Array<string>;
+          subject?: string;
+          template?: {
+            id: string;
+            variables?: Record<string, string | number>;
+          };
+          text?: string;
+          to: Array<string>;
+        },
+        string
+      >;
+      updateManualEmail: FunctionReference<
+        "mutation",
+        "internal",
+        {
+          emailId: string;
+          errorMessage?: string;
+          resendId?: string;
+          status:
+            | "waiting"
+            | "queued"
+            | "cancelled"
+            | "sent"
+            | "delivered"
+            | "delivery_delayed"
+            | "bounced"
+            | "failed";
+        },
+        null
+      >;
+    };
+  };
+  stripe: {
+    private: {
+      handleCheckoutSessionCompleted: FunctionReference<
+        "mutation",
+        "internal",
+        {
+          metadata?: any;
+          mode: string;
+          stripeCheckoutSessionId: string;
+          stripeCustomerId?: string;
+        },
+        null
+      >;
+      handleCustomerCreated: FunctionReference<
+        "mutation",
+        "internal",
+        {
+          email?: string;
+          metadata?: any;
+          name?: string;
+          stripeCustomerId: string;
+        },
+        null
+      >;
+      handleCustomerUpdated: FunctionReference<
+        "mutation",
+        "internal",
+        {
+          email?: string;
+          metadata?: any;
+          name?: string;
+          stripeCustomerId: string;
+        },
+        null
+      >;
+      handleInvoiceCreated: FunctionReference<
+        "mutation",
+        "internal",
+        {
+          amountDue: number;
+          amountPaid: number;
+          created: number;
           status: string;
-          trialEnd?: string | null;
-          trialStart?: string | null;
+          stripeCustomerId: string;
+          stripeInvoiceId: string;
+          stripeSubscriptionId?: string;
+        },
+        null
+      >;
+      handleInvoicePaid: FunctionReference<
+        "mutation",
+        "internal",
+        { amountPaid: number; stripeInvoiceId: string },
+        null
+      >;
+      handleInvoicePaymentFailed: FunctionReference<
+        "mutation",
+        "internal",
+        { stripeInvoiceId: string },
+        null
+      >;
+      handlePaymentIntentSucceeded: FunctionReference<
+        "mutation",
+        "internal",
+        {
+          amount: number;
+          created: number;
+          currency: string;
+          metadata?: any;
+          status: string;
+          stripeCustomerId?: string;
+          stripePaymentIntentId: string;
+        },
+        null
+      >;
+      handleSubscriptionCreated: FunctionReference<
+        "mutation",
+        "internal",
+        {
+          cancelAt?: number;
+          cancelAtPeriodEnd: boolean;
+          currentPeriodEnd: number;
+          metadata?: any;
+          priceId: string;
+          quantity?: number;
+          status: string;
+          stripeCustomerId: string;
+          stripeSubscriptionId: string;
+        },
+        null
+      >;
+      handleSubscriptionDeleted: FunctionReference<
+        "mutation",
+        "internal",
+        {
+          cancelAt?: number;
+          cancelAtPeriodEnd?: boolean;
+          currentPeriodEnd?: number;
+          stripeSubscriptionId: string;
+        },
+        null
+      >;
+      handleSubscriptionUpdated: FunctionReference<
+        "mutation",
+        "internal",
+        {
+          cancelAt?: number;
+          cancelAtPeriodEnd: boolean;
+          currentPeriodEnd: number;
+          metadata?: any;
+          priceId?: string;
+          quantity?: number;
+          status: string;
+          stripeSubscriptionId: string;
+        },
+        null
+      >;
+      listSubscriptionsWithCreationTime: FunctionReference<
+        "query",
+        "internal",
+        { stripeCustomerId: string },
+        Array<{
+          _creationTime: number;
+          status: string;
+          stripeCustomerId: string;
+          stripeSubscriptionId: string;
+        }>
+      >;
+      updatePaymentCustomer: FunctionReference<
+        "mutation",
+        "internal",
+        { stripeCustomerId: string; stripePaymentIntentId: string },
+        null
+      >;
+      updateSubscriptionQuantityInternal: FunctionReference<
+        "mutation",
+        "internal",
+        { quantity: number; stripeSubscriptionId: string },
+        null
+      >;
+    };
+    public: {
+      createOrUpdateCustomer: FunctionReference<
+        "mutation",
+        "internal",
+        {
+          email?: string;
+          metadata?: any;
+          name?: string;
+          stripeCustomerId: string;
+        },
+        string
+      >;
+      getCheckoutSession: FunctionReference<
+        "query",
+        "internal",
+        { stripeCheckoutSessionId: string },
+        {
+          metadata?: any;
+          mode: string;
+          status: string;
+          stripeCheckoutSessionId: string;
+          stripeCustomerId?: string;
+        } | null
+      >;
+      getCustomer: FunctionReference<
+        "query",
+        "internal",
+        { stripeCustomerId: string },
+        {
+          email?: string;
+          metadata?: any;
+          name?: string;
+          stripeCustomerId: string;
+          userId?: string;
+        } | null
+      >;
+      getCustomerByEmail: FunctionReference<
+        "query",
+        "internal",
+        { email: string },
+        {
+          email?: string;
+          metadata?: any;
+          name?: string;
+          stripeCustomerId: string;
+          userId?: string;
         } | null
       >;
       getCustomerByUserId: FunctionReference<
         "query",
         "internal",
         { userId: string },
-        { id: string; metadata?: Record<string, any>; userId: string } | null
+        {
+          email?: string;
+          metadata?: any;
+          name?: string;
+          stripeCustomerId: string;
+          userId?: string;
+        } | null
       >;
-      getProduct: FunctionReference<
+      getPayment: FunctionReference<
         "query",
         "internal",
-        { id: string },
+        { stripePaymentIntentId: string },
         {
-          benefits?: Array<{
-            createdAt: string;
-            deletable: boolean;
-            description: string;
-            id: string;
-            metadata?: Record<string, any>;
-            modifiedAt: string | null;
-            organizationId: string;
-            properties?: any;
-            selectable: boolean;
-            type: string;
-          }>;
-          createdAt: string;
-          description: string | null;
-          id: string;
-          isArchived: boolean;
-          isRecurring: boolean;
-          medias: Array<{
-            checksumEtag: string | null;
-            checksumSha256Base64: string | null;
-            checksumSha256Hex: string | null;
-            createdAt: string;
-            id: string;
-            isUploaded: boolean;
-            lastModifiedAt: string | null;
-            mimeType: string;
-            name: string;
-            organizationId: string;
-            path: string;
-            publicUrl: string;
-            service?: string;
-            size: number;
-            sizeReadable: string;
-            storageVersion: string | null;
-            version: string | null;
-          }>;
-          metadata?: Record<string, any>;
-          modifiedAt: string | null;
-          name: string;
-          organizationId: string;
-          prices: Array<{
-            amountType?: string;
-            capAmount?: number | null;
-            createdAt: string;
-            id: string;
-            isArchived: boolean;
-            maximumAmount?: number | null;
-            meter?: { id: string; name: string };
-            meterId?: string;
-            minimumAmount?: number | null;
-            modifiedAt: string | null;
-            presetAmount?: number | null;
-            priceAmount?: number;
-            priceCurrency?: string;
-            productId: string;
-            recurringInterval?: string | null;
-            seatTiers?: Array<{
-              maxSeats: number | null;
-              minSeats: number;
-              pricePerSeat: number;
-            }>;
-            source?: string;
-            type?: string;
-            unitAmount?: string;
-          }>;
-          recurringInterval?: string | null;
-          recurringIntervalCount?: number | null;
-          trialInterval?: string | null;
-          trialIntervalCount?: number | null;
+          amount: number;
+          created: number;
+          currency: string;
+          metadata?: any;
+          orgId?: string;
+          status: string;
+          stripeCustomerId?: string;
+          stripePaymentIntentId: string;
+          userId?: string;
         } | null
       >;
       getSubscription: FunctionReference<
         "query",
         "internal",
-        { id: string },
+        { stripeSubscriptionId: string },
         {
-          amount: number | null;
+          cancelAt?: number;
           cancelAtPeriodEnd: boolean;
-          canceledAt?: string | null;
-          checkoutId: string | null;
-          createdAt: string;
-          currency: string | null;
-          currentPeriodEnd: string | null;
-          currentPeriodStart: string;
-          customFieldData?: Record<string, any>;
-          customerCancellationComment?: string | null;
-          customerCancellationReason?: string | null;
-          customerId: string;
-          discountId?: string | null;
-          endedAt: string | null;
-          endsAt?: string | null;
-          id: string;
-          metadata: Record<string, any>;
-          modifiedAt: string | null;
-          priceId?: string;
-          productId: string;
-          recurringInterval: string | null;
-          recurringIntervalCount?: number;
-          seats?: number | null;
-          startedAt: string | null;
+          currentPeriodEnd: number;
+          metadata?: any;
+          orgId?: string;
+          priceId: string;
+          quantity?: number;
           status: string;
-          trialEnd?: string | null;
-          trialStart?: string | null;
+          stripeCustomerId: string;
+          stripeSubscriptionId: string;
+          userId?: string;
         } | null
       >;
-      insertCustomer: FunctionReference<
+      getSubscriptionByOrgId: FunctionReference<
+        "query",
+        "internal",
+        { orgId: string },
+        {
+          cancelAt?: number;
+          cancelAtPeriodEnd: boolean;
+          currentPeriodEnd: number;
+          metadata?: any;
+          orgId?: string;
+          priceId: string;
+          quantity?: number;
+          status: string;
+          stripeCustomerId: string;
+          stripeSubscriptionId: string;
+          userId?: string;
+        } | null
+      >;
+      listCheckoutSessions: FunctionReference<
+        "query",
+        "internal",
+        { stripeCustomerId: string },
+        Array<{
+          metadata?: any;
+          mode: string;
+          status: string;
+          stripeCheckoutSessionId: string;
+          stripeCustomerId?: string;
+        }>
+      >;
+      listInvoices: FunctionReference<
+        "query",
+        "internal",
+        { stripeCustomerId: string },
+        Array<{
+          amountDue: number;
+          amountPaid: number;
+          created: number;
+          orgId?: string;
+          status: string;
+          stripeCustomerId: string;
+          stripeInvoiceId: string;
+          stripeSubscriptionId?: string;
+          userId?: string;
+        }>
+      >;
+      listInvoicesByOrgId: FunctionReference<
+        "query",
+        "internal",
+        { orgId: string },
+        Array<{
+          amountDue: number;
+          amountPaid: number;
+          created: number;
+          orgId?: string;
+          status: string;
+          stripeCustomerId: string;
+          stripeInvoiceId: string;
+          stripeSubscriptionId?: string;
+          userId?: string;
+        }>
+      >;
+      listInvoicesByUserId: FunctionReference<
+        "query",
+        "internal",
+        { userId: string },
+        Array<{
+          amountDue: number;
+          amountPaid: number;
+          created: number;
+          orgId?: string;
+          status: string;
+          stripeCustomerId: string;
+          stripeInvoiceId: string;
+          stripeSubscriptionId?: string;
+          userId?: string;
+        }>
+      >;
+      listPayments: FunctionReference<
+        "query",
+        "internal",
+        { stripeCustomerId: string },
+        Array<{
+          amount: number;
+          created: number;
+          currency: string;
+          metadata?: any;
+          orgId?: string;
+          status: string;
+          stripeCustomerId?: string;
+          stripePaymentIntentId: string;
+          userId?: string;
+        }>
+      >;
+      listPaymentsByOrgId: FunctionReference<
+        "query",
+        "internal",
+        { orgId: string },
+        Array<{
+          amount: number;
+          created: number;
+          currency: string;
+          metadata?: any;
+          orgId?: string;
+          status: string;
+          stripeCustomerId?: string;
+          stripePaymentIntentId: string;
+          userId?: string;
+        }>
+      >;
+      listPaymentsByUserId: FunctionReference<
+        "query",
+        "internal",
+        { userId: string },
+        Array<{
+          amount: number;
+          created: number;
+          currency: string;
+          metadata?: any;
+          orgId?: string;
+          status: string;
+          stripeCustomerId?: string;
+          stripePaymentIntentId: string;
+          userId?: string;
+        }>
+      >;
+      listSubscriptions: FunctionReference<
+        "query",
+        "internal",
+        { stripeCustomerId: string },
+        Array<{
+          cancelAt?: number;
+          cancelAtPeriodEnd: boolean;
+          currentPeriodEnd: number;
+          metadata?: any;
+          orgId?: string;
+          priceId: string;
+          quantity?: number;
+          status: string;
+          stripeCustomerId: string;
+          stripeSubscriptionId: string;
+          userId?: string;
+        }>
+      >;
+      listSubscriptionsByOrgId: FunctionReference<
+        "query",
+        "internal",
+        { orgId: string },
+        Array<{
+          cancelAt?: number;
+          cancelAtPeriodEnd: boolean;
+          currentPeriodEnd: number;
+          metadata?: any;
+          orgId?: string;
+          priceId: string;
+          quantity?: number;
+          status: string;
+          stripeCustomerId: string;
+          stripeSubscriptionId: string;
+          userId?: string;
+        }>
+      >;
+      listSubscriptionsByUserId: FunctionReference<
+        "query",
+        "internal",
+        { userId: string },
+        Array<{
+          cancelAt?: number;
+          cancelAtPeriodEnd: boolean;
+          currentPeriodEnd: number;
+          metadata?: any;
+          orgId?: string;
+          priceId: string;
+          quantity?: number;
+          status: string;
+          stripeCustomerId: string;
+          stripeSubscriptionId: string;
+          userId?: string;
+        }>
+      >;
+      updateSubscriptionMetadata: FunctionReference<
         "mutation",
         "internal",
-        { id: string; metadata?: Record<string, any>; userId: string },
-        string
+        {
+          metadata: any;
+          orgId?: string;
+          stripeSubscriptionId: string;
+          userId?: string;
+        },
+        null
       >;
-      listAllUserSubscriptions: FunctionReference<
-        "query",
-        "internal",
-        { userId: string },
-        Array<{
-          amount: number | null;
-          cancelAtPeriodEnd: boolean;
-          canceledAt?: string | null;
-          checkoutId: string | null;
-          createdAt: string;
-          currency: string | null;
-          currentPeriodEnd: string | null;
-          currentPeriodStart: string;
-          customFieldData?: Record<string, any>;
-          customerCancellationComment?: string | null;
-          customerCancellationReason?: string | null;
-          customerId: string;
-          discountId?: string | null;
-          endedAt: string | null;
-          endsAt?: string | null;
-          id: string;
-          metadata: Record<string, any>;
-          modifiedAt: string | null;
-          priceId?: string;
-          product: {
-            benefits?: Array<{
-              createdAt: string;
-              deletable: boolean;
-              description: string;
-              id: string;
-              metadata?: Record<string, any>;
-              modifiedAt: string | null;
-              organizationId: string;
-              properties?: any;
-              selectable: boolean;
-              type: string;
-            }>;
-            createdAt: string;
-            description: string | null;
-            id: string;
-            isArchived: boolean;
-            isRecurring: boolean;
-            medias: Array<{
-              checksumEtag: string | null;
-              checksumSha256Base64: string | null;
-              checksumSha256Hex: string | null;
-              createdAt: string;
-              id: string;
-              isUploaded: boolean;
-              lastModifiedAt: string | null;
-              mimeType: string;
-              name: string;
-              organizationId: string;
-              path: string;
-              publicUrl: string;
-              service?: string;
-              size: number;
-              sizeReadable: string;
-              storageVersion: string | null;
-              version: string | null;
-            }>;
-            metadata?: Record<string, any>;
-            modifiedAt: string | null;
-            name: string;
-            organizationId: string;
-            prices: Array<{
-              amountType?: string;
-              capAmount?: number | null;
-              createdAt: string;
-              id: string;
-              isArchived: boolean;
-              maximumAmount?: number | null;
-              meter?: { id: string; name: string };
-              meterId?: string;
-              minimumAmount?: number | null;
-              modifiedAt: string | null;
-              presetAmount?: number | null;
-              priceAmount?: number;
-              priceCurrency?: string;
-              productId: string;
-              recurringInterval?: string | null;
-              seatTiers?: Array<{
-                maxSeats: number | null;
-                minSeats: number;
-                pricePerSeat: number;
-              }>;
-              source?: string;
-              type?: string;
-              unitAmount?: string;
-            }>;
-            recurringInterval?: string | null;
-            recurringIntervalCount?: number | null;
-            trialInterval?: string | null;
-            trialIntervalCount?: number | null;
-          } | null;
-          productId: string;
-          recurringInterval: string | null;
-          recurringIntervalCount?: number;
-          seats?: number | null;
-          startedAt: string | null;
-          status: string;
-          trialEnd?: string | null;
-          trialStart?: string | null;
-        }>
-      >;
-      listCustomerSubscriptions: FunctionReference<
-        "query",
-        "internal",
-        { customerId: string },
-        Array<{
-          amount: number | null;
-          cancelAtPeriodEnd: boolean;
-          canceledAt?: string | null;
-          checkoutId: string | null;
-          createdAt: string;
-          currency: string | null;
-          currentPeriodEnd: string | null;
-          currentPeriodStart: string;
-          customFieldData?: Record<string, any>;
-          customerCancellationComment?: string | null;
-          customerCancellationReason?: string | null;
-          customerId: string;
-          discountId?: string | null;
-          endedAt: string | null;
-          endsAt?: string | null;
-          id: string;
-          metadata: Record<string, any>;
-          modifiedAt: string | null;
-          priceId?: string;
-          productId: string;
-          recurringInterval: string | null;
-          recurringIntervalCount?: number;
-          seats?: number | null;
-          startedAt: string | null;
-          status: string;
-          trialEnd?: string | null;
-          trialStart?: string | null;
-        }>
-      >;
-      listProducts: FunctionReference<
-        "query",
-        "internal",
-        { includeArchived?: boolean },
-        Array<{
-          benefits?: Array<{
-            createdAt: string;
-            deletable: boolean;
-            description: string;
-            id: string;
-            metadata?: Record<string, any>;
-            modifiedAt: string | null;
-            organizationId: string;
-            properties?: any;
-            selectable: boolean;
-            type: string;
-          }>;
-          createdAt: string;
-          description: string | null;
-          id: string;
-          isArchived: boolean;
-          isRecurring: boolean;
-          medias: Array<{
-            checksumEtag: string | null;
-            checksumSha256Base64: string | null;
-            checksumSha256Hex: string | null;
-            createdAt: string;
-            id: string;
-            isUploaded: boolean;
-            lastModifiedAt: string | null;
-            mimeType: string;
-            name: string;
-            organizationId: string;
-            path: string;
-            publicUrl: string;
-            service?: string;
-            size: number;
-            sizeReadable: string;
-            storageVersion: string | null;
-            version: string | null;
-          }>;
-          metadata?: Record<string, any>;
-          modifiedAt: string | null;
-          name: string;
-          organizationId: string;
-          priceAmount?: number;
-          prices: Array<{
-            amountType?: string;
-            capAmount?: number | null;
-            createdAt: string;
-            id: string;
-            isArchived: boolean;
-            maximumAmount?: number | null;
-            meter?: { id: string; name: string };
-            meterId?: string;
-            minimumAmount?: number | null;
-            modifiedAt: string | null;
-            presetAmount?: number | null;
-            priceAmount?: number;
-            priceCurrency?: string;
-            productId: string;
-            recurringInterval?: string | null;
-            seatTiers?: Array<{
-              maxSeats: number | null;
-              minSeats: number;
-              pricePerSeat: number;
-            }>;
-            source?: string;
-            type?: string;
-            unitAmount?: string;
-          }>;
-          recurringInterval?: string | null;
-          recurringIntervalCount?: number | null;
-          trialInterval?: string | null;
-          trialIntervalCount?: number | null;
-        }>
-      >;
-      listUserSubscriptions: FunctionReference<
-        "query",
-        "internal",
-        { userId: string },
-        Array<{
-          amount: number | null;
-          cancelAtPeriodEnd: boolean;
-          canceledAt?: string | null;
-          checkoutId: string | null;
-          createdAt: string;
-          currency: string | null;
-          currentPeriodEnd: string | null;
-          currentPeriodStart: string;
-          customFieldData?: Record<string, any>;
-          customerCancellationComment?: string | null;
-          customerCancellationReason?: string | null;
-          customerId: string;
-          discountId?: string | null;
-          endedAt: string | null;
-          endsAt?: string | null;
-          id: string;
-          metadata: Record<string, any>;
-          modifiedAt: string | null;
-          priceId?: string;
-          product: {
-            benefits?: Array<{
-              createdAt: string;
-              deletable: boolean;
-              description: string;
-              id: string;
-              metadata?: Record<string, any>;
-              modifiedAt: string | null;
-              organizationId: string;
-              properties?: any;
-              selectable: boolean;
-              type: string;
-            }>;
-            createdAt: string;
-            description: string | null;
-            id: string;
-            isArchived: boolean;
-            isRecurring: boolean;
-            medias: Array<{
-              checksumEtag: string | null;
-              checksumSha256Base64: string | null;
-              checksumSha256Hex: string | null;
-              createdAt: string;
-              id: string;
-              isUploaded: boolean;
-              lastModifiedAt: string | null;
-              mimeType: string;
-              name: string;
-              organizationId: string;
-              path: string;
-              publicUrl: string;
-              service?: string;
-              size: number;
-              sizeReadable: string;
-              storageVersion: string | null;
-              version: string | null;
-            }>;
-            metadata?: Record<string, any>;
-            modifiedAt: string | null;
-            name: string;
-            organizationId: string;
-            prices: Array<{
-              amountType?: string;
-              capAmount?: number | null;
-              createdAt: string;
-              id: string;
-              isArchived: boolean;
-              maximumAmount?: number | null;
-              meter?: { id: string; name: string };
-              meterId?: string;
-              minimumAmount?: number | null;
-              modifiedAt: string | null;
-              presetAmount?: number | null;
-              priceAmount?: number;
-              priceCurrency?: string;
-              productId: string;
-              recurringInterval?: string | null;
-              seatTiers?: Array<{
-                maxSeats: number | null;
-                minSeats: number;
-                pricePerSeat: number;
-              }>;
-              source?: string;
-              type?: string;
-              unitAmount?: string;
-            }>;
-            recurringInterval?: string | null;
-            recurringIntervalCount?: number | null;
-            trialInterval?: string | null;
-            trialIntervalCount?: number | null;
-          } | null;
-          productId: string;
-          recurringInterval: string | null;
-          recurringIntervalCount?: number;
-          seats?: number | null;
-          startedAt: string | null;
-          status: string;
-          trialEnd?: string | null;
-          trialStart?: string | null;
-        }>
-      >;
-      syncProducts: FunctionReference<
+      updateSubscriptionQuantity: FunctionReference<
         "action",
         "internal",
-        { polarAccessToken: string; server: "sandbox" | "production" },
-        any
-      >;
-      updateProduct: FunctionReference<
-        "mutation",
-        "internal",
-        {
-          product: {
-            benefits?: Array<{
-              createdAt: string;
-              deletable: boolean;
-              description: string;
-              id: string;
-              metadata?: Record<string, any>;
-              modifiedAt: string | null;
-              organizationId: string;
-              properties?: any;
-              selectable: boolean;
-              type: string;
-            }>;
-            createdAt: string;
-            description: string | null;
-            id: string;
-            isArchived: boolean;
-            isRecurring: boolean;
-            medias: Array<{
-              checksumEtag: string | null;
-              checksumSha256Base64: string | null;
-              checksumSha256Hex: string | null;
-              createdAt: string;
-              id: string;
-              isUploaded: boolean;
-              lastModifiedAt: string | null;
-              mimeType: string;
-              name: string;
-              organizationId: string;
-              path: string;
-              publicUrl: string;
-              service?: string;
-              size: number;
-              sizeReadable: string;
-              storageVersion: string | null;
-              version: string | null;
-            }>;
-            metadata?: Record<string, any>;
-            modifiedAt: string | null;
-            name: string;
-            organizationId: string;
-            prices: Array<{
-              amountType?: string;
-              capAmount?: number | null;
-              createdAt: string;
-              id: string;
-              isArchived: boolean;
-              maximumAmount?: number | null;
-              meter?: { id: string; name: string };
-              meterId?: string;
-              minimumAmount?: number | null;
-              modifiedAt: string | null;
-              presetAmount?: number | null;
-              priceAmount?: number;
-              priceCurrency?: string;
-              productId: string;
-              recurringInterval?: string | null;
-              seatTiers?: Array<{
-                maxSeats: number | null;
-                minSeats: number;
-                pricePerSeat: number;
-              }>;
-              source?: string;
-              type?: string;
-              unitAmount?: string;
-            }>;
-            recurringInterval?: string | null;
-            recurringIntervalCount?: number | null;
-            trialInterval?: string | null;
-            trialIntervalCount?: number | null;
-          };
-        },
-        any
-      >;
-      updateProducts: FunctionReference<
-        "mutation",
-        "internal",
-        {
-          polarAccessToken: string;
-          products: Array<{
-            benefits?: Array<{
-              createdAt: string;
-              deletable: boolean;
-              description: string;
-              id: string;
-              metadata?: Record<string, any>;
-              modifiedAt: string | null;
-              organizationId: string;
-              properties?: any;
-              selectable: boolean;
-              type: string;
-            }>;
-            createdAt: string;
-            description: string | null;
-            id: string;
-            isArchived: boolean;
-            isRecurring: boolean;
-            medias: Array<{
-              checksumEtag: string | null;
-              checksumSha256Base64: string | null;
-              checksumSha256Hex: string | null;
-              createdAt: string;
-              id: string;
-              isUploaded: boolean;
-              lastModifiedAt: string | null;
-              mimeType: string;
-              name: string;
-              organizationId: string;
-              path: string;
-              publicUrl: string;
-              service?: string;
-              size: number;
-              sizeReadable: string;
-              storageVersion: string | null;
-              version: string | null;
-            }>;
-            metadata?: Record<string, any>;
-            modifiedAt: string | null;
-            name: string;
-            organizationId: string;
-            prices: Array<{
-              amountType?: string;
-              capAmount?: number | null;
-              createdAt: string;
-              id: string;
-              isArchived: boolean;
-              maximumAmount?: number | null;
-              meter?: { id: string; name: string };
-              meterId?: string;
-              minimumAmount?: number | null;
-              modifiedAt: string | null;
-              presetAmount?: number | null;
-              priceAmount?: number;
-              priceCurrency?: string;
-              productId: string;
-              recurringInterval?: string | null;
-              seatTiers?: Array<{
-                maxSeats: number | null;
-                minSeats: number;
-                pricePerSeat: number;
-              }>;
-              source?: string;
-              type?: string;
-              unitAmount?: string;
-            }>;
-            recurringInterval?: string | null;
-            recurringIntervalCount?: number | null;
-            trialInterval?: string | null;
-            trialIntervalCount?: number | null;
-          }>;
-        },
-        any
-      >;
-      updateSubscription: FunctionReference<
-        "mutation",
-        "internal",
-        {
-          subscription: {
-            amount: number | null;
-            cancelAtPeriodEnd: boolean;
-            canceledAt?: string | null;
-            checkoutId: string | null;
-            createdAt: string;
-            currency: string | null;
-            currentPeriodEnd: string | null;
-            currentPeriodStart: string;
-            customFieldData?: Record<string, any>;
-            customerCancellationComment?: string | null;
-            customerCancellationReason?: string | null;
-            customerId: string;
-            discountId?: string | null;
-            endedAt: string | null;
-            endsAt?: string | null;
-            id: string;
-            metadata: Record<string, any>;
-            modifiedAt: string | null;
-            priceId?: string;
-            productId: string;
-            recurringInterval: string | null;
-            recurringIntervalCount?: number;
-            seats?: number | null;
-            startedAt: string | null;
-            status: string;
-            trialEnd?: string | null;
-            trialStart?: string | null;
-          };
-        },
-        any
+        { quantity: number; stripeSubscriptionId: string },
+        null
       >;
     };
   };

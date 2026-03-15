@@ -187,6 +187,74 @@ export const batchUpdateLabelsChunk = internalMutation({
   },
 })
 
+export const getTransactionVolume = query({
+  args: {
+    profileId: v.id('profiles'),
+    startDate: v.string(),
+    endDate: v.string(),
+  },
+  handler: async (ctx, args) => {
+    const userId = await getAuthUserId(ctx)
+    if (!userId) return []
+
+    const txs = await ctx.db
+      .query('transactions')
+      .withIndex('by_profileId_date', (q) =>
+        q
+          .eq('profileId', args.profileId)
+          .gte('date', args.startDate)
+          .lte('date', args.endDate),
+      )
+      .collect()
+
+    const counts = new Map<string, number>()
+    for (const t of txs) {
+      if (t.deleted) continue
+      const day = t.date.slice(0, 10)
+      counts.set(day, (counts.get(day) ?? 0) + 1)
+    }
+    return [...counts.entries()]
+      .map(([date, count]) => ({ date, count }))
+      .sort((a, b) => a.date.localeCompare(b.date))
+  },
+})
+
+export const getTransactionVolumeAllProfiles = query({
+  args: {
+    profileIds: v.array(v.id('profiles')),
+    startDate: v.string(),
+    endDate: v.string(),
+  },
+  handler: async (ctx, args) => {
+    const userId = await getAuthUserId(ctx)
+    if (!userId) return []
+
+    const results = await Promise.all(
+      args.profileIds.map((profileId) =>
+        ctx.db
+          .query('transactions')
+          .withIndex('by_profileId_date', (q) =>
+            q
+              .eq('profileId', profileId)
+              .gte('date', args.startDate)
+              .lte('date', args.endDate),
+          )
+          .collect(),
+      ),
+    )
+
+    const counts = new Map<string, number>()
+    for (const t of results.flat()) {
+      if (t.deleted) continue
+      const day = t.date.slice(0, 10)
+      counts.set(day, (counts.get(day) ?? 0) + 1)
+    }
+    return [...counts.entries()]
+      .map(([date, count]) => ({ date, count }))
+      .sort((a, b) => a.date.localeCompare(b.date))
+  },
+})
+
 export const updateTransactionCategory = mutation({
   args: {
     transactionId: v.id('transactions'),

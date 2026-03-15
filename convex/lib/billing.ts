@@ -1,7 +1,5 @@
-import { PLAN_SEATS, polar } from '../polar'
+import { components } from '../_generated/api'
 import type { QueryCtx } from '../_generated/server'
-
-export type PlanTier = 'solo' | 'team' | 'family'
 
 export interface SubscriptionStatus {
   isActive: boolean
@@ -9,12 +7,11 @@ export interface SubscriptionStatus {
   trialEndsAt: number | null
   renewsAt: number | null
   seats: number
-  tier: PlanTier | null
   interval: 'monthly' | 'yearly' | null
-  productKey: string | null
-  discountId: string | null
   amount: number | null
   currency: string | null
+  subscriptionId: string | null
+  cancelAtPeriodEnd: boolean
 }
 
 const NO_SUBSCRIPTION: SubscriptionStatus = {
@@ -23,67 +20,54 @@ const NO_SUBSCRIPTION: SubscriptionStatus = {
   trialEndsAt: null,
   renewsAt: null,
   seats: 0,
-  tier: null,
   interval: null,
-  productKey: null,
-  discountId: null,
   amount: null,
   currency: null,
-}
-
-function getTierFromProductKey(productKey: string): PlanTier | null {
-  if (productKey.startsWith('solo')) return 'solo'
-  if (productKey.startsWith('team')) return 'team'
-  if (productKey.startsWith('family')) return 'family'
-  return null
-}
-
-function getIntervalFromProductKey(
-  productKey: string,
-): 'monthly' | 'yearly' | null {
-  if (productKey.endsWith('Monthly')) return 'monthly'
-  if (productKey.endsWith('Yearly')) return 'yearly'
-  return null
+  subscriptionId: null,
+  cancelAtPeriodEnd: false,
 }
 
 export async function getWorkspaceSubscription(
   ctx: QueryCtx,
   ownerUserId: string,
 ): Promise<SubscriptionStatus> {
-  const subscription = await polar.getCurrentSubscription(ctx, {
-    userId: ownerUserId,
-  })
+  const subscriptions = await ctx.runQuery(
+    components.stripe.public.listSubscriptionsByUserId,
+    { userId: ownerUserId },
+  )
+
+  // Find the first active or trialing subscription
+  const subscription = subscriptions.find(
+    (s) => s.status === 'active' || s.status === 'trialing',
+  )
 
   if (!subscription) {
     return NO_SUBSCRIPTION
   }
 
   const isTrial = subscription.status === 'trialing'
-  const isActive =
-    subscription.status === 'active' || subscription.status === 'trialing'
+  const isActive = true
 
-  const trialEndStr = isTrial
-    ? (subscription.trialEnd ?? subscription.currentPeriodEnd ?? null)
-    : null
-  const trialEndsAt = trialEndStr ? new Date(trialEndStr).getTime() : null
+  // During trial, currentPeriodEnd is the trial end date
+  const trialEndsAt = isTrial ? subscription.currentPeriodEnd * 1000 : null
 
-  const periodEndStr = subscription.currentPeriodEnd ?? null
-  const renewsAt = periodEndStr ? new Date(periodEndStr).getTime() : null
+  const renewsAt = subscription.currentPeriodEnd * 1000
 
-  const productKey = subscription.productKey ?? ''
-  const seats = PLAN_SEATS[productKey] ?? 1
+  // Determine interval by comparing priceId against configured prices
+  const monthlyPriceId = process.env.STRIPE_MONTHLY_PRICE_ID
+  const interval: 'monthly' | 'yearly' | null =
+    subscription.priceId === monthlyPriceId ? 'monthly' : 'yearly'
 
   return {
     isActive,
     isTrial,
     trialEndsAt,
     renewsAt,
-    seats,
-    tier: getTierFromProductKey(productKey),
-    interval: getIntervalFromProductKey(productKey),
-    productKey,
-    discountId: subscription.discountId ?? null,
-    amount: subscription.amount ?? null,
-    currency: subscription.currency ?? null,
+    seats: subscription.quantity ?? 1,
+    interval,
+    amount: null,
+    currency: null,
+    subscriptionId: subscription.stripeSubscriptionId,
+    cancelAtPeriodEnd: subscription.cancelAtPeriodEnd,
   }
 }
