@@ -1,6 +1,7 @@
 import { v } from 'convex/values'
 import { mutation, query } from './_generated/server'
 import { getAuthUserId } from './lib/auth'
+import { requireFamilyPlan } from './lib/billing'
 
 async function getCurrentMember(ctx: { db: any; auth: any }) {
   const userId = await getAuthUserId(ctx as any)
@@ -45,6 +46,8 @@ export const createPortfolio = mutation({
       memberId: member._id,
       name: args.name,
       icon: args.icon,
+      shared: false,
+      shareAmounts: true,
     })
   },
 })
@@ -134,5 +137,49 @@ export const deletePortfolio = mutation({
     ])
 
     await ctx.db.delete('portfolios', args.portfolioId)
+  },
+})
+
+export const listPortfolioSharing = query({
+  args: {},
+  handler: async (ctx) => {
+    const member = await getCurrentMember(ctx)
+    if (!member) return []
+    const portfolios = await ctx.db
+      .query('portfolios')
+      .withIndex('by_memberId', (q) => q.eq('memberId', member._id))
+      .collect()
+    return portfolios.map((p) => ({
+      _id: p._id,
+      name: p.name,
+      icon: p.icon,
+      shared: p.shared ?? false,
+      shareAmounts: p.shareAmounts ?? true,
+    }))
+  },
+})
+
+export const updatePortfolioSharing = mutation({
+  args: {
+    portfolioId: v.id('portfolios'),
+    shared: v.optional(v.boolean()),
+    shareAmounts: v.optional(v.boolean()),
+  },
+  handler: async (ctx, args) => {
+    const member = await getCurrentMember(ctx)
+    if (!member) throw new Error('No workspace found')
+
+    const portfolio = await ctx.db.get('portfolios', args.portfolioId)
+    if (!portfolio || portfolio.memberId !== member._id) {
+      throw new Error('Portfolio not found or not owned by you')
+    }
+
+    await requireFamilyPlan(ctx, member.workspaceId)
+
+    const updates: Record<string, boolean> = {}
+    if (args.shared !== undefined) updates.shared = args.shared
+    if (args.shareAmounts !== undefined)
+      updates.shareAmounts = args.shareAmounts
+    await ctx.db.patch('portfolios', args.portfolioId, updates)
   },
 })

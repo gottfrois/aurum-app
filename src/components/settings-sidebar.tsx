@@ -7,6 +7,7 @@ import {
   Lock,
   Palette,
   Settings,
+  Share2,
   Shield,
   Tag,
   User,
@@ -90,6 +91,14 @@ export function SettingsSidebar({
                   <Link to="/settings/account/notifications">
                     <Bell />
                     <span>Notifications</span>
+                  </Link>
+                </SidebarMenuButton>
+              </SidebarMenuItem>
+              <SidebarMenuItem>
+                <SidebarMenuButton asChild>
+                  <Link to="/settings/account/sharing">
+                    <Share2 />
+                    <span>Sharing</span>
                   </Link>
                 </SidebarMenuButton>
               </SidebarMenuItem>

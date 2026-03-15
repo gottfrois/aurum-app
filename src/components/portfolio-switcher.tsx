@@ -1,5 +1,6 @@
 import { Link } from '@tanstack/react-router'
-import { ChevronsUpDown, Plus, Settings, Users } from 'lucide-react'
+import { useQuery } from 'convex/react'
+import { ChevronsUpDown, Home, Plus, Settings, Users } from 'lucide-react'
 import * as React from 'react'
 import { CreatePortfolioDialog } from '~/components/create-portfolio-dialog'
 import { PortfolioAvatar } from '~/components/portfolio-avatar'
@@ -19,12 +20,22 @@ import {
 } from '~/components/ui/sidebar'
 import { Skeleton } from '~/components/ui/skeleton'
 import { usePortfolio } from '~/contexts/portfolio-context'
+import { api } from '../../convex/_generated/api'
 
 export function PortfolioSwitcher() {
   const { isMobile } = useSidebar()
-  const { portfolios, activePortfolio, setActivePortfolioId, isLoading } =
-    usePortfolio()
+  const {
+    portfolios,
+    activePortfolio,
+    setActivePortfolioId,
+    isLoading,
+    isFamilyView,
+  } = usePortfolio()
+  const subscription = useQuery(api.billing.getSubscriptionStatus)
   const [dialogOpen, setDialogOpen] = React.useState(false)
+
+  const showFamilyOption =
+    subscription?.plan === 'family' && subscription?.isActive
 
   if (isLoading) {
     return (
@@ -63,7 +74,11 @@ export function PortfolioSwitcher() {
     )
   }
 
-  const activeLabel = activePortfolio ? activePortfolio.name : 'All Portfolios'
+  const activeLabel = isFamilyView
+    ? 'Family'
+    : activePortfolio
+      ? activePortfolio.name
+      : 'All Portfolios'
 
   return (
     <>
@@ -80,6 +95,10 @@ export function PortfolioSwitcher() {
                     name={activePortfolio.name}
                     className="aspect-square size-8"
                   />
+                ) : isFamilyView ? (
+                  <div className="flex aspect-square size-8 items-center justify-center rounded-lg bg-sidebar-primary text-sidebar-primary-foreground">
+                    <Home className="size-4" />
+                  </div>
                 ) : (
                   <div className="flex aspect-square size-8 items-center justify-center rounded-lg bg-sidebar-primary text-sidebar-primary-foreground">
                     <Users className="size-4" />
@@ -109,6 +128,17 @@ export function PortfolioSwitcher() {
                 </div>
                 All Portfolios
               </DropdownMenuItem>
+              {showFamilyOption && (
+                <DropdownMenuItem
+                  onClick={() => setActivePortfolioId('family')}
+                  className="gap-2 p-2"
+                >
+                  <div className="flex size-6 items-center justify-center rounded-sm border">
+                    <Home className="size-4 shrink-0" />
+                  </div>
+                  Family
+                </DropdownMenuItem>
+              )}
               <DropdownMenuSeparator />
               {portfolios.map((portfolio) => (
                 <DropdownMenuItem

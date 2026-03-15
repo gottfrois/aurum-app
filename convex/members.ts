@@ -4,6 +4,7 @@ import {
   action,
   internalMutation,
   internalQuery,
+  mutation,
   query,
 } from './_generated/server'
 import { resend } from './email'
@@ -37,8 +38,25 @@ export const listMembers = query({
       .filter((q) => q.eq(q.field('status'), 'pending'))
       .collect()
 
+    const portfolios = await ctx.db
+      .query('portfolios')
+      .withIndex('by_workspaceId', (q) =>
+        q.eq('workspaceId', membership.workspaceId),
+      )
+      .collect()
+
+    const membersWithSharing = members.map((m) => {
+      const sharedCount = portfolios.filter(
+        (p) => p.memberId === m._id && p.shared === true,
+      ).length
+      return {
+        ...m,
+        sharedPortfolioCount: sharedCount,
+      }
+    })
+
     return {
-      members,
+      members: membersWithSharing,
       invitations,
       currentUserId: userId,
       workspaceId: membership.workspaceId,
@@ -342,6 +360,37 @@ export const sendInvitationEmail = internalMutation({
       to: [email],
       subject: 'You have been invited to join a workspace on Bunkr',
       html: `<p>You have been invited to join a workspace on Bunkr.</p><p><a href="${siteUrl}">Sign in to accept the invitation</a></p>`,
+    })
+  },
+})
+
+export const updateMemberPermissions = mutation({
+  args: {
+    memberId: v.id('workspaceMembers'),
+    permissions: v.object({
+      canViewFamilyDashboard: v.boolean(),
+      canViewMemberBreakdown: v.boolean(),
+    }),
+  },
+  handler: async (ctx, args) => {
+    const userId = await requireAuthUserId(ctx)
+
+    const membership = await ctx.db
+      .query('workspaceMembers')
+      .withIndex('by_userId', (q) => q.eq('userId', userId))
+      .first()
+
+    if (!membership || membership.role !== 'owner') {
+      throw new Error('Only workspace owners can update member permissions')
+    }
+
+    const target = await ctx.db.get('workspaceMembers', args.memberId)
+    if (!target || target.workspaceId !== membership.workspaceId) {
+      throw new Error('Member not found')
+    }
+
+    await ctx.db.patch('workspaceMembers', args.memberId, {
+      permissions: args.permissions,
     })
   },
 })

@@ -85,6 +85,7 @@ function BankAccountsList({ categoryFilter }: { categoryFilter?: string }) {
   const {
     isLoading: portfolioLoading,
     isAllPortfolios,
+    isFamilyView,
     allPortfolioIds,
     singlePortfolioId,
     portfolios,
@@ -106,9 +107,15 @@ function BankAccountsList({ categoryFilter }: { categoryFilter?: string }) {
       ? { portfolioIds: allPortfolioIds }
       : 'skip',
   )
-  const rawAllBankAccounts = isAllPortfolios
-    ? allBankAccountsAll
-    : allBankAccountsSingle
+  const allBankAccountsFamily = useQuery(
+    api.family.listFamilyBankAccounts,
+    isFamilyView && workspaceId ? { workspaceId } : 'skip',
+  )
+  const rawAllBankAccounts = isFamilyView
+    ? allBankAccountsFamily
+    : isAllPortfolios
+      ? allBankAccountsAll
+      : allBankAccountsSingle
   const allBankAccounts = useCachedDecryptRecords(
     'bankAccounts',
     rawAllBankAccounts,
@@ -124,9 +131,15 @@ function BankAccountsList({ categoryFilter }: { categoryFilter?: string }) {
     api.balanceSnapshots.listAllDailyCategoryBalance,
     isAllPortfolios && workspaceId ? { workspaceId, startTimestamp } : 'skip',
   )
-  const categoryBalances = isAllPortfolios
-    ? categoryBalanceAll
-    : categoryBalanceSingle
+  const categoryBalanceFamily = useQuery(
+    api.family.listFamilyDailyCategoryBalance,
+    isFamilyView && workspaceId ? { workspaceId, startTimestamp } : 'skip',
+  )
+  const categoryBalances = isFamilyView
+    ? categoryBalanceFamily
+    : isAllPortfolios
+      ? categoryBalanceAll
+      : categoryBalanceSingle
   const formatCurrency = useFormatCurrency()
   const [dialogOpen, setDialogOpen] = React.useState(false)
 

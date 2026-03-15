@@ -16,6 +16,7 @@ import {
   ItemCardItems,
   ItemCardItemTitle,
 } from '~/components/item-card'
+import { RequireFamilyPlan } from '~/components/require-family-plan'
 import { RequireOwner } from '~/components/require-owner'
 import { Avatar, AvatarFallback, AvatarImage } from '~/components/ui/avatar'
 import { Badge } from '~/components/ui/badge'
@@ -38,6 +39,7 @@ import {
 import { Input } from '~/components/ui/input'
 import { Label } from '~/components/ui/label'
 import { Skeleton } from '~/components/ui/skeleton'
+import { Switch } from '~/components/ui/switch'
 import { useEncryption } from '~/contexts/encryption-context'
 import { encryptString, importPublicKey } from '~/lib/crypto'
 import { api } from '../../../convex/_generated/api'
@@ -181,45 +183,70 @@ function MembersPage() {
                     const encStatus = encryptionStatusMap.get(member.userId)
 
                     return (
-                      <ItemCardItem key={member._id}>
-                        <div className="flex items-center gap-3">
-                          <Avatar className="size-8 rounded-full">
-                            <AvatarImage src={user?.imageUrl} alt={name} />
-                            <AvatarFallback className="rounded-full text-xs">
-                              {initials}
-                            </AvatarFallback>
-                          </Avatar>
-                          <ItemCardItemContent>
-                            <ItemCardItemTitle>
-                              {name}
-                              {member.userId === data.currentUserId && (
-                                <span className="text-sm text-muted-foreground">
-                                  (you)
-                                </span>
-                              )}
-                            </ItemCardItemTitle>
-                            <ItemCardItemDescription>
-                              {email}
-                            </ItemCardItemDescription>
-                          </ItemCardItemContent>
-                        </div>
-                        <ItemCardItemAction>
-                          <div className="flex items-center gap-2">
-                            <MemberActionBadge
-                              encStatus={encStatus}
-                              isOwner={isOwner}
-                              isUnlocked={isUnlocked}
-                              isEncryptionEnabled={isEncryptionEnabled}
-                            />
-                            {isOwner &&
-                              member.userId !== data.currentUserId && (
-                                <RemoveMemberMenu
-                                  memberId={member._id}
-                                  memberName={name}
-                                />
-                              )}
+                      <ItemCardItem
+                        key={member._id}
+                        className="flex-col items-stretch gap-3"
+                      >
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-3">
+                            <Avatar className="size-8 rounded-full">
+                              <AvatarImage src={user?.imageUrl} alt={name} />
+                              <AvatarFallback className="rounded-full text-xs">
+                                {initials}
+                              </AvatarFallback>
+                            </Avatar>
+                            <ItemCardItemContent>
+                              <ItemCardItemTitle>
+                                {name}
+                                {member.userId === data.currentUserId && (
+                                  <span className="text-sm text-muted-foreground">
+                                    (you)
+                                  </span>
+                                )}
+                              </ItemCardItemTitle>
+                              <ItemCardItemDescription>
+                                {email}
+                                {member.sharedPortfolioCount > 0 && (
+                                  <span className="ml-2 text-xs">
+                                    ({member.sharedPortfolioCount} shared
+                                    portfolio
+                                    {member.sharedPortfolioCount !== 1
+                                      ? 's'
+                                      : ''}
+                                    )
+                                  </span>
+                                )}
+                              </ItemCardItemDescription>
+                            </ItemCardItemContent>
                           </div>
-                        </ItemCardItemAction>
+                          <ItemCardItemAction>
+                            <div className="flex items-center gap-2">
+                              <MemberActionBadge
+                                encStatus={encStatus}
+                                isOwner={isOwner}
+                                isUnlocked={isUnlocked}
+                                isEncryptionEnabled={isEncryptionEnabled}
+                              />
+                              {isOwner &&
+                                member.userId !== data.currentUserId && (
+                                  <RemoveMemberMenu
+                                    memberId={member._id}
+                                    memberName={name}
+                                  />
+                                )}
+                            </div>
+                          </ItemCardItemAction>
+                        </div>
+                        {isOwner &&
+                          member.role !== 'owner' &&
+                          member.userId !== data.currentUserId && (
+                            <RequireFamilyPlan>
+                              <MemberPermissions
+                                memberId={member._id}
+                                permissions={member.permissions}
+                              />
+                            </RequireFamilyPlan>
+                          )}
                       </ItemCardItem>
                     )
                   })}
@@ -234,6 +261,70 @@ function MembersPage() {
         </div>
       </div>
     </RequireOwner>
+  )
+}
+
+function MemberPermissions({
+  memberId,
+  permissions,
+}: {
+  memberId: string
+  permissions?: {
+    canViewFamilyDashboard: boolean
+    canViewMemberBreakdown: boolean
+  }
+}) {
+  const updatePermissions = useMutation(api.members.updateMemberPermissions)
+
+  const canViewDashboard = permissions?.canViewFamilyDashboard ?? true
+  const canViewBreakdown = permissions?.canViewMemberBreakdown ?? true
+
+  async function handleToggle(
+    field: 'canViewFamilyDashboard' | 'canViewMemberBreakdown',
+    value: boolean,
+  ) {
+    try {
+      await updatePermissions({
+        memberId: memberId as never,
+        permissions: {
+          canViewFamilyDashboard:
+            field === 'canViewFamilyDashboard' ? value : canViewDashboard,
+          canViewMemberBreakdown:
+            field === 'canViewMemberBreakdown' ? value : canViewBreakdown,
+        },
+      })
+    } catch {
+      toast.error('Failed to update permissions')
+    }
+  }
+
+  return (
+    <div className="flex flex-wrap gap-4 border-t pt-3 pl-11">
+      <div className="flex items-center gap-2">
+        <Switch
+          id={`dash-${memberId}`}
+          checked={canViewDashboard}
+          onCheckedChange={(checked) =>
+            handleToggle('canViewFamilyDashboard', checked)
+          }
+        />
+        <Label htmlFor={`dash-${memberId}`} className="text-xs">
+          Family dashboard
+        </Label>
+      </div>
+      <div className="flex items-center gap-2">
+        <Switch
+          id={`breakdown-${memberId}`}
+          checked={canViewBreakdown}
+          onCheckedChange={(checked) =>
+            handleToggle('canViewMemberBreakdown', checked)
+          }
+        />
+        <Label htmlFor={`breakdown-${memberId}`} className="text-xs">
+          Member breakdown
+        </Label>
+      </div>
+    </div>
   )
 }
 

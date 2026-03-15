@@ -40,6 +40,12 @@ export default defineSchema({
     userId: v.string(),
     role: v.union(v.literal('owner'), v.literal('member')),
     onboardingStep: v.optional(v.string()),
+    permissions: v.optional(
+      v.object({
+        canViewFamilyDashboard: v.boolean(),
+        canViewMemberBreakdown: v.boolean(),
+      }),
+    ),
   })
     .index('by_userId', ['userId'])
     .index('by_workspaceId', ['workspaceId']),
@@ -74,6 +80,8 @@ export default defineSchema({
     icon: v.optional(v.string()),
     powensUserToken: v.optional(v.string()),
     powensUserId: v.optional(v.number()),
+    shared: v.optional(v.boolean()),
+    shareAmounts: v.optional(v.boolean()),
   })
     .index('by_workspaceId', ['workspaceId'])
     .index('by_memberId', ['memberId'])

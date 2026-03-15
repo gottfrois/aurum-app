@@ -93,6 +93,7 @@ function TransactionsContent() {
   const {
     isLoading: portfolioLoading,
     isAllPortfolios,
+    isFamilyView,
     allPortfolioIds,
     singlePortfolioId,
     portfolios,
@@ -133,7 +134,12 @@ function TransactionsContent() {
         }
       : 'skip',
   )
-  const volumeData = isAllPortfolios ? volumeAll : volumeSingle
+  // Family view reuses the "all" volume query for simplicity
+  const volumeData = isFamilyView
+    ? volumeAll
+    : isAllPortfolios
+      ? volumeAll
+      : volumeSingle
 
   const transactionsSingle = useQuery(
     api.transactions.listTransactionsByPortfolio,
@@ -155,7 +161,21 @@ function TransactionsContent() {
         }
       : 'skip',
   )
-  const rawTransactions = isAllPortfolios ? transactionsAll : transactionsSingle
+  const transactionsFamily = useQuery(
+    api.family.listFamilyTransactions,
+    isFamilyView && workspaceId
+      ? {
+          workspaceId,
+          startDate: range.start,
+          endDate: range.end,
+        }
+      : 'skip',
+  )
+  const rawTransactions = isFamilyView
+    ? transactionsFamily
+    : isAllPortfolios
+      ? transactionsAll
+      : transactionsSingle
   const transactions = useCachedDecryptRecords(
     'transactions',
     rawTransactions as Array<TransactionRecord> | undefined,
@@ -171,7 +191,15 @@ function TransactionsContent() {
       ? { portfolioIds: allPortfolioIds }
       : 'skip',
   )
-  const rawBankAccounts = isAllPortfolios ? bankAccountsAll : bankAccountsSingle
+  const bankAccountsFamily = useQuery(
+    api.family.listFamilyBankAccounts,
+    isFamilyView && workspaceId ? { workspaceId } : 'skip',
+  )
+  const rawBankAccounts = isFamilyView
+    ? bankAccountsFamily
+    : isAllPortfolios
+      ? bankAccountsAll
+      : bankAccountsSingle
   const bankAccounts = useCachedDecryptRecords(
     'bankAccounts',
     rawBankAccounts,

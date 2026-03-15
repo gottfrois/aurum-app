@@ -5,6 +5,7 @@ import * as React from 'react'
 import { AddConnectionDialog } from '~/components/add-connection-dialog'
 import { AllocationChart, CATEGORY_COLORS } from '~/components/allocation-chart'
 import { BalanceChart } from '~/components/balance-chart'
+import { FamilyBreakdown } from '~/components/family-breakdown'
 import { SiteHeader } from '~/components/site-header'
 import { Button } from '~/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '~/components/ui/card'
@@ -66,6 +67,7 @@ function BankAccountsSection() {
   const {
     isLoading: portfolioLoading,
     isAllPortfolios,
+    isFamilyView,
     allPortfolioIds,
     singlePortfolioId,
     portfolios,
@@ -87,7 +89,15 @@ function BankAccountsSection() {
       ? { portfolioIds: allPortfolioIds }
       : 'skip',
   )
-  const rawBankAccounts = isAllPortfolios ? bankAccountsAll : bankAccountsSingle
+  const bankAccountsFamily = useQuery(
+    api.family.listFamilyBankAccounts,
+    isFamilyView && workspaceId ? { workspaceId } : 'skip',
+  )
+  const rawBankAccounts = isFamilyView
+    ? bankAccountsFamily
+    : isAllPortfolios
+      ? bankAccountsAll
+      : bankAccountsSingle
   const bankAccounts = useCachedDecryptRecords(
     'bankAccounts',
     rawBankAccounts,
@@ -103,7 +113,15 @@ function BankAccountsSection() {
     api.balanceSnapshots.listAllDailyNetWorth,
     isAllPortfolios && workspaceId ? { workspaceId, startTimestamp } : 'skip',
   )
-  const dailyNetWorth = isAllPortfolios ? netWorthAll : netWorthSingle
+  const netWorthFamily = useQuery(
+    api.family.listFamilyDailyNetWorth,
+    isFamilyView && workspaceId ? { workspaceId, startTimestamp } : 'skip',
+  )
+  const dailyNetWorth = isFamilyView
+    ? netWorthFamily
+    : isAllPortfolios
+      ? netWorthAll
+      : netWorthSingle
 
   const investmentsSingle = useQuery(
     api.investments.listInvestmentsByPortfolio,
@@ -115,7 +133,15 @@ function BankAccountsSection() {
       ? { portfolioIds: allPortfolioIds }
       : 'skip',
   )
-  const rawInvestments = isAllPortfolios ? investmentsAll : investmentsSingle
+  const investmentsFamily = useQuery(
+    api.family.listFamilyInvestments,
+    isFamilyView && workspaceId ? { workspaceId } : 'skip',
+  )
+  const rawInvestments = isFamilyView
+    ? investmentsFamily
+    : isAllPortfolios
+      ? investmentsAll
+      : investmentsSingle
   const investments = useCachedDecryptRecords('investments', rawInvestments) as
     | DecryptedInvestment[]
     | undefined
@@ -223,6 +249,10 @@ function BankAccountsSection() {
           total={totalBalance}
         />
       </div>
+
+      {isFamilyView && workspaceId && (
+        <FamilyBreakdown workspaceId={workspaceId} />
+      )}
 
       {investments && investments.length > 0 && (
         <Card>
