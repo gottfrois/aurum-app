@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
-import { buildSystemPrompt, serializeFilterConfig } from '../prompt'
 import type { FilterConfig, FilterFieldDescriptor } from '../../types'
+import { buildSystemPrompt, serializeFilterConfig } from '../prompt'
 
 describe('serializeFilterConfig', () => {
   it('strips accessor and icon, keeps core fields', () => {

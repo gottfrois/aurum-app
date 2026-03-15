@@ -1,8 +1,8 @@
 import * as React from 'react'
 import { Cell, Label, Pie, PieChart } from 'recharts'
+import { Card, CardContent, CardHeader, CardTitle } from '~/components/ui/card'
 import type { ChartConfig } from '~/components/ui/chart'
 import { ChartContainer, ChartTooltip } from '~/components/ui/chart'
-import { Card, CardContent, CardHeader, CardTitle } from '~/components/ui/card'
 import { usePrivacy } from '~/contexts/privacy-context'
 
 interface CategoryEntry {

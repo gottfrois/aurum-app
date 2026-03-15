@@ -1,18 +1,18 @@
 import { createFileRoute } from '@tanstack/react-router'
 import { useMutation, useQuery } from 'convex/react'
 import { toast } from 'sonner'
-import { api } from '../../../convex/_generated/api'
 import {
   ItemCard,
   ItemCardItem,
   ItemCardItemAction,
   ItemCardItemContent,
   ItemCardItemDescription,
-  ItemCardItemTitle,
   ItemCardItems,
+  ItemCardItemTitle,
 } from '~/components/item-card'
-import { Switch } from '~/components/ui/switch'
 import { Skeleton } from '~/components/ui/skeleton'
+import { Switch } from '~/components/ui/switch'
+import { api } from '../../../convex/_generated/api'
 
 export const Route = createFileRoute('/_settings/settings/notifications')({
   component: NotificationsPage,

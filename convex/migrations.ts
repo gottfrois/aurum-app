@@ -1,6 +1,6 @@
+import type { Id } from './_generated/dataModel'
 import { internalMutation } from './_generated/server'
 import { getCategoryKey } from './lib/accountCategories'
-import type { Id } from './_generated/dataModel'
 
 export const backfillBalanceSnapshots = internalMutation({
   args: {},

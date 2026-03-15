@@ -1,23 +1,23 @@
-import * as React from 'react'
 import { createFileRoute } from '@tanstack/react-router'
 import { useQuery } from 'convex/react'
-import { api } from '../../../convex/_generated/api'
-import type { Id } from '../../../convex/_generated/dataModel'
-import type { Period } from '~/lib/chart-periods'
-import { SiteHeader } from '~/components/site-header'
+import * as React from 'react'
 import { AllocationChart } from '~/components/allocation-chart'
 import { BalanceChart } from '~/components/balance-chart'
 import { HoldingsTable } from '~/components/holdings-table'
+import { SiteHeader } from '~/components/site-header'
 import { Card, CardContent, CardHeader, CardTitle } from '~/components/ui/card'
 import { Skeleton } from '~/components/ui/skeleton'
-import { getStartTimestamp } from '~/lib/chart-periods'
-import { fillMissingDates } from '~/lib/fill-missing-dates'
-import { isInvestmentAccount } from '~/lib/account-categories'
 import { useFormatCurrency } from '~/contexts/privacy-context'
 import {
   useCachedDecryptRecord,
   useCachedDecryptRecords,
 } from '~/hooks/use-cached-decrypt'
+import { isInvestmentAccount } from '~/lib/account-categories'
+import type { Period } from '~/lib/chart-periods'
+import { getStartTimestamp } from '~/lib/chart-periods'
+import { fillMissingDates } from '~/lib/fill-missing-dates'
+import { api } from '../../../convex/_generated/api'
+import type { Id } from '../../../convex/_generated/dataModel'
 
 export const Route = createFileRoute('/_app/accounts/$accountId')({
   component: AccountDetailPage,

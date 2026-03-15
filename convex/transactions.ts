@@ -1,11 +1,11 @@
 import { v } from 'convex/values'
+import { internal } from './_generated/api'
 import {
   internalAction,
   internalMutation,
   mutation,
   query,
 } from './_generated/server'
-import { internal } from './_generated/api'
 import { getAuthUserId, requireAuthUserId } from './lib/auth'
 
 export const listTransactionsByPortfolio = query({
@@ -179,7 +179,7 @@ export const batchUpdateLabelsChunk = internalMutation({
       }
 
       if (args.removeLabelIds) {
-        updated = updated.filter((id) => !args.removeLabelIds!.includes(id))
+        updated = updated.filter((id) => !args.removeLabelIds?.includes(id))
       }
 
       await ctx.db.patch('transactions', transactionId, { labelIds: updated })

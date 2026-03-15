@@ -1,12 +1,7 @@
 import * as React from 'react'
 import { Area, AreaChart, CartesianGrid, XAxis, YAxis } from 'recharts'
-import type { Period } from '~/lib/chart-periods'
-import type { ChartConfig } from '~/components/ui/chart'
-import {
-  ChartContainer,
-  ChartTooltip,
-  ChartTooltipContent,
-} from '~/components/ui/chart'
+import { PeriodSelector } from '~/components/period-selector'
+import { PnLBadge } from '~/components/pnl-badge'
 import {
   Card,
   CardAction,
@@ -15,12 +10,17 @@ import {
   CardHeader,
   CardTitle,
 } from '~/components/ui/card'
+import type { ChartConfig } from '~/components/ui/chart'
+import {
+  ChartContainer,
+  ChartTooltip,
+  ChartTooltipContent,
+} from '~/components/ui/chart'
 import { Skeleton } from '~/components/ui/skeleton'
-import { computePnL } from '~/lib/pnl'
-import { downsample } from '~/lib/downsample'
-import { PnLBadge } from '~/components/pnl-badge'
-import { PeriodSelector } from '~/components/period-selector'
 import { usePrivacy } from '~/contexts/privacy-context'
+import type { Period } from '~/lib/chart-periods'
+import { downsample } from '~/lib/downsample'
+import { computePnL } from '~/lib/pnl'
 
 const MAX_CHART_POINTS = 300
 

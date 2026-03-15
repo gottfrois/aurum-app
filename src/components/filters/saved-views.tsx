@@ -1,10 +1,7 @@
-import * as React from 'react'
 import { useMutation, useQuery } from 'convex/react'
 import { Bookmark, Trash2 } from 'lucide-react'
+import * as React from 'react'
 import { toast } from 'sonner'
-import { api } from '../../../convex/_generated/api'
-import type { Id } from '../../../convex/_generated/dataModel'
-import type { FilterCondition } from '~/lib/filters/types'
 import { Button } from '~/components/ui/button'
 import {
   Popover,
@@ -12,6 +9,9 @@ import {
   PopoverTrigger,
 } from '~/components/ui/popover'
 import { deserializeFilters } from '~/lib/filters/serialize'
+import type { FilterCondition } from '~/lib/filters/types'
+import { api } from '../../../convex/_generated/api'
+import type { Id } from '../../../convex/_generated/dataModel'
 
 interface SavedViewsProps {
   entityType: string

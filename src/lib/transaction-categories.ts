@@ -1,3 +1,4 @@
+import type { LucideIcon } from 'lucide-react'
 import {
   Banknote,
   Building2,
@@ -13,7 +14,6 @@ import {
   Utensils,
   Wallet,
 } from 'lucide-react'
-import type { LucideIcon } from 'lucide-react'
 
 export interface TransactionCategory {
   label: string

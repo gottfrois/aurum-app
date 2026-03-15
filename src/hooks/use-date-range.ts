@@ -1,5 +1,5 @@
-import * as React from 'react'
 import { format, startOfDay, subMonths } from 'date-fns'
+import * as React from 'react'
 
 export interface DateRange {
   start: string // YYYY-MM-DD

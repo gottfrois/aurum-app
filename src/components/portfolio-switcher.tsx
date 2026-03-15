@@ -1,7 +1,8 @@
-import * as React from 'react'
 import { Link } from '@tanstack/react-router'
 import { ChevronsUpDown, Plus, Settings, Users } from 'lucide-react'
-import { usePortfolio } from '~/contexts/portfolio-context'
+import * as React from 'react'
+import { CreatePortfolioDialog } from '~/components/create-portfolio-dialog'
+import { PortfolioAvatar } from '~/components/portfolio-avatar'
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -17,8 +18,7 @@ import {
   useSidebar,
 } from '~/components/ui/sidebar'
 import { Skeleton } from '~/components/ui/skeleton'
-import { PortfolioAvatar } from '~/components/portfolio-avatar'
-import { CreatePortfolioDialog } from '~/components/create-portfolio-dialog'
+import { usePortfolio } from '~/contexts/portfolio-context'
 
 export function PortfolioSwitcher() {
   const { isMobile } = useSidebar()

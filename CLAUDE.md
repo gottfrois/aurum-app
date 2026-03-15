@@ -18,8 +18,10 @@ Bunkr is a self-hosted personal finance app (Finary clone). It aggregates bankin
 
 - `npm run dev` — Start dev server (runs Convex dev + Vite concurrently)
 - `npm run build` — Production build (`vite build && tsc --noEmit`)
-- `npm run lint` — Type-check and ESLint
-- `npm run format` — Prettier
+- `npm run check` — Biome check (lint + format + imports)
+- `npm run check:fix` — Biome check with auto-fix
+- `npm run lint` — Biome lint only
+- `npm run format` — Biome format
 
 ## Project Structure
 

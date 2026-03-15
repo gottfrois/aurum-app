@@ -1,21 +1,9 @@
-import * as React from 'react'
 import { createFileRoute } from '@tanstack/react-router'
 import { useAction, useQuery } from 'convex/react'
 import { ChevronDown, Link2, Loader2, Pencil, Trash2 } from 'lucide-react'
-import { api } from '../../../convex/_generated/api'
-import type { Doc } from '../../../convex/_generated/dataModel'
-import {
-  Empty,
-  EmptyContent,
-  EmptyDescription,
-  EmptyHeader,
-  EmptyMedia,
-  EmptyTitle,
-} from '~/components/ui/empty'
-import { usePortfolio } from '~/contexts/portfolio-context'
-import { useCachedDecryptRecords } from '~/hooks/use-cached-decrypt'
+import * as React from 'react'
 import { AddConnectionDialog } from '~/components/add-connection-dialog'
-import { Button } from '~/components/ui/button'
+import { ConfirmDialog } from '~/components/confirm-dialog'
 import {
   ItemCard,
   ItemCardHeader,
@@ -25,17 +13,29 @@ import {
   ItemCardItemAction,
   ItemCardItemContent,
   ItemCardItemDescription,
-  ItemCardItemTitle,
   ItemCardItems,
+  ItemCardItemTitle,
 } from '~/components/item-card'
-import { Skeleton } from '~/components/ui/skeleton'
+import { Button } from '~/components/ui/button'
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '~/components/ui/dropdown-menu'
-import { ConfirmDialog } from '~/components/confirm-dialog'
+import {
+  Empty,
+  EmptyContent,
+  EmptyDescription,
+  EmptyHeader,
+  EmptyMedia,
+  EmptyTitle,
+} from '~/components/ui/empty'
+import { Skeleton } from '~/components/ui/skeleton'
+import { usePortfolio } from '~/contexts/portfolio-context'
+import { useCachedDecryptRecords } from '~/hooks/use-cached-decrypt'
+import { api } from '../../../convex/_generated/api'
+import type { Doc } from '../../../convex/_generated/dataModel'
 
 export const Route = createFileRoute('/_settings/settings/connections')({
   component: ConnectionsPage,

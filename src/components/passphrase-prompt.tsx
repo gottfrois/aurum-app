@@ -1,8 +1,8 @@
-import { useState } from 'react'
 import { Clock, Lock } from 'lucide-react'
-import { useEncryption } from '~/contexts/encryption-context'
+import { useState } from 'react'
 import { Button } from '~/components/ui/button'
 import { Input } from '~/components/ui/input'
+import { useEncryption } from '~/contexts/encryption-context'
 
 export function PassphrasePrompt() {
   const {

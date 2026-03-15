@@ -1,8 +1,8 @@
 import { useQuery } from 'convex/react'
-import { api } from '../../convex/_generated/api'
-import type { Doc } from '../../convex/_generated/dataModel'
 import { usePortfolio } from '~/contexts/portfolio-context'
 import { isConnectionStateActionNeeded } from '~/lib/connection-states'
+import { api } from '../../convex/_generated/api'
+import type { Doc } from '../../convex/_generated/dataModel'
 
 interface ConnectionsNeedingAttention {
   /** Connections that need user action (re-auth, error, etc.) */

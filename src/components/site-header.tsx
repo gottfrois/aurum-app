@@ -1,7 +1,6 @@
-import * as React from 'react'
-import { Eye, EyeOff, Lock, ShieldCheck } from 'lucide-react'
 import { Link } from '@tanstack/react-router'
-import { Button } from '~/components/ui/button'
+import { Eye, EyeOff, Lock, ShieldCheck } from 'lucide-react'
+import * as React from 'react'
 import {
   Breadcrumb,
   BreadcrumbItem as BreadcrumbItemUI,
@@ -10,6 +9,7 @@ import {
   BreadcrumbPage,
   BreadcrumbSeparator,
 } from '~/components/ui/breadcrumb'
+import { Button } from '~/components/ui/button'
 import { Separator } from '~/components/ui/separator'
 import { SidebarTrigger } from '~/components/ui/sidebar'
 import {
@@ -17,8 +17,8 @@ import {
   TooltipContent,
   TooltipTrigger,
 } from '~/components/ui/tooltip'
-import { usePrivacy } from '~/contexts/privacy-context'
 import { useEncryption } from '~/contexts/encryption-context'
+import { usePrivacy } from '~/contexts/privacy-context'
 
 export interface BreadcrumbItem {
   label: string

@@ -1,8 +1,8 @@
 import { useQuery } from 'convex/react'
 import { api } from '../../convex/_generated/api'
 import {
-  TRANSACTION_CATEGORIES,
   getTransactionCategoryKey,
+  TRANSACTION_CATEGORIES,
 } from './transaction-categories'
 
 interface CategoryInfo {

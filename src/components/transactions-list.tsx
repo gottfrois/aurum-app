@@ -1,4 +1,8 @@
-import * as React from 'react'
+import type {
+  ColumnDef,
+  RowSelectionState,
+  SortingState,
+} from '@tanstack/react-table'
 import {
   flexRender,
   getCoreRowModel,
@@ -20,16 +24,32 @@ import {
   Search,
   Tags,
 } from 'lucide-react'
+import * as React from 'react'
 import { toast } from 'sonner'
-import { api } from '../../convex/_generated/api'
-import type {
-  ColumnDef,
-  RowSelectionState,
-  SortingState,
-} from '@tanstack/react-table'
-import type { Id } from '../../convex/_generated/dataModel'
+import { CategoryPicker } from '~/components/category-picker'
+import { CreateRuleDialog } from '~/components/create-rule-dialog'
 import type { LabelData } from '~/components/label-picker'
-import type { CommandEntry } from '~/contexts/command-context'
+import { LabelPicker } from '~/components/label-picker'
+import { SelectionBar } from '~/components/selection-bar'
+import { Badge } from '~/components/ui/badge'
+import { Button } from '~/components/ui/button'
+import { Checkbox } from '~/components/ui/checkbox'
+import { Input } from '~/components/ui/input'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '~/components/ui/select'
+import { Separator } from '~/components/ui/separator'
+import {
+  Sheet,
+  SheetContent,
+  SheetDescription,
+  SheetHeader,
+  SheetTitle,
+} from '~/components/ui/sheet'
 import {
   Table,
   TableBody,
@@ -38,33 +58,13 @@ import {
   TableHeader,
   TableRow,
 } from '~/components/ui/table'
-import { Input } from '~/components/ui/input'
-import { Badge } from '~/components/ui/badge'
-import { Button } from '~/components/ui/button'
-import { Checkbox } from '~/components/ui/checkbox'
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '~/components/ui/select'
-import {
-  Sheet,
-  SheetContent,
-  SheetDescription,
-  SheetHeader,
-  SheetTitle,
-} from '~/components/ui/sheet'
-import { Separator } from '~/components/ui/separator'
+import type { CommandEntry } from '~/contexts/command-context'
+import { useRegisterCommands } from '~/contexts/command-context'
 import { useFormatCurrency } from '~/contexts/privacy-context'
 import { resolveTransactionCategoryKey, useCategories } from '~/lib/categories'
-import { CategoryPicker } from '~/components/category-picker'
-import { CreateRuleDialog } from '~/components/create-rule-dialog'
-import { LabelPicker } from '~/components/label-picker'
-import { SelectionBar } from '~/components/selection-bar'
-import { useRegisterCommands } from '~/contexts/command-context'
 import { cn } from '~/lib/utils'
+import { api } from '../../convex/_generated/api'
+import type { Id } from '../../convex/_generated/dataModel'
 
 export interface TransactionRow {
   _id: string
@@ -250,9 +250,9 @@ export function TransactionsList({
                   variant="secondary"
                   className="shrink-0 gap-1 px-1.5 py-0.5 text-xs"
                   style={{
-                    backgroundColor: label.color + '20',
+                    backgroundColor: `${label.color}20`,
                     color: label.color,
-                    borderColor: label.color + '40',
+                    borderColor: `${label.color}40`,
                   }}
                 >
                   <span
@@ -444,10 +444,7 @@ export function TransactionsList({
   )
 
   // Register a single "Change or add labels" command with inline view
-  const selectedRows = React.useMemo(
-    () => getSelectedRows(),
-    [getSelectedRows, data],
-  )
+  const selectedRows = React.useMemo(() => getSelectedRows(), [getSelectedRows])
   const selectionCommands = React.useMemo<Array<CommandEntry>>(() => {
     if (!hasSelection) return []
 
@@ -721,7 +718,6 @@ function BulkLabelView({
           <ChevronLeft className="size-4" />
         </button>
         <input
-          autoFocus
           value={search}
           onChange={(e) => setSearch(e.target.value)}
           placeholder="Search or create label..."

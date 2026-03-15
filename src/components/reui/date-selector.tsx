@@ -1,14 +1,6 @@
 'use client'
 
 import {
-  createContext,
-  useCallback,
-  useContext,
-  useEffect,
-  useMemo,
-  useState,
-} from 'react'
-import {
   addMonths,
   format,
   isBefore,
@@ -24,15 +16,22 @@ import {
   XIcon,
 } from 'lucide-react'
 import type { ChangeEvent, ComponentProps } from 'react'
+import {
+  createContext,
+  useCallback,
+  useContext,
+  useEffect,
+  useMemo,
+  useState,
+} from 'react'
 import type { DateRange, DayButton } from 'react-day-picker'
-
-import { useIsMobile } from '~/hooks/use-mobile'
-import { cn } from '~/lib/utils'
 import { Button } from '~/components/ui/button'
 import { Calendar, CalendarDayButton } from '~/components/ui/calendar'
 import { Input } from '~/components/ui/input'
 import { ScrollArea } from '~/components/ui/scroll-area'
 import { Tabs, TabsList, TabsTrigger } from '~/components/ui/tabs'
+import { useIsMobile } from '~/hooks/use-mobile'
+import { cn } from '~/lib/utils'
 
 export interface DateSelectorI18nConfig {
   // Labels
@@ -490,7 +489,7 @@ export function useDateSelector({
       setRangeStart(value.rangeStart)
       setRangeEnd(value.rangeEnd)
     }
-  }, [value, validDefaultPeriodType, defaultFilterType, presetMode])
+  }, [value, defaultFilterType, presetMode])
 
   // Sync filterType when presetMode changes
   useEffect(() => {
@@ -1122,7 +1121,7 @@ export function DateSelector({
       // Try parsing as year (e.g., "2025")
       const yearMatch = trimmed.match(/^\d{4}$/)
       if (yearMatch) {
-        const year = parseInt(yearMatch[0])
+        const year = parseInt(yearMatch[0], 10)
         if (year >= 1900 && year <= 2100) {
           return {
             period: 'year',
@@ -1135,9 +1134,9 @@ export function DateSelector({
       // Try parsing as quarter (e.g., "Q4", "Q1 2025")
       const quarterMatch = trimmed.match(/^Q([1-4])(?:\s+(\d{4}))?$/i)
       if (quarterMatch) {
-        const quarter = parseInt(quarterMatch[1]) - 1
+        const quarter = parseInt(quarterMatch[1], 10) - 1
         const year = quarterMatch[2]
-          ? parseInt(quarterMatch[2])
+          ? parseInt(quarterMatch[2], 10)
           : new Date().getFullYear()
         if (year >= 1900 && year <= 2100) {
           return {
@@ -1153,7 +1152,7 @@ export function DateSelector({
       for (const dateFormat of dateFormats) {
         try {
           const parsed = parse(trimmed, dateFormat, new Date())
-          if (!isNaN(parsed.getTime())) {
+          if (!Number.isNaN(parsed.getTime())) {
             return {
               period: 'day',
               operator: presetMode ?? filterType,

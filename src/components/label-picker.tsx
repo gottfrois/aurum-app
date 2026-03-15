@@ -1,10 +1,10 @@
-import * as React from 'react'
 import { useMutation } from 'convex/react'
 import { ChevronsUpDown, Plus } from 'lucide-react'
+import * as React from 'react'
 import { toast } from 'sonner'
-import { api } from '../../convex/_generated/api'
-import type { Id } from '../../convex/_generated/dataModel'
+import { Badge } from '~/components/ui/badge'
 import { Button } from '~/components/ui/button'
+import { Checkbox } from '~/components/ui/checkbox'
 import {
   Command,
   CommandEmpty,
@@ -18,8 +18,8 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from '~/components/ui/popover'
-import { Badge } from '~/components/ui/badge'
-import { Checkbox } from '~/components/ui/checkbox'
+import { api } from '../../convex/_generated/api'
+import type { Id } from '../../convex/_generated/dataModel'
 
 const LABEL_COLORS = [
   '#ef4444',
@@ -134,9 +134,9 @@ export function LabelPicker({
                   variant="secondary"
                   className="gap-1 px-2 py-0.5 text-xs"
                   style={{
-                    backgroundColor: label.color + '20',
+                    backgroundColor: `${label.color}20`,
                     color: label.color,
-                    borderColor: label.color + '40',
+                    borderColor: `${label.color}40`,
                   }}
                 >
                   <span

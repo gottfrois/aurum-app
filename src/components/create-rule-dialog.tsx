@@ -1,8 +1,8 @@
-import * as React from 'react'
 import { useMutation } from 'convex/react'
+import * as React from 'react'
 import { toast } from 'sonner'
-import { api } from '../../convex/_generated/api'
 import { Button } from '~/components/ui/button'
+import { Checkbox } from '~/components/ui/checkbox'
 import {
   Dialog,
   DialogContent,
@@ -13,7 +13,6 @@ import {
 } from '~/components/ui/dialog'
 import { Input } from '~/components/ui/input'
 import { Label } from '~/components/ui/label'
-import { Checkbox } from '~/components/ui/checkbox'
 import {
   Select,
   SelectContent,
@@ -23,6 +22,7 @@ import {
 } from '~/components/ui/select'
 import { useCategories } from '~/lib/categories'
 import { cn } from '~/lib/utils'
+import { api } from '../../convex/_generated/api'
 
 interface CreateRuleDialogProps {
   open: boolean

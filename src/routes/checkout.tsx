@@ -1,8 +1,8 @@
-import { useEffect, useState } from 'react'
 import { createFileRoute, useNavigate } from '@tanstack/react-router'
 import { useAction, useQuery } from 'convex/react'
 import { Check } from 'lucide-react'
-import { api } from '../../convex/_generated/api'
+import { useEffect, useState } from 'react'
+import { Badge } from '~/components/ui/badge'
 import { Button } from '~/components/ui/button'
 import {
   Card,
@@ -12,7 +12,7 @@ import {
   CardHeader,
   CardTitle,
 } from '~/components/ui/card'
-import { Badge } from '~/components/ui/badge'
+import { api } from '../../convex/_generated/api'
 
 export const Route = createFileRoute('/checkout')({
   component: CheckoutPage,
@@ -42,7 +42,7 @@ function CheckoutPage() {
   const navigate = useNavigate()
 
   useEffect(() => {
-    if (subscription && subscription.isActive) {
+    if (subscription?.isActive) {
       void navigate({ to: '/' })
     }
   }, [subscription, navigate])

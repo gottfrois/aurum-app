@@ -1,5 +1,5 @@
-import * as React from 'react'
 import type { ComponentType } from 'react'
+import * as React from 'react'
 
 export interface CommandEntry {
   id: string

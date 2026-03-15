@@ -1,10 +1,7 @@
-import * as React from 'react'
 import { useAction } from 'convex/react'
 import { Loader2, Sparkles } from 'lucide-react'
+import * as React from 'react'
 import { toast } from 'sonner'
-import { api } from '../../../convex/_generated/api'
-import type { FilterCondition, FilterConfig } from '~/lib/filters/types'
-import { serializeFilterConfig } from '~/lib/filters/ai/prompt'
 import { Button } from '~/components/ui/button'
 import { Input } from '~/components/ui/input'
 import {
@@ -12,6 +9,9 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from '~/components/ui/popover'
+import { serializeFilterConfig } from '~/lib/filters/ai/prompt'
+import type { FilterCondition, FilterConfig } from '~/lib/filters/types'
+import { api } from '../../../convex/_generated/api'
 
 interface AskAIFilterProps {
   config: FilterConfig

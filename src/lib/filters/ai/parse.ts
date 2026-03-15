@@ -1,6 +1,6 @@
 import type { FilterCondition, FilterOperator } from '../types'
-import type { AIFilterResponse } from './schema'
 import type { SerializableField } from './prompt'
+import type { AIFilterResponse } from './schema'
 
 export function fuzzyMatchEnumValue(
   query: string,

@@ -1,8 +1,7 @@
-import * as React from 'react'
-import { Landmark, Loader2 } from 'lucide-react'
 import { useAction } from 'convex/react'
-import { api } from '../../convex/_generated/api'
-import { usePortfolio } from '~/contexts/portfolio-context'
+import { Landmark, Loader2 } from 'lucide-react'
+import * as React from 'react'
+import { Button } from '~/components/ui/button'
 import {
   Dialog,
   DialogContent,
@@ -10,7 +9,8 @@ import {
   DialogHeader,
   DialogTitle,
 } from '~/components/ui/dialog'
-import { Button } from '~/components/ui/button'
+import { usePortfolio } from '~/contexts/portfolio-context'
+import { api } from '../../convex/_generated/api'
 
 interface AddConnectionDialogProps {
   open: boolean

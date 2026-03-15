@@ -1,15 +1,14 @@
-import * as React from 'react'
 import {
   ArrowLeftRight,
   Landmark,
   LayoutDashboard,
   Settings,
 } from 'lucide-react'
-
-import { PortfolioSwitcher } from '~/components/portfolio-switcher'
+import type * as React from 'react'
 import { NavMain } from '~/components/nav-main'
 import { NavSecondary } from '~/components/nav-secondary'
 import { NavUser } from '~/components/nav-user'
+import { PortfolioSwitcher } from '~/components/portfolio-switcher'
 import {
   Sidebar,
   SidebarContent,

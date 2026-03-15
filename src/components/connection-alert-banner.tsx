@@ -1,6 +1,6 @@
-import { useState } from 'react'
 import { Link } from '@tanstack/react-router'
 import { AlertTriangle, X } from 'lucide-react'
+import { useState } from 'react'
 import { useConnectionsNeedingAttention } from '~/hooks/use-connections-needing-attention'
 
 export function ConnectionAlertBanner() {

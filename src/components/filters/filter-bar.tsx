@@ -1,12 +1,7 @@
-import * as React from 'react'
 import { useMutation } from 'convex/react'
 import { Plus } from 'lucide-react'
+import * as React from 'react'
 import { toast } from 'sonner'
-import { api } from '../../../convex/_generated/api'
-import { FilterChip } from './filter-chip'
-import { FilterDropdown } from './filter-dropdown'
-import { SavedViews } from './saved-views'
-import type { FilterCondition, FilterConfig } from '~/lib/filters/types'
 import { Button } from '~/components/ui/button'
 import { Input } from '~/components/ui/input'
 import {
@@ -15,6 +10,11 @@ import {
   PopoverTrigger,
 } from '~/components/ui/popover'
 import { serializeFilters } from '~/lib/filters/serialize'
+import type { FilterCondition, FilterConfig } from '~/lib/filters/types'
+import { api } from '../../../convex/_generated/api'
+import { FilterChip } from './filter-chip'
+import { FilterDropdown } from './filter-dropdown'
+import { SavedViews } from './saved-views'
 
 interface FilterActionsProps {
   config: FilterConfig

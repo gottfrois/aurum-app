@@ -1,5 +1,3 @@
-import * as React from 'react'
-import { Check } from 'lucide-react'
 import {
   endOfMonth,
   endOfYear,
@@ -10,14 +8,11 @@ import {
   subMonths,
   subYears,
 } from 'date-fns'
-import type {
-  EnumOption,
-  FilterFieldDescriptor,
-  FilterOperator,
-} from '~/lib/filters/types'
+import { Check } from 'lucide-react'
+import * as React from 'react'
 import type { DateSelectorValue } from '~/components/reui/date-selector'
+import { DateSelector } from '~/components/reui/date-selector'
 import { Button } from '~/components/ui/button'
-import { Input } from '~/components/ui/input'
 import {
   Command,
   CommandEmpty,
@@ -33,9 +28,14 @@ import {
   DialogHeader,
   DialogTitle,
 } from '~/components/ui/dialog'
-import { DateSelector } from '~/components/reui/date-selector'
-import { cn } from '~/lib/utils'
+import { Input } from '~/components/ui/input'
 import { RANGE_OPERATORS } from '~/lib/filters/operators'
+import type {
+  EnumOption,
+  FilterFieldDescriptor,
+  FilterOperator,
+} from '~/lib/filters/types'
+import { cn } from '~/lib/utils'
 
 interface FilterValueInputProps {
   field: FilterFieldDescriptor

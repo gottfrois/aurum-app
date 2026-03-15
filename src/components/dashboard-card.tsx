@@ -1,5 +1,5 @@
 import { TrendingDown, TrendingUp } from 'lucide-react'
-import type { PnL } from '~/lib/pnl'
+import { PnLBadge } from '~/components/pnl-badge'
 import {
   Card,
   CardAction,
@@ -8,7 +8,7 @@ import {
   CardHeader,
   CardTitle,
 } from '~/components/ui/card'
-import { PnLBadge } from '~/components/pnl-badge'
+import type { PnL } from '~/lib/pnl'
 
 interface DashboardCardProps {
   title: string

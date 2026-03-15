@@ -1,22 +1,8 @@
-import * as React from 'react'
-import { ChevronRight, ListFilter, Loader2, Sparkles } from 'lucide-react'
 import { useAction } from 'convex/react'
+import { ChevronRight, ListFilter, Loader2, Sparkles } from 'lucide-react'
+import * as React from 'react'
 import { toast } from 'sonner'
-import { api } from '../../../convex/_generated/api'
-import { FilterValueInput } from './filter-value-input'
-import type {
-  FilterCondition,
-  FilterConfig,
-  FilterFieldDescriptor,
-} from '~/lib/filters/types'
-import { serializeFilterConfig } from '~/lib/filters/ai/prompt'
 import { Button } from '~/components/ui/button'
-import {
-  Popover,
-  PopoverAnchor,
-  PopoverContent,
-  PopoverTrigger,
-} from '~/components/ui/popover'
 import {
   Command,
   CommandEmpty,
@@ -25,7 +11,21 @@ import {
   CommandItem,
   CommandList,
 } from '~/components/ui/command'
+import {
+  Popover,
+  PopoverAnchor,
+  PopoverContent,
+  PopoverTrigger,
+} from '~/components/ui/popover'
+import { serializeFilterConfig } from '~/lib/filters/ai/prompt'
 import { VALUELESS_OPERATORS } from '~/lib/filters/operators'
+import type {
+  FilterCondition,
+  FilterConfig,
+  FilterFieldDescriptor,
+} from '~/lib/filters/types'
+import { api } from '../../../convex/_generated/api'
+import { FilterValueInput } from './filter-value-input'
 
 interface FilterDropdownProps {
   config: FilterConfig
@@ -267,7 +267,6 @@ export function FilterDropdown({
               <div className="flex items-center gap-2 border-b px-3 py-2">
                 <Sparkles className="size-4 shrink-0 text-muted-foreground" />
                 <input
-                  autoFocus
                   value={aiQuery}
                   onChange={(e) => setAIQuery(e.target.value)}
                   onKeyDown={(e) => {

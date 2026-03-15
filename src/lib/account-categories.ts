@@ -1,5 +1,5 @@
-import { Landmark, PiggyBank, Shield, TrendingUp } from 'lucide-react'
 import type { LucideIcon } from 'lucide-react'
+import { Landmark, PiggyBank, Shield, TrendingUp } from 'lucide-react'
 
 export interface AccountCategory {
   label: string

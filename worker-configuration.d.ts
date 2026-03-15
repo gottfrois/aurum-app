@@ -19,18 +19,19 @@ type StringifyValues<EnvType extends Record<string, unknown>> = {
     : string
 }
 declare namespace NodeJS {
-  interface ProcessEnv extends StringifyValues<
-    Pick<
-      Cloudflare.Env,
-      | 'CONVEX_DEPLOYMENT'
-      | 'VITE_CONVEX_URL'
-      | 'VITE_CONVEX_SITE_URL'
-      | 'VITE_CLERK_PUBLISHABLE_KEY'
-      | 'CLERK_SECRET_KEY'
-      | 'POWENS_CLIENT_ID'
-      | 'POWENS_CLIENT_SECRET'
-    >
-  > {}
+  interface ProcessEnv
+    extends StringifyValues<
+      Pick<
+        Cloudflare.Env,
+        | 'CONVEX_DEPLOYMENT'
+        | 'VITE_CONVEX_URL'
+        | 'VITE_CONVEX_SITE_URL'
+        | 'VITE_CLERK_PUBLISHABLE_KEY'
+        | 'CLERK_SECRET_KEY'
+        | 'POWENS_CLIENT_ID'
+        | 'POWENS_CLIENT_SECRET'
+      >
+    > {}
 }
 
 // Begin runtime types
@@ -121,7 +122,7 @@ declare abstract class WorkerGlobalScope extends EventTarget<WorkerGlobalScopeEv
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/console)
  */
 interface Console {
-  'assert'(condition?: boolean, ...data: any[]): void
+  assert(condition?: boolean, ...data: any[]): void
   /**
    * The **`console.clear()`** static method clears the console if possible.
    *
@@ -2054,10 +2055,8 @@ declare var Request: {
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Request)
  */
-interface Request<
-  CfHostMetadata = unknown,
-  Cf = CfProperties<CfHostMetadata>,
-> extends Body {
+interface Request<CfHostMetadata = unknown, Cf = CfProperties<CfHostMetadata>>
+  extends Body {
   /**
    * The **`clone()`** method of the Request interface creates a copy of the current `Request` object.
    *
@@ -2136,11 +2135,15 @@ interface RequestInit<Cf = CfProperties> {
 }
 type Service<
   T extends
-    | (new (...args: any[]) => Rpc.WorkerEntrypointBranded)
+    | (new (
+        ...args: any[]
+      ) => Rpc.WorkerEntrypointBranded)
     | Rpc.WorkerEntrypointBranded
     | ExportedHandler<any, any, any>
     | undefined = undefined,
-> = T extends new (...args: any[]) => Rpc.WorkerEntrypointBranded
+> = T extends new (
+  ...args: any[]
+) => Rpc.WorkerEntrypointBranded
   ? Fetcher<InstanceType<T>>
   : T extends Rpc.WorkerEntrypointBranded
     ? Fetcher<T>
@@ -3080,7 +3083,9 @@ interface TextDecoderStreamTextDecoderStreamInit {
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/ByteLengthQueuingStrategy)
  */
-declare class ByteLengthQueuingStrategy implements QueuingStrategy<ArrayBufferView> {
+declare class ByteLengthQueuingStrategy
+  implements QueuingStrategy<ArrayBufferView>
+{
   constructor(init: QueuingStrategyInit)
   /**
    * The read-only **`ByteLengthQueuingStrategy.highWaterMark`** property returns the total number of bytes that can be contained in the internal queue before backpressure is applied.
@@ -3814,12 +3819,18 @@ interface MessagePortPostMessageOptions {
 }
 type LoopbackForExport<
   T extends
-    | (new (...args: any[]) => Rpc.EntrypointBranded)
+    | (new (
+        ...args: any[]
+      ) => Rpc.EntrypointBranded)
     | ExportedHandler<any, any, any>
     | undefined = undefined,
-> = T extends new (...args: any[]) => Rpc.WorkerEntrypointBranded
+> = T extends new (
+  ...args: any[]
+) => Rpc.WorkerEntrypointBranded
   ? LoopbackServiceStub<InstanceType<T>>
-  : T extends new (...args: any[]) => Rpc.DurableObjectBranded
+  : T extends new (
+        ...args: any[]
+      ) => Rpc.DurableObjectBranded
     ? LoopbackDurableObjectClass<InstanceType<T>>
     : T extends ExportedHandler<any, any, any>
       ? LoopbackServiceStub<undefined>
@@ -10397,7 +10408,8 @@ interface IncomingRequestCfPropertiesBotManagement {
    */
   clientTrustScore: number
 }
-interface IncomingRequestCfPropertiesBotManagementEnterprise extends IncomingRequestCfPropertiesBotManagement {
+interface IncomingRequestCfPropertiesBotManagementEnterprise
+  extends IncomingRequestCfPropertiesBotManagement {
   /**
    * Results of Cloudflare's Bot Management analysis
    */
@@ -11794,20 +11806,49 @@ declare namespace Rpc {
     | Headers
   // Recursively rewrite all `Stubable` types with `Stub`s
   // prettier-ignore
-  type Stubify<T> = T extends Stubable ? Stub<T> : T extends Map<infer K, infer V> ? Map<Stubify<K>, Stubify<V>> : T extends Set<infer V> ? Set<Stubify<V>> : T extends Array<infer V> ? Array<Stubify<V>> : T extends ReadonlyArray<infer V> ? ReadonlyArray<Stubify<V>> : T extends BaseType ? T : T extends {
-        [key: string | number]: any;
-    } ? {
-        [K in keyof T]: Stubify<T[K]>;
-    } : T;
+  type Stubify<T> = T extends Stubable
+    ? Stub<T>
+    : T extends Map<infer K, infer V>
+      ? Map<Stubify<K>, Stubify<V>>
+      : T extends Set<infer V>
+        ? Set<Stubify<V>>
+        : T extends Array<infer V>
+          ? Array<Stubify<V>>
+          : T extends ReadonlyArray<infer V>
+            ? ReadonlyArray<Stubify<V>>
+            : T extends BaseType
+              ? T
+              : T extends {
+                    [key: string | number]: any
+                  }
+                ? {
+                    [K in keyof T]: Stubify<T[K]>
+                  }
+                : T
   // Recursively rewrite all `Stub<T>`s with the corresponding `T`s.
   // Note we use `StubBase` instead of `Stub` here to avoid circular dependencies:
   // `Stub` depends on `Provider`, which depends on `Unstubify`, which would depend on `Stub`.
   // prettier-ignore
-  type Unstubify<T> = T extends StubBase<infer V> ? V : T extends Map<infer K, infer V> ? Map<Unstubify<K>, Unstubify<V>> : T extends Set<infer V> ? Set<Unstubify<V>> : T extends Array<infer V> ? Array<Unstubify<V>> : T extends ReadonlyArray<infer V> ? ReadonlyArray<Unstubify<V>> : T extends BaseType ? T : T extends {
-        [key: string | number]: unknown;
-    } ? {
-        [K in keyof T]: Unstubify<T[K]>;
-    } : T;
+  type Unstubify<T> =
+    T extends StubBase<infer V>
+      ? V
+      : T extends Map<infer K, infer V>
+        ? Map<Unstubify<K>, Unstubify<V>>
+        : T extends Set<infer V>
+          ? Set<Unstubify<V>>
+          : T extends Array<infer V>
+            ? Array<Unstubify<V>>
+            : T extends ReadonlyArray<infer V>
+              ? ReadonlyArray<Unstubify<V>>
+              : T extends BaseType
+                ? T
+                : T extends {
+                      [key: string | number]: unknown
+                    }
+                  ? {
+                      [K in keyof T]: Unstubify<T[K]>
+                    }
+                  : T
   type UnstubifyAll<A extends any[]> = {
     [I in keyof A]: Unstubify<A[I]>
   }
@@ -11823,7 +11864,11 @@ declare namespace Rpc {
   // Technically, we use custom thenables here, but they quack like `Promise`s.
   // Intersecting with `(Maybe)Provider` allows pipelining.
   // prettier-ignore
-  type Result<R> = R extends Stubable ? Promise<Stub<R>> & Provider<R> : R extends Serializable<R> ? Promise<Stubify<R> & MaybeDisposable<R>> & MaybeProvider<R> : never;
+  type Result<R> = R extends Stubable
+    ? Promise<Stub<R>> & Provider<R>
+    : R extends Serializable<R>
+      ? Promise<Stubify<R> & MaybeDisposable<R>> & MaybeProvider<R>
+      : never
   // Type for method or property on an RPC interface.
   // For methods, unwrap `Stub`s in parameters, and rewrite returns to be `Result`s.
   // Unwrapping `Stub`s allows calling with `Stubable` arguments.
@@ -11892,7 +11937,9 @@ declare namespace Cloudflare {
       // If the export is listed in `durableNamespaces`, then it is also a
       // DurableObjectNamespace.
       (K extends GlobalProp<'durableNamespaces', never>
-        ? MainModule[K] extends new (...args: any[]) => infer DoInstance
+        ? MainModule[K] extends new (
+            ...args: any[]
+          ) => infer DoInstance
           ? DoInstance extends Rpc.DurableObjectBranded
             ? DurableObjectNamespace<DoInstance>
             : DurableObjectNamespace<undefined>
@@ -12016,8 +12063,7 @@ declare namespace CloudflareWorkersModule {
   export abstract class WorkflowEntrypoint<
     Env = unknown,
     T extends Rpc.Serializable<T> | unknown = unknown,
-  >
-    implements Rpc.WorkflowEntrypointBranded
+  > implements Rpc.WorkflowEntrypointBranded
   {
     [Rpc.__WORKFLOW_ENTRYPOINT_BRAND]: never
     protected ctx: ExecutionContext

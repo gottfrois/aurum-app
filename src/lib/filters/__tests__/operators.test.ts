@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import {
-  OPERATORS_BY_TYPE,
   OPERATOR_LABELS,
+  OPERATORS_BY_TYPE,
   RANGE_OPERATORS,
   VALUELESS_OPERATORS,
 } from '../operators'

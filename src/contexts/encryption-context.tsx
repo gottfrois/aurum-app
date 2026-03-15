@@ -1,6 +1,6 @@
-import * as React from 'react'
 import { useConvexAuth, useQuery } from 'convex/react'
-import { api } from '../../convex/_generated/api'
+import * as React from 'react'
+import { clearCache } from '~/lib/cache-db'
 import {
   clearStoredPrivateKey,
   decryptData,
@@ -11,7 +11,7 @@ import {
   importPrivateKey,
   storePrivateKey,
 } from '~/lib/crypto'
-import { clearCache } from '~/lib/cache-db'
+import { api } from '../../convex/_generated/api'
 
 interface EncryptionContextValue {
   isEncryptionEnabled: boolean

@@ -1,3 +1,4 @@
+import { LayoutGrid, PieChartIcon } from 'lucide-react'
 import * as React from 'react'
 import {
   Cell,
@@ -7,9 +8,6 @@ import {
   ResponsiveContainer,
   Treemap,
 } from 'recharts'
-import { LayoutGrid, PieChartIcon } from 'lucide-react'
-import type { ChartConfig } from '~/components/ui/chart'
-import { ChartContainer, ChartTooltip } from '~/components/ui/chart'
 import {
   Card,
   CardAction,
@@ -17,6 +15,8 @@ import {
   CardHeader,
   CardTitle,
 } from '~/components/ui/card'
+import type { ChartConfig } from '~/components/ui/chart'
+import { ChartContainer, ChartTooltip } from '~/components/ui/chart'
 import { ToggleGroup, ToggleGroupItem } from '~/components/ui/toggle-group'
 import {
   Tooltip,
