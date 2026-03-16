@@ -6,6 +6,7 @@ import {
   internalMutation,
   internalQuery,
 } from './_generated/server'
+import { getCategoryKey } from './lib/accountCategories'
 import { encryptFieldGroups, encryptForProfile } from './lib/serverCrypto'
 
 // ---------------------------------------------------------------------------
@@ -360,6 +361,8 @@ export const seedDemoData = internalAction({
           {
             bankAccountId: ids.bankAccountId,
             portfolioId: portfolio._id,
+            workspaceId: membership.workspaceId,
+            accountType,
             balance,
             currency: 'EUR',
             date: formatDate(date),
@@ -574,13 +577,26 @@ export const insertSeedSnapshot = internalMutation({
   args: {
     bankAccountId: v.id('bankAccounts'),
     portfolioId: v.id('portfolios'),
+    workspaceId: v.id('workspaces'),
+    accountType: v.string(),
     balance: v.number(),
     currency: v.string(),
     date: v.string(),
     timestamp: v.number(),
   },
   handler: async (ctx, args) => {
-    return await ctx.db.insert('balanceSnapshots', {
+    // Look up previous snapshot to compute delta
+    const previous = await ctx.db
+      .query('balanceSnapshots')
+      .withIndex('by_bankAccountId_timestamp', (q) =>
+        q.eq('bankAccountId', args.bankAccountId),
+      )
+      .order('desc')
+      .first()
+    const oldBalance = previous?.balance ?? 0
+    const balanceDelta = args.balance - oldBalance
+
+    const snapshotId = await ctx.db.insert('balanceSnapshots', {
       bankAccountId: args.bankAccountId,
       portfolioId: args.portfolioId,
       balance: args.balance,
@@ -590,6 +606,79 @@ export const insertSeedSnapshot = internalMutation({
       seed: true,
       encryptedData: '', // placeholder — patched with encrypted data by the action
     })
+
+    // Update dailyNetWorth aggregate
+    const existingNetWorth = await ctx.db
+      .query('dailyNetWorth')
+      .withIndex('by_portfolioId_date', (q) =>
+        q.eq('portfolioId', args.portfolioId).eq('date', args.date),
+      )
+      .first()
+
+    if (existingNetWorth) {
+      await ctx.db.patch('dailyNetWorth', existingNetWorth._id, {
+        balance:
+          Math.round((existingNetWorth.balance + balanceDelta) * 100) / 100,
+      })
+    } else {
+      const previousNetWorth = await ctx.db
+        .query('dailyNetWorth')
+        .withIndex('by_portfolioId_date', (q) =>
+          q.eq('portfolioId', args.portfolioId),
+        )
+        .order('desc')
+        .first()
+      const carryForward = previousNetWorth?.balance ?? 0
+
+      await ctx.db.insert('dailyNetWorth', {
+        portfolioId: args.portfolioId,
+        workspaceId: args.workspaceId,
+        date: args.date,
+        timestamp: args.timestamp,
+        balance: Math.round((carryForward + balanceDelta) * 100) / 100,
+        currency: args.currency,
+      })
+    }
+
+    // Update dailyCategoryBalance aggregate
+    const category = getCategoryKey(args.accountType)
+    const existingCategory = await ctx.db
+      .query('dailyCategoryBalance')
+      .withIndex('by_portfolioId_category_date', (q) =>
+        q
+          .eq('portfolioId', args.portfolioId)
+          .eq('category', category)
+          .eq('date', args.date),
+      )
+      .first()
+
+    if (existingCategory) {
+      await ctx.db.patch('dailyCategoryBalance', existingCategory._id, {
+        balance:
+          Math.round((existingCategory.balance + balanceDelta) * 100) / 100,
+      })
+    } else {
+      const previousCategory = await ctx.db
+        .query('dailyCategoryBalance')
+        .withIndex('by_portfolioId_category_date', (q) =>
+          q.eq('portfolioId', args.portfolioId).eq('category', category),
+        )
+        .order('desc')
+        .first()
+      const carryForward = previousCategory?.balance ?? 0
+
+      await ctx.db.insert('dailyCategoryBalance', {
+        portfolioId: args.portfolioId,
+        workspaceId: args.workspaceId,
+        category,
+        date: args.date,
+        timestamp: args.timestamp,
+        balance: Math.round((carryForward + balanceDelta) * 100) / 100,
+        currency: args.currency,
+      })
+    }
+
+    return snapshotId
   },
 })
 
