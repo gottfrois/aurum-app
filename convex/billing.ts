@@ -3,7 +3,7 @@ import { components, internal } from './_generated/api'
 import { action, internalQuery, query } from './_generated/server'
 import { getAuthUserId } from './lib/auth'
 import { getWorkspaceSubscription } from './lib/billing'
-import { stripe } from './stripe'
+import { type PlanKey, stripe } from './stripe'
 
 export const getSubscriptionStatus = query({
   args: {},
@@ -60,11 +60,30 @@ export const getOwnerSubscription = internalQuery({
   },
 })
 
+const PRICE_ID_ENV_MAP: Record<
+  PlanKey,
+  Record<'monthly' | 'yearly', string>
+> = {
+  solo: {
+    monthly: 'STRIPE_SOLO_MONTHLY_PRICE_ID',
+    yearly: 'STRIPE_SOLO_YEARLY_PRICE_ID',
+  },
+  duo: {
+    monthly: 'STRIPE_DUO_MONTHLY_PRICE_ID',
+    yearly: 'STRIPE_DUO_YEARLY_PRICE_ID',
+  },
+  family: {
+    monthly: 'STRIPE_FAMILY_MONTHLY_PRICE_ID',
+    yearly: 'STRIPE_FAMILY_YEARLY_PRICE_ID',
+  },
+}
+
 export const createCheckout = action({
   args: {
+    plan: v.union(v.literal('solo'), v.literal('duo'), v.literal('family')),
     interval: v.union(v.literal('monthly'), v.literal('yearly')),
   },
-  handler: async (ctx, { interval }) => {
+  handler: async (ctx, { plan, interval }) => {
     const identity = await ctx.auth.getUserIdentity()
     if (!identity) throw new Error('Not authenticated')
 
@@ -74,10 +93,11 @@ export const createCheckout = action({
       name: identity.name ?? undefined,
     })
 
-    const priceId =
-      interval === 'monthly'
-        ? process.env.STRIPE_MONTHLY_PRICE_ID!
-        : process.env.STRIPE_YEARLY_PRICE_ID!
+    const envKey = PRICE_ID_ENV_MAP[plan][interval]
+    const priceId = process.env[envKey]
+    if (!priceId) {
+      throw new Error(`Missing environment variable: ${envKey}`)
+    }
 
     const siteUrl = process.env.SITE_URL ?? 'http://localhost:3000'
 
@@ -120,41 +140,6 @@ export const createPortalSession = action({
     return await stripe.createCustomerPortalSession(ctx, {
       customerId: customer.customerId,
       returnUrl: `${siteUrl}/settings/workspace/billing`,
-    })
-  },
-})
-
-export const updateSeatCount = action({
-  args: { seats: v.number() },
-  handler: async (ctx, { seats }) => {
-    const identity = await ctx.auth.getUserIdentity()
-    if (!identity) throw new Error('Not authenticated')
-
-    const membership = await ctx.runQuery(
-      internal.members.getMembershipByUserId,
-      { userId: identity.subject },
-    )
-    if (!membership || membership.role !== 'owner') {
-      throw new Error('Only workspace owners can update seat count')
-    }
-
-    const subscriptions = await ctx.runQuery(
-      components.stripe.public.listSubscriptionsByUserId,
-      { userId: identity.subject },
-    )
-
-    const subscription = subscriptions.find(
-      (s: { status: string }) =>
-        s.status === 'active' || s.status === 'trialing',
-    )
-
-    if (!subscription?.stripeSubscriptionId) {
-      throw new Error('No active subscription found')
-    }
-
-    await stripe.updateSubscriptionQuantity(ctx, {
-      stripeSubscriptionId: subscription.stripeSubscriptionId,
-      quantity: seats,
     })
   },
 })

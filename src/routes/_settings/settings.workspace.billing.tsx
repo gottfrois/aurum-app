@@ -17,7 +17,7 @@ import { Badge } from '~/components/ui/badge'
 import { Button } from '~/components/ui/button'
 import { Skeleton } from '~/components/ui/skeleton'
 import { api } from '../../../convex/_generated/api'
-import { SEAT_PRICES } from '../../../convex/stripe'
+import { PLANS } from '../../../convex/stripe'
 
 export const Route = createFileRoute('/_settings/settings/workspace/billing')({
   component: BillingPage,
@@ -90,19 +90,7 @@ function BillingPage() {
 
   if (!subscription) return null
 
-  const seatPrice =
-    subscription.interval === 'yearly'
-      ? SEAT_PRICES.yearly
-      : SEAT_PRICES.monthly
-
-  const trialDaysRemaining = subscription.trialEndsAt
-    ? Math.max(
-        0,
-        Math.ceil(
-          (subscription.trialEndsAt - Date.now()) / (1000 * 60 * 60 * 24),
-        ),
-      )
-    : null
+  const planConfig = subscription.plan ? PLANS[subscription.plan] : null
 
   return (
     <RequireOwner>
@@ -129,16 +117,20 @@ function BillingPage() {
             <div className="grid grid-cols-3 gap-6 rounded-lg border p-6">
               <div>
                 <div className="flex items-center gap-2">
-                  <span className="text-sm font-medium">Bunkr</span>
+                  <span className="text-sm font-medium">
+                    Bunkr {planConfig?.name ?? ''}
+                  </span>
                   <Badge>Current</Badge>
                   {subscription.isTrial && (
                     <Badge variant="secondary">Trial</Badge>
                   )}
                 </div>
                 <p className="mt-1 text-sm text-muted-foreground">
-                  {seatPrice / 100}&#8364;/seat
+                  {planConfig
+                    ? `${(subscription.interval === 'yearly' ? planConfig.yearly : planConfig.monthly) / 100}\u20AC`
+                    : ''}
                   {subscription.interval === 'yearly'
-                    ? '/yr — billed annually'
+                    ? '/yr \u2014 billed annually'
                     : '/mo'}
                 </p>
               </div>
@@ -154,18 +146,27 @@ function BillingPage() {
 
               <div className="text-right">
                 <p className="text-sm font-medium">Next renewal</p>
-                {subscription.isTrial && trialDaysRemaining !== null ? (
+                {subscription.isTrial && subscription.trialEndsAt ? (
                   <p className="mt-1 text-sm text-muted-foreground">
-                    {trialDaysRemaining === 0
-                      ? 'Trial expires today'
-                      : `${trialDaysRemaining} day${trialDaysRemaining !== 1 ? 's' : ''} left in trial`}
+                    {(() => {
+                      const days = Math.max(
+                        0,
+                        Math.ceil(
+                          (subscription.trialEndsAt - Date.now()) /
+                            (1000 * 60 * 60 * 24),
+                        ),
+                      )
+                      return days === 0
+                        ? 'Trial expires today'
+                        : `${days} day${days !== 1 ? 's' : ''} left in trial`
+                    })()}
                   </p>
                 ) : subscription.renewsAt ? (
                   <p className="mt-1 text-sm text-muted-foreground">
                     {formatDate(subscription.renewsAt)}
                     {subscription.amount !== null && (
                       <>
-                        {' — '}
+                        {' \u2014 '}
                         {formatCurrency(
                           subscription.amount,
                           subscription.currency ?? 'eur',
@@ -174,7 +175,7 @@ function BillingPage() {
                     )}
                   </p>
                 ) : (
-                  <p className="mt-1 text-sm text-muted-foreground">—</p>
+                  <p className="mt-1 text-sm text-muted-foreground">&mdash;</p>
                 )}
               </div>
 
@@ -205,7 +206,7 @@ function BillingPage() {
                         {formatDate(new Date(invoice.createdAt).getTime())}
                       </ItemCardItemTitle>
                       <ItemCardItemDescription>
-                        Bunkr subscription
+                        Bunkr {planConfig?.name ?? ''} subscription
                       </ItemCardItemDescription>
                     </ItemCardItemContent>
                     <ItemCardItemAction>

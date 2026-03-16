@@ -12,31 +12,42 @@ import {
   CardHeader,
   CardTitle,
 } from '~/components/ui/card'
+import { cn } from '~/lib/utils'
 import { api } from '../../convex/_generated/api'
+import { PLANS, type PlanKey } from '../../convex/stripe'
 
 export const Route = createFileRoute('/checkout')({
   component: CheckoutPage,
 })
 
-const FEATURES = [
-  'Unlimited bank connections',
-  'Unlimited profiles',
-  'Full transaction history',
-  'Net worth tracking',
-  'Portfolio analytics',
-  'Zero-knowledge encryption',
-  'Workspace collaboration',
-  'Priority support',
-]
-
-const SEAT_PRICE = {
-  monthly: 9,
-  yearly: 89,
+const PLAN_FEATURES: Record<PlanKey, string[]> = {
+  solo: [
+    '1 seat',
+    'Unlimited portfolios',
+    'Unlimited bank connections',
+    'Full transaction history',
+    'Net worth tracking',
+    'Portfolio analytics',
+    'Zero-knowledge encryption',
+  ],
+  duo: [
+    '2 seats',
+    'Everything in Solo',
+    'Shared workspace',
+    'Invite your partner',
+  ],
+  family: [
+    'Up to 5 seats',
+    'Everything in Duo',
+    'Family dashboard',
+    'Privacy controls',
+    'Combined net worth view',
+  ],
 }
 
 function CheckoutPage() {
   const [isYearly, setIsYearly] = useState(false)
-  const [loading, setLoading] = useState(false)
+  const [loading, setLoading] = useState<PlanKey | null>(null)
   const subscription = useQuery(api.billing.getSubscriptionStatus)
   const createCheckout = useAction(api.billing.createCheckout)
   const navigate = useNavigate()
@@ -47,12 +58,11 @@ function CheckoutPage() {
     }
   }, [subscription, navigate])
 
-  const price = isYearly ? SEAT_PRICE.yearly : SEAT_PRICE.monthly
-
-  async function handleCheckout() {
-    setLoading(true)
+  async function handleCheckout(plan: PlanKey) {
+    setLoading(plan)
     try {
       const result = await createCheckout({
+        plan,
         interval: isYearly ? 'yearly' : 'monthly',
       })
       if (result.url) {
@@ -61,7 +71,7 @@ function CheckoutPage() {
     } catch (error) {
       console.error('Checkout error:', error)
     } finally {
-      setLoading(false)
+      setLoading(null)
     }
   }
 
@@ -95,51 +105,84 @@ function CheckoutPage() {
         >
           Yearly
           <Badge variant="secondary" className="ml-1.5">
-            Save 18%
+            Save 17%
           </Badge>
         </button>
       </div>
 
-      <Card className="w-full max-w-md">
-        <CardHeader className="text-center">
-          <CardTitle className="text-xl">Bunkr</CardTitle>
-          <CardDescription>
-            Personal finance tracking for you and your family
-          </CardDescription>
-          <div className="mt-4">
-            <span className="text-4xl font-bold">{price}&#8364;</span>
-            <span className="text-muted-foreground">
-              /seat/{isYearly ? 'year' : 'month'}
-            </span>
-          </div>
-          <p className="mt-1 text-xs text-muted-foreground">
-            Start with 1 seat, add more anytime
-          </p>
-        </CardHeader>
-        <CardContent>
-          <ul className="space-y-3">
-            {FEATURES.map((feature) => (
-              <li key={feature} className="flex items-center gap-2 text-sm">
-                <Check className="size-4 shrink-0 text-primary" />
-                {feature}
-              </li>
-            ))}
-          </ul>
-        </CardContent>
-        <CardFooter>
-          <Button
-            className="w-full"
-            size="lg"
-            onClick={handleCheckout}
-            disabled={loading}
-          >
-            {loading ? 'Redirecting...' : 'Start free trial'}
-          </Button>
-        </CardFooter>
-      </Card>
+      <div className="grid w-full max-w-4xl grid-cols-1 gap-6 md:grid-cols-3">
+        {(Object.entries(PLANS) as [PlanKey, (typeof PLANS)[PlanKey]][]).map(
+          ([key, plan]) => {
+            const price = isYearly ? plan.yearly : plan.monthly
+            const monthlyEquivalent = isYearly
+              ? Math.round(plan.yearly / 12)
+              : plan.monthly
+            const isPopular = key === 'duo'
+
+            return (
+              <Card
+                key={key}
+                className={cn(
+                  'relative flex flex-col',
+                  isPopular && 'border-primary shadow-md',
+                )}
+              >
+                {isPopular && (
+                  <Badge className="absolute -top-2.5 left-1/2 -translate-x-1/2">
+                    Most popular
+                  </Badge>
+                )}
+                <CardHeader className="text-center">
+                  <CardTitle className="text-xl">{plan.name}</CardTitle>
+                  <CardDescription>
+                    {key === 'solo' && 'For individuals'}
+                    {key === 'duo' && 'For couples'}
+                    {key === 'family' && 'For the whole family'}
+                  </CardDescription>
+                  <div className="mt-4">
+                    <span className="text-4xl font-bold">
+                      {monthlyEquivalent / 100}&#8364;
+                    </span>
+                    <span className="text-muted-foreground">/mo</span>
+                  </div>
+                  {isYearly && (
+                    <p className="mt-1 text-xs text-muted-foreground">
+                      {price / 100}&#8364; billed annually
+                    </p>
+                  )}
+                </CardHeader>
+                <CardContent className="flex-1">
+                  <ul className="space-y-3">
+                    {PLAN_FEATURES[key].map((feature) => (
+                      <li
+                        key={feature}
+                        className="flex items-center gap-2 text-sm"
+                      >
+                        <Check className="size-4 shrink-0 text-primary" />
+                        {feature}
+                      </li>
+                    ))}
+                  </ul>
+                </CardContent>
+                <CardFooter>
+                  <Button
+                    className="w-full"
+                    size="lg"
+                    variant={isPopular ? 'default' : 'outline'}
+                    onClick={() => handleCheckout(key)}
+                    disabled={loading !== null}
+                  >
+                    {loading === key ? 'Redirecting...' : 'Start free trial'}
+                  </Button>
+                </CardFooter>
+              </Card>
+            )
+          },
+        )}
+      </div>
 
       <p className="mt-6 text-center text-xs text-muted-foreground">
-        14-day free trial. Cancel anytime. Add seats as you grow.
+        14-day free trial on all plans. Cancel anytime.
       </p>
     </div>
   )

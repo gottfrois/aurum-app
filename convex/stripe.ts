@@ -3,8 +3,25 @@ import { components } from './_generated/api'
 
 export const stripe = new StripeSubscriptions(components.stripe, {})
 
-/** Per-seat price in EUR cents */
-export const SEAT_PRICES = {
-  monthly: 900, // €9/month/seat
-  yearly: 8900, // €89/year/seat (save ~18%)
+export const PLANS = {
+  solo: {
+    name: 'Solo',
+    seats: 1,
+    monthly: 900,
+    yearly: 8900,
+  },
+  duo: {
+    name: 'Duo',
+    seats: 2,
+    monthly: 1400,
+    yearly: 13900,
+  },
+  family: {
+    name: 'Family',
+    seats: 5,
+    monthly: 2900,
+    yearly: 28900,
+  },
 } as const
+
+export type PlanKey = keyof typeof PLANS
