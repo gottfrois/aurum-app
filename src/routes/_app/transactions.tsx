@@ -93,7 +93,7 @@ function TransactionsContent() {
   const {
     isLoading: portfolioLoading,
     isAllPortfolios,
-    isFamilyView,
+    isTeamView,
     allPortfolioIds,
     singlePortfolioId,
     portfolios,
@@ -156,9 +156,9 @@ function TransactionsContent() {
         }
       : 'skip',
   )
-  const transactionsFamily = useQuery(
-    api.family.listFamilyTransactions,
-    isFamilyView && workspaceId
+  const transactionsTeam = useQuery(
+    api.team.listTeamTransactions,
+    isTeamView && workspaceId
       ? {
           workspaceId,
           startDate: range.start,
@@ -166,8 +166,8 @@ function TransactionsContent() {
         }
       : 'skip',
   )
-  const rawTransactions = isFamilyView
-    ? transactionsFamily
+  const rawTransactions = isTeamView
+    ? transactionsTeam
     : isAllPortfolios
       ? transactionsAll
       : transactionsSingle
@@ -186,12 +186,12 @@ function TransactionsContent() {
       ? { portfolioIds: allPortfolioIds }
       : 'skip',
   )
-  const bankAccountsFamily = useQuery(
-    api.family.listFamilyBankAccounts,
-    isFamilyView && workspaceId ? { workspaceId } : 'skip',
+  const bankAccountsTeam = useQuery(
+    api.team.listTeamBankAccounts,
+    isTeamView && workspaceId ? { workspaceId } : 'skip',
   )
-  const rawBankAccounts = isFamilyView
-    ? bankAccountsFamily
+  const rawBankAccounts = isTeamView
+    ? bankAccountsTeam
     : isAllPortfolios
       ? bankAccountsAll
       : bankAccountsSingle

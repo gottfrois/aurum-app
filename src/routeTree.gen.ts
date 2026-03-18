@@ -23,8 +23,8 @@ import { Route as AppAccountsIndexRouteImport } from './routes/_app/accounts.ind
 import { Route as AppAccountsAccountIdRouteImport } from './routes/_app/accounts.$accountId'
 import { Route as SettingsSettingsWorkspaceIndexRouteImport } from './routes/_settings/settings.workspace.index'
 import { Route as SettingsSettingsAccountIndexRouteImport } from './routes/_settings/settings.account.index'
+import { Route as SettingsSettingsWorkspaceTeamRouteImport } from './routes/_settings/settings.workspace.team'
 import { Route as SettingsSettingsWorkspaceMembersRouteImport } from './routes/_settings/settings.workspace.members'
-import { Route as SettingsSettingsWorkspaceFamilyRouteImport } from './routes/_settings/settings.workspace.family'
 import { Route as SettingsSettingsWorkspaceCategoriesRouteImport } from './routes/_settings/settings.workspace.categories'
 import { Route as SettingsSettingsWorkspaceBillingRouteImport } from './routes/_settings/settings.workspace.billing'
 import { Route as SettingsSettingsAccountSecurityRouteImport } from './routes/_settings/settings.account.security'
@@ -103,16 +103,16 @@ const SettingsSettingsAccountIndexRoute =
     path: '/settings/account/',
     getParentRoute: () => SettingsRoute,
   } as any)
+const SettingsSettingsWorkspaceTeamRoute =
+  SettingsSettingsWorkspaceTeamRouteImport.update({
+    id: '/settings/workspace/team',
+    path: '/settings/workspace/team',
+    getParentRoute: () => SettingsRoute,
+  } as any)
 const SettingsSettingsWorkspaceMembersRoute =
   SettingsSettingsWorkspaceMembersRouteImport.update({
     id: '/settings/workspace/members',
     path: '/settings/workspace/members',
-    getParentRoute: () => SettingsRoute,
-  } as any)
-const SettingsSettingsWorkspaceFamilyRoute =
-  SettingsSettingsWorkspaceFamilyRouteImport.update({
-    id: '/settings/workspace/family',
-    path: '/settings/workspace/family',
     getParentRoute: () => SettingsRoute,
   } as any)
 const SettingsSettingsWorkspaceCategoriesRoute =
@@ -176,8 +176,8 @@ export interface FileRoutesByFullPath {
   '/settings/account/security': typeof SettingsSettingsAccountSecurityRoute
   '/settings/workspace/billing': typeof SettingsSettingsWorkspaceBillingRoute
   '/settings/workspace/categories': typeof SettingsSettingsWorkspaceCategoriesRoute
-  '/settings/workspace/family': typeof SettingsSettingsWorkspaceFamilyRoute
   '/settings/workspace/members': typeof SettingsSettingsWorkspaceMembersRoute
+  '/settings/workspace/team': typeof SettingsSettingsWorkspaceTeamRoute
   '/settings/account/': typeof SettingsSettingsAccountIndexRoute
   '/settings/workspace/': typeof SettingsSettingsWorkspaceIndexRoute
 }
@@ -199,8 +199,8 @@ export interface FileRoutesByTo {
   '/settings/account/security': typeof SettingsSettingsAccountSecurityRoute
   '/settings/workspace/billing': typeof SettingsSettingsWorkspaceBillingRoute
   '/settings/workspace/categories': typeof SettingsSettingsWorkspaceCategoriesRoute
-  '/settings/workspace/family': typeof SettingsSettingsWorkspaceFamilyRoute
   '/settings/workspace/members': typeof SettingsSettingsWorkspaceMembersRoute
+  '/settings/workspace/team': typeof SettingsSettingsWorkspaceTeamRoute
   '/settings/account': typeof SettingsSettingsAccountIndexRoute
   '/settings/workspace': typeof SettingsSettingsWorkspaceIndexRoute
 }
@@ -225,8 +225,8 @@ export interface FileRoutesById {
   '/_settings/settings/account/security': typeof SettingsSettingsAccountSecurityRoute
   '/_settings/settings/workspace/billing': typeof SettingsSettingsWorkspaceBillingRoute
   '/_settings/settings/workspace/categories': typeof SettingsSettingsWorkspaceCategoriesRoute
-  '/_settings/settings/workspace/family': typeof SettingsSettingsWorkspaceFamilyRoute
   '/_settings/settings/workspace/members': typeof SettingsSettingsWorkspaceMembersRoute
+  '/_settings/settings/workspace/team': typeof SettingsSettingsWorkspaceTeamRoute
   '/_settings/settings/account/': typeof SettingsSettingsAccountIndexRoute
   '/_settings/settings/workspace/': typeof SettingsSettingsWorkspaceIndexRoute
 }
@@ -250,8 +250,8 @@ export interface FileRouteTypes {
     | '/settings/account/security'
     | '/settings/workspace/billing'
     | '/settings/workspace/categories'
-    | '/settings/workspace/family'
     | '/settings/workspace/members'
+    | '/settings/workspace/team'
     | '/settings/account/'
     | '/settings/workspace/'
   fileRoutesByTo: FileRoutesByTo
@@ -273,8 +273,8 @@ export interface FileRouteTypes {
     | '/settings/account/security'
     | '/settings/workspace/billing'
     | '/settings/workspace/categories'
-    | '/settings/workspace/family'
     | '/settings/workspace/members'
+    | '/settings/workspace/team'
     | '/settings/account'
     | '/settings/workspace'
   id:
@@ -298,8 +298,8 @@ export interface FileRouteTypes {
     | '/_settings/settings/account/security'
     | '/_settings/settings/workspace/billing'
     | '/_settings/settings/workspace/categories'
-    | '/_settings/settings/workspace/family'
     | '/_settings/settings/workspace/members'
+    | '/_settings/settings/workspace/team'
     | '/_settings/settings/account/'
     | '/_settings/settings/workspace/'
   fileRoutesById: FileRoutesById
@@ -413,18 +413,18 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof SettingsSettingsAccountIndexRouteImport
       parentRoute: typeof SettingsRoute
     }
+    '/_settings/settings/workspace/team': {
+      id: '/_settings/settings/workspace/team'
+      path: '/settings/workspace/team'
+      fullPath: '/settings/workspace/team'
+      preLoaderRoute: typeof SettingsSettingsWorkspaceTeamRouteImport
+      parentRoute: typeof SettingsRoute
+    }
     '/_settings/settings/workspace/members': {
       id: '/_settings/settings/workspace/members'
       path: '/settings/workspace/members'
       fullPath: '/settings/workspace/members'
       preLoaderRoute: typeof SettingsSettingsWorkspaceMembersRouteImport
-      parentRoute: typeof SettingsRoute
-    }
-    '/_settings/settings/workspace/family': {
-      id: '/_settings/settings/workspace/family'
-      path: '/settings/workspace/family'
-      fullPath: '/settings/workspace/family'
-      preLoaderRoute: typeof SettingsSettingsWorkspaceFamilyRouteImport
       parentRoute: typeof SettingsRoute
     }
     '/_settings/settings/workspace/categories': {
@@ -506,8 +506,8 @@ interface SettingsRouteChildren {
   SettingsSettingsAccountSecurityRoute: typeof SettingsSettingsAccountSecurityRoute
   SettingsSettingsWorkspaceBillingRoute: typeof SettingsSettingsWorkspaceBillingRoute
   SettingsSettingsWorkspaceCategoriesRoute: typeof SettingsSettingsWorkspaceCategoriesRoute
-  SettingsSettingsWorkspaceFamilyRoute: typeof SettingsSettingsWorkspaceFamilyRoute
   SettingsSettingsWorkspaceMembersRoute: typeof SettingsSettingsWorkspaceMembersRoute
+  SettingsSettingsWorkspaceTeamRoute: typeof SettingsSettingsWorkspaceTeamRoute
   SettingsSettingsAccountIndexRoute: typeof SettingsSettingsAccountIndexRoute
   SettingsSettingsWorkspaceIndexRoute: typeof SettingsSettingsWorkspaceIndexRoute
 }
@@ -525,8 +525,8 @@ const SettingsRouteChildren: SettingsRouteChildren = {
   SettingsSettingsWorkspaceBillingRoute: SettingsSettingsWorkspaceBillingRoute,
   SettingsSettingsWorkspaceCategoriesRoute:
     SettingsSettingsWorkspaceCategoriesRoute,
-  SettingsSettingsWorkspaceFamilyRoute: SettingsSettingsWorkspaceFamilyRoute,
   SettingsSettingsWorkspaceMembersRoute: SettingsSettingsWorkspaceMembersRoute,
+  SettingsSettingsWorkspaceTeamRoute: SettingsSettingsWorkspaceTeamRoute,
   SettingsSettingsAccountIndexRoute: SettingsSettingsAccountIndexRoute,
   SettingsSettingsWorkspaceIndexRoute: SettingsSettingsWorkspaceIndexRoute,
 }

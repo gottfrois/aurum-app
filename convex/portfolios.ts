@@ -1,7 +1,7 @@
 import { v } from 'convex/values'
 import { mutation, query } from './_generated/server'
 import { getAuthUserId } from './lib/auth'
-import { requireFamilyPlan } from './lib/billing'
+import { requireTeamPlan } from './lib/billing'
 
 async function getCurrentMember(ctx: { db: any; auth: any }) {
   const userId = await getAuthUserId(ctx as any)
@@ -174,7 +174,7 @@ export const updatePortfolioSharing = mutation({
       throw new Error('Portfolio not found or not owned by you')
     }
 
-    await requireFamilyPlan(ctx, member.workspaceId)
+    await requireTeamPlan(ctx, member.workspaceId)
 
     const updates: Record<string, boolean> = {}
     if (args.shared !== undefined) updates.shared = args.shared

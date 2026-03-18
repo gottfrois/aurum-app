@@ -141,9 +141,9 @@ export function SettingsSidebar({
                 </SidebarMenuItem>
                 <SidebarMenuItem>
                   <SidebarMenuButton asChild>
-                    <Link to="/settings/workspace/family">
+                    <Link to="/settings/workspace/team">
                       <Home />
-                      <span>Family</span>
+                      <span>Team</span>
                     </Link>
                   </SidebarMenuButton>
                 </SidebarMenuItem>

@@ -36,10 +36,10 @@ const PLAN_FEATURES: Record<PlanKey, string[]> = {
     'Shared workspace',
     'Invite your partner',
   ],
-  family: [
+  team: [
     'Up to 5 seats',
     'Everything in Duo',
-    'Family dashboard',
+    'Team dashboard',
     'Privacy controls',
     'Combined net worth view',
   ],
@@ -137,7 +137,7 @@ function CheckoutPage() {
                   <CardDescription>
                     {key === 'solo' && 'For individuals'}
                     {key === 'duo' && 'For couples'}
-                    {key === 'family' && 'For the whole family'}
+                    {key === 'team' && 'For teams'}
                   </CardDescription>
                   <div className="mt-4">
                     <span className="text-4xl font-bold">

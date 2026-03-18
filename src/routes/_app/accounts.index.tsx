@@ -85,7 +85,7 @@ function BankAccountsList({ categoryFilter }: { categoryFilter?: string }) {
   const {
     isLoading: portfolioLoading,
     isAllPortfolios,
-    isFamilyView,
+    isTeamView,
     allPortfolioIds,
     singlePortfolioId,
     portfolios,
@@ -107,12 +107,12 @@ function BankAccountsList({ categoryFilter }: { categoryFilter?: string }) {
       ? { portfolioIds: allPortfolioIds }
       : 'skip',
   )
-  const allBankAccountsFamily = useQuery(
-    api.family.listFamilyBankAccounts,
-    isFamilyView && workspaceId ? { workspaceId } : 'skip',
+  const allBankAccountsTeam = useQuery(
+    api.team.listTeamBankAccounts,
+    isTeamView && workspaceId ? { workspaceId } : 'skip',
   )
-  const rawAllBankAccounts = isFamilyView
-    ? allBankAccountsFamily
+  const rawAllBankAccounts = isTeamView
+    ? allBankAccountsTeam
     : isAllPortfolios
       ? allBankAccountsAll
       : allBankAccountsSingle
@@ -131,12 +131,12 @@ function BankAccountsList({ categoryFilter }: { categoryFilter?: string }) {
     api.balanceSnapshots.listAllDailyCategoryBalance,
     isAllPortfolios && workspaceId ? { workspaceId, startTimestamp } : 'skip',
   )
-  const categoryBalanceFamily = useQuery(
-    api.family.listFamilyDailyCategoryBalance,
-    isFamilyView && workspaceId ? { workspaceId, startTimestamp } : 'skip',
+  const categoryBalanceTeam = useQuery(
+    api.team.listTeamDailyCategoryBalance,
+    isTeamView && workspaceId ? { workspaceId, startTimestamp } : 'skip',
   )
-  const categoryBalances = isFamilyView
-    ? categoryBalanceFamily
+  const categoryBalances = isTeamView
+    ? categoryBalanceTeam
     : isAllPortfolios
       ? categoryBalanceAll
       : categoryBalanceSingle

@@ -29,13 +29,12 @@ export function PortfolioSwitcher() {
     activePortfolio,
     setActivePortfolioId,
     isLoading,
-    isFamilyView,
+    isTeamView,
   } = usePortfolio()
   const subscription = useQuery(api.billing.getSubscriptionStatus)
   const [dialogOpen, setDialogOpen] = React.useState(false)
 
-  const showFamilyOption =
-    subscription?.plan === 'family' && subscription?.isActive
+  const showTeamOption = subscription?.plan === 'team' && subscription?.isActive
 
   if (isLoading) {
     return (
@@ -74,8 +73,8 @@ export function PortfolioSwitcher() {
     )
   }
 
-  const activeLabel = isFamilyView
-    ? 'Family'
+  const activeLabel = isTeamView
+    ? 'Team'
     : activePortfolio
       ? activePortfolio.name
       : 'All my portfolios'
@@ -95,7 +94,7 @@ export function PortfolioSwitcher() {
                     name={activePortfolio.name}
                     className="aspect-square size-8"
                   />
-                ) : isFamilyView ? (
+                ) : isTeamView ? (
                   <div className="flex aspect-square size-8 items-center justify-center rounded-lg bg-sidebar-primary text-sidebar-primary-foreground">
                     <Home className="size-4" />
                   </div>
@@ -119,15 +118,15 @@ export function PortfolioSwitcher() {
               <DropdownMenuLabel className="text-xs text-muted-foreground">
                 Portfolios
               </DropdownMenuLabel>
-              {showFamilyOption && (
+              {showTeamOption && (
                 <DropdownMenuItem
-                  onClick={() => setActivePortfolioId('family')}
+                  onClick={() => setActivePortfolioId('team')}
                   className="gap-2 p-2"
                 >
                   <div className="flex size-6 items-center justify-center rounded-sm border">
                     <Home className="size-4 shrink-0" />
                   </div>
-                  Family
+                  Team
                 </DropdownMenuItem>
               )}
               <DropdownMenuItem

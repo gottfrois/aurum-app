@@ -3,15 +3,15 @@ import * as React from 'react'
 import { api } from '../../convex/_generated/api'
 import type { Doc, Id } from '../../convex/_generated/dataModel'
 
-type ActivePortfolioId = Id<'portfolios'> | 'all' | 'family' | null
+type ActivePortfolioId = Id<'portfolios'> | 'all' | 'team' | null
 
 interface PortfolioContextValue {
   portfolios: Array<Doc<'portfolios'>> | undefined
   activePortfolioId: ActivePortfolioId
   activePortfolio: Doc<'portfolios'> | undefined
-  setActivePortfolioId: (id: Id<'portfolios'> | 'all' | 'family') => void
+  setActivePortfolioId: (id: Id<'portfolios'> | 'all' | 'team') => void
   isAllPortfolios: boolean
-  isFamilyView: boolean
+  isTeamView: boolean
   allPortfolioIds: Array<Id<'portfolios'>>
   /** activePortfolioId when a single portfolio is selected, null otherwise */
   singlePortfolioId: Id<'portfolios'> | null
@@ -38,8 +38,8 @@ export function PortfolioProvider({ children }: { children: React.ReactNode }) {
     const stored = localStorage.getItem(STORAGE_KEY)
     if (stored === 'all') {
       setActivePortfolioIdState('all')
-    } else if (stored === 'family') {
-      setActivePortfolioIdState('family')
+    } else if (stored === 'team') {
+      setActivePortfolioIdState('team')
     } else if (stored && portfolios.some((p) => p._id === stored)) {
       setActivePortfolioIdState(stored as Id<'portfolios'>)
     } else {
@@ -48,7 +48,7 @@ export function PortfolioProvider({ children }: { children: React.ReactNode }) {
   }, [portfolios])
 
   const setActivePortfolioId = React.useCallback(
-    (id: Id<'portfolios'> | 'all' | 'family') => {
+    (id: Id<'portfolios'> | 'all' | 'team') => {
       setActivePortfolioIdState(id)
       localStorage.setItem(STORAGE_KEY, id)
     },
@@ -56,15 +56,15 @@ export function PortfolioProvider({ children }: { children: React.ReactNode }) {
   )
 
   const isAllPortfolios = activePortfolioId === 'all'
-  const isFamilyView = activePortfolioId === 'family'
+  const isTeamView = activePortfolioId === 'team'
   const singlePortfolioId: Id<'portfolios'> | null =
     activePortfolioId &&
     activePortfolioId !== 'all' &&
-    activePortfolioId !== 'family'
+    activePortfolioId !== 'team'
       ? activePortfolioId
       : null
   const activePortfolio =
-    isAllPortfolios || isFamilyView
+    isAllPortfolios || isTeamView
       ? undefined
       : portfolios?.find((p) => p._id === activePortfolioId)
 
@@ -85,7 +85,7 @@ export function PortfolioProvider({ children }: { children: React.ReactNode }) {
         setActivePortfolioId,
         isLoading,
         isAllPortfolios,
-        isFamilyView,
+        isTeamView,
         allPortfolioIds,
         singlePortfolioId,
       }}

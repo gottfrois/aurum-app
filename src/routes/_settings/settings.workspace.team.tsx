@@ -15,8 +15,8 @@ import {
   ItemCardItems,
   ItemCardItemTitle,
 } from '~/components/item-card'
-import { RequireFamilyPlan } from '~/components/require-family-plan'
 import { RequireOwner } from '~/components/require-owner'
+import { RequireTeamPlan } from '~/components/require-team-plan'
 import { Avatar, AvatarFallback, AvatarImage } from '~/components/ui/avatar'
 import {
   Empty,
@@ -35,8 +35,8 @@ import {
 import { Skeleton } from '~/components/ui/skeleton'
 import { api } from '../../../convex/_generated/api'
 
-export const Route = createFileRoute('/_settings/settings/workspace/family')({
-  component: FamilySettingsPage,
+export const Route = createFileRoute('/_settings/settings/workspace/team')({
+  component: TeamSettingsPage,
 })
 
 type ResolvedUser = {
@@ -50,10 +50,10 @@ type AccessLevel = 'full' | 'dashboard-only' | 'none'
 
 function toAccessLevel(
   permissions:
-    | { canViewFamilyDashboard: boolean; canViewMemberBreakdown: boolean }
+    | { canViewTeamDashboard: boolean; canViewMemberBreakdown: boolean }
     | undefined,
 ): AccessLevel {
-  const canDash = permissions?.canViewFamilyDashboard ?? true
+  const canDash = permissions?.canViewTeamDashboard ?? true
   const canBreakdown = permissions?.canViewMemberBreakdown ?? true
   if (!canDash) return 'none'
   if (!canBreakdown) return 'dashboard-only'
@@ -63,11 +63,11 @@ function toAccessLevel(
 function fromAccessLevel(level: AccessLevel) {
   switch (level) {
     case 'full':
-      return { canViewFamilyDashboard: true, canViewMemberBreakdown: true }
+      return { canViewTeamDashboard: true, canViewMemberBreakdown: true }
     case 'dashboard-only':
-      return { canViewFamilyDashboard: true, canViewMemberBreakdown: false }
+      return { canViewTeamDashboard: true, canViewMemberBreakdown: false }
     case 'none':
-      return { canViewFamilyDashboard: false, canViewMemberBreakdown: false }
+      return { canViewTeamDashboard: false, canViewMemberBreakdown: false }
   }
 }
 
@@ -77,20 +77,20 @@ const ACCESS_LABELS: Record<AccessLevel, string> = {
   none: 'No access',
 }
 
-function FamilySettingsPage() {
+function TeamSettingsPage() {
   return (
     <RequireOwner>
       <div className="mx-auto flex w-full max-w-3xl flex-1 flex-col px-10 py-16">
         <header>
-          <h1 className="text-3xl font-semibold">Family</h1>
+          <h1 className="text-3xl font-semibold">Team</h1>
           <p className="mt-1 text-sm text-muted-foreground">
-            Control what each member can see in the family dashboard.
+            Control what each member can see in the team dashboard.
           </p>
         </header>
         <div className="mt-8 space-y-6">
-          <RequireFamilyPlan fallback={<UpgradePrompt />}>
-            <FamilyPermissions />
-          </RequireFamilyPlan>
+          <RequireTeamPlan fallback={<UpgradePrompt />}>
+            <TeamPermissions />
+          </RequireTeamPlan>
         </div>
       </div>
     </RequireOwner>
@@ -104,17 +104,17 @@ function UpgradePrompt() {
         <EmptyMedia variant="icon">
           <Home />
         </EmptyMedia>
-        <EmptyTitle>Family Plan Required</EmptyTitle>
+        <EmptyTitle>Team Plan Required</EmptyTitle>
         <EmptyDescription>
-          Family permissions are available on the Family plan. Upgrade to manage
-          what members can see in the family dashboard.
+          Team permissions are available on the Team plan. Upgrade to manage
+          what members can see in the team dashboard.
         </EmptyDescription>
       </EmptyHeader>
     </Empty>
   )
 }
 
-function FamilyPermissions() {
+function TeamPermissions() {
   const data = useQuery(api.members.listMembers)
   const resolveUsers = useAction(api.members.resolveUsers)
   const updatePermissions = useMutation(api.members.updateMemberPermissions)
@@ -178,7 +178,7 @@ function FamilyPermissions() {
           </EmptyMedia>
           <EmptyTitle>No Members</EmptyTitle>
           <EmptyDescription>
-            Invite members to your workspace to manage their family dashboard
+            Invite members to your workspace to manage their team dashboard
             access.
           </EmptyDescription>
         </EmptyHeader>

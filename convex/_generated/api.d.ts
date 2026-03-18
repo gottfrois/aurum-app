@@ -15,7 +15,6 @@ import type * as categories from "../categories.js";
 import type * as categoryRules from "../categoryRules.js";
 import type * as email from "../email.js";
 import type * as encryptionKeys from "../encryptionKeys.js";
-import type * as family from "../family.js";
 import type * as filterViews from "../filterViews.js";
 import type * as http from "../http.js";
 import type * as investments from "../investments.js";
@@ -31,6 +30,7 @@ import type * as portfolios from "../portfolios.js";
 import type * as powens from "../powens.js";
 import type * as seed from "../seed.js";
 import type * as stripe from "../stripe.js";
+import type * as team from "../team.js";
 import type * as transactions from "../transactions.js";
 import type * as workspaces from "../workspaces.js";
 
@@ -48,7 +48,6 @@ declare const fullApi: ApiFromModules<{
   categoryRules: typeof categoryRules;
   email: typeof email;
   encryptionKeys: typeof encryptionKeys;
-  family: typeof family;
   filterViews: typeof filterViews;
   http: typeof http;
   investments: typeof investments;
@@ -64,6 +63,7 @@ declare const fullApi: ApiFromModules<{
   powens: typeof powens;
   seed: typeof seed;
   stripe: typeof stripe;
+  team: typeof team;
   transactions: typeof transactions;
   workspaces: typeof workspaces;
 }>;

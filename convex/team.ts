@@ -3,17 +3,17 @@ import type { Doc, Id } from './_generated/dataModel'
 import type { QueryCtx } from './_generated/server'
 import { query } from './_generated/server'
 import { getAuthUserId } from './lib/auth'
-import { requireFamilyPlan } from './lib/billing'
+import { requireTeamPlan } from './lib/billing'
 
-interface FamilyContext {
+interface TeamContext {
   membership: Doc<'workspaceMembers'>
   sharedPortfolios: Array<Doc<'portfolios'>>
 }
 
-async function getFamilyContext(
+async function getTeamContext(
   ctx: QueryCtx,
   workspaceId: Id<'workspaces'>,
-): Promise<FamilyContext> {
+): Promise<TeamContext> {
   const userId = await getAuthUserId(ctx)
   if (!userId) throw new Error('Unauthenticated')
 
@@ -29,12 +29,12 @@ async function getFamilyContext(
   // Check permission (owner always has access, undefined = default open)
   if (membership.role !== 'owner') {
     const perms = membership.permissions
-    if (perms && !perms.canViewFamilyDashboard) {
-      throw new Error('No permission to view family dashboard')
+    if (perms && !perms.canViewTeamDashboard) {
+      throw new Error('No permission to view team dashboard')
     }
   }
 
-  await requireFamilyPlan(ctx, workspaceId)
+  await requireTeamPlan(ctx, workspaceId)
 
   // Get all shared portfolios in the workspace
   const allPortfolios = await ctx.db
@@ -50,7 +50,7 @@ async function getFamilyContext(
 export const listSharedPortfolios = query({
   args: { workspaceId: v.id('workspaces') },
   handler: async (ctx, args) => {
-    const { sharedPortfolios } = await getFamilyContext(ctx, args.workspaceId)
+    const { sharedPortfolios } = await getTeamContext(ctx, args.workspaceId)
 
     const memberIds = [
       ...new Set(sharedPortfolios.map((p) => p.memberId)),
@@ -73,10 +73,10 @@ export const listSharedPortfolios = query({
   },
 })
 
-export const listFamilyBankAccounts = query({
+export const listTeamBankAccounts = query({
   args: { workspaceId: v.id('workspaces') },
   handler: async (ctx, args) => {
-    const { sharedPortfolios } = await getFamilyContext(ctx, args.workspaceId)
+    const { sharedPortfolios } = await getTeamContext(ctx, args.workspaceId)
 
     const portfolioIds = sharedPortfolios.map((p) => p._id)
     const shareAmountsMap = new Map(
@@ -117,13 +117,13 @@ export const listFamilyBankAccounts = query({
   },
 })
 
-export const listFamilyDailyNetWorth = query({
+export const listTeamDailyNetWorth = query({
   args: {
     workspaceId: v.id('workspaces'),
     startTimestamp: v.number(),
   },
   handler: async (ctx, args) => {
-    const { sharedPortfolios } = await getFamilyContext(ctx, args.workspaceId)
+    const { sharedPortfolios } = await getTeamContext(ctx, args.workspaceId)
 
     const sharedPortfolioIds = new Set(
       sharedPortfolios.map((p) => p._id as string),
@@ -150,13 +150,13 @@ export const listFamilyDailyNetWorth = query({
   },
 })
 
-export const listFamilyDailyCategoryBalance = query({
+export const listTeamDailyCategoryBalance = query({
   args: {
     workspaceId: v.id('workspaces'),
     startTimestamp: v.number(),
   },
   handler: async (ctx, args) => {
-    const { sharedPortfolios } = await getFamilyContext(ctx, args.workspaceId)
+    const { sharedPortfolios } = await getTeamContext(ctx, args.workspaceId)
 
     const sharedPortfolioIds = new Set(
       sharedPortfolios.map((p) => p._id as string),
@@ -183,10 +183,10 @@ export const listFamilyDailyCategoryBalance = query({
   },
 })
 
-export const listFamilyInvestments = query({
+export const listTeamInvestments = query({
   args: { workspaceId: v.id('workspaces') },
   handler: async (ctx, args) => {
-    const { sharedPortfolios } = await getFamilyContext(ctx, args.workspaceId)
+    const { sharedPortfolios } = await getTeamContext(ctx, args.workspaceId)
 
     const portfolioIds = sharedPortfolios.map((p) => p._id)
     const shareAmountsMap = new Map(
@@ -215,14 +215,14 @@ export const listFamilyInvestments = query({
   },
 })
 
-export const listFamilyTransactions = query({
+export const listTeamTransactions = query({
   args: {
     workspaceId: v.id('workspaces'),
     startDate: v.string(),
     endDate: v.string(),
   },
   handler: async (ctx, args) => {
-    const { sharedPortfolios } = await getFamilyContext(ctx, args.workspaceId)
+    const { sharedPortfolios } = await getTeamContext(ctx, args.workspaceId)
 
     const portfolioIds = sharedPortfolios.map((p) => p._id)
     const shareAmountsMap = new Map(
@@ -256,10 +256,10 @@ export const listFamilyTransactions = query({
   },
 })
 
-export const getFamilyMemberBreakdown = query({
+export const getTeamMemberBreakdown = query({
   args: { workspaceId: v.id('workspaces') },
   handler: async (ctx, args) => {
-    const { membership, sharedPortfolios } = await getFamilyContext(
+    const { membership, sharedPortfolios } = await getTeamContext(
       ctx,
       args.workspaceId,
     )

@@ -1,7 +1,7 @@
 import { useQuery } from 'convex/react'
 import { api } from '../../convex/_generated/api'
 
-export function RequireFamilyPlan({
+export function RequireTeamPlan({
   children,
   fallback,
 }: {
@@ -11,7 +11,7 @@ export function RequireFamilyPlan({
   const subscription = useQuery(api.billing.getSubscriptionStatus)
 
   if (subscription === undefined) return null
-  if (subscription?.plan !== 'family') return fallback ?? null
+  if (subscription?.plan !== 'team') return fallback ?? null
 
   return children
 }

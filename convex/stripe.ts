@@ -16,8 +16,8 @@ export const PLANS = {
     monthly: 1400,
     yearly: 13900,
   },
-  family: {
-    name: 'Family',
+  team: {
+    name: 'Team',
     seats: 5,
     monthly: 2900,
     yearly: 28900,

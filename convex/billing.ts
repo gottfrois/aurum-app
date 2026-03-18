@@ -72,15 +72,15 @@ const PRICE_ID_ENV_MAP: Record<
     monthly: 'STRIPE_DUO_MONTHLY_PRICE_ID',
     yearly: 'STRIPE_DUO_YEARLY_PRICE_ID',
   },
-  family: {
-    monthly: 'STRIPE_FAMILY_MONTHLY_PRICE_ID',
-    yearly: 'STRIPE_FAMILY_YEARLY_PRICE_ID',
+  team: {
+    monthly: 'STRIPE_TEAM_MONTHLY_PRICE_ID',
+    yearly: 'STRIPE_TEAM_YEARLY_PRICE_ID',
   },
 }
 
 export const createCheckout = action({
   args: {
-    plan: v.union(v.literal('solo'), v.literal('duo'), v.literal('family')),
+    plan: v.union(v.literal('solo'), v.literal('duo'), v.literal('team')),
     interval: v.union(v.literal('monthly'), v.literal('yearly')),
   },
   handler: async (ctx, { plan, interval }) => {

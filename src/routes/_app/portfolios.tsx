@@ -70,7 +70,7 @@ function PortfoliosPage() {
   const deletePortfolio = useMutation(api.portfolios.deletePortfolio)
   const updateSharing = useMutation(api.portfolios.updatePortfolioSharing)
   const subscription = useQuery(api.billing.getSubscriptionStatus)
-  const isFamilyPlan = subscription?.isActive && subscription?.plan === 'family'
+  const isTeamPlan = subscription?.isActive && subscription?.plan === 'team'
 
   const [createDialogOpen, setCreateDialogOpen] = React.useState(false)
   const [editingPortfolio, setEditingPortfolio] =
@@ -178,7 +178,7 @@ function PortfoliosPage() {
                       <ItemCardItemContent>
                         <ItemCardItemTitle>{portfolio.name}</ItemCardItemTitle>
                         <ItemCardItemDescription>
-                          {isFamilyPlan
+                          {isTeamPlan
                             ? SHARING_LABELS[level]
                             : `Created ${new Date(portfolio._creationTime).toLocaleDateString('fr-FR')}`}
                         </ItemCardItemDescription>
@@ -186,7 +186,7 @@ function PortfoliosPage() {
                     </div>
                     <ItemCardItemAction>
                       <div className="flex items-center gap-2">
-                        {isFamilyPlan && (
+                        {isTeamPlan && (
                           <Select
                             value={level}
                             onValueChange={(value) =>

@@ -13,15 +13,15 @@ type ResolvedUser = {
   email: string
 }
 
-export function FamilyBreakdown({
+export function TeamBreakdown({
   workspaceId,
 }: {
   workspaceId: Id<'workspaces'>
 }) {
-  const breakdown = useQuery(api.family.getFamilyMemberBreakdown, {
+  const breakdown = useQuery(api.team.getTeamMemberBreakdown, {
     workspaceId,
   })
-  const sharedPortfolios = useQuery(api.family.listSharedPortfolios, {
+  const sharedPortfolios = useQuery(api.team.listSharedPortfolios, {
     workspaceId,
   })
   const resolveUsers = useAction(api.members.resolveUsers)
@@ -64,7 +64,7 @@ export function FamilyBreakdown({
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Family Breakdown</CardTitle>
+        <CardTitle>Team Breakdown</CardTitle>
       </CardHeader>
       <CardContent className="space-y-4">
         {breakdown.map((member) => {

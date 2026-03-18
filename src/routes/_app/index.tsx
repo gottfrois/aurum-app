@@ -5,8 +5,8 @@ import * as React from 'react'
 import { AddConnectionDialog } from '~/components/add-connection-dialog'
 import { AllocationChart, CATEGORY_COLORS } from '~/components/allocation-chart'
 import { BalanceChart } from '~/components/balance-chart'
-import { FamilyBreakdown } from '~/components/family-breakdown'
 import { SiteHeader } from '~/components/site-header'
+import { TeamBreakdown } from '~/components/team-breakdown'
 import { Button } from '~/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '~/components/ui/card'
 import {
@@ -67,7 +67,7 @@ function BankAccountsSection() {
   const {
     isLoading: portfolioLoading,
     isAllPortfolios,
-    isFamilyView,
+    isTeamView,
     allPortfolioIds,
     singlePortfolioId,
     portfolios,
@@ -89,12 +89,12 @@ function BankAccountsSection() {
       ? { portfolioIds: allPortfolioIds }
       : 'skip',
   )
-  const bankAccountsFamily = useQuery(
-    api.family.listFamilyBankAccounts,
-    isFamilyView && workspaceId ? { workspaceId } : 'skip',
+  const bankAccountsTeam = useQuery(
+    api.team.listTeamBankAccounts,
+    isTeamView && workspaceId ? { workspaceId } : 'skip',
   )
-  const rawBankAccounts = isFamilyView
-    ? bankAccountsFamily
+  const rawBankAccounts = isTeamView
+    ? bankAccountsTeam
     : isAllPortfolios
       ? bankAccountsAll
       : bankAccountsSingle
@@ -113,12 +113,12 @@ function BankAccountsSection() {
     api.balanceSnapshots.listAllDailyNetWorth,
     isAllPortfolios && workspaceId ? { workspaceId, startTimestamp } : 'skip',
   )
-  const netWorthFamily = useQuery(
-    api.family.listFamilyDailyNetWorth,
-    isFamilyView && workspaceId ? { workspaceId, startTimestamp } : 'skip',
+  const netWorthTeam = useQuery(
+    api.team.listTeamDailyNetWorth,
+    isTeamView && workspaceId ? { workspaceId, startTimestamp } : 'skip',
   )
-  const dailyNetWorth = isFamilyView
-    ? netWorthFamily
+  const dailyNetWorth = isTeamView
+    ? netWorthTeam
     : isAllPortfolios
       ? netWorthAll
       : netWorthSingle
@@ -133,12 +133,12 @@ function BankAccountsSection() {
       ? { portfolioIds: allPortfolioIds }
       : 'skip',
   )
-  const investmentsFamily = useQuery(
-    api.family.listFamilyInvestments,
-    isFamilyView && workspaceId ? { workspaceId } : 'skip',
+  const investmentsTeam = useQuery(
+    api.team.listTeamInvestments,
+    isTeamView && workspaceId ? { workspaceId } : 'skip',
   )
-  const rawInvestments = isFamilyView
-    ? investmentsFamily
+  const rawInvestments = isTeamView
+    ? investmentsTeam
     : isAllPortfolios
       ? investmentsAll
       : investmentsSingle
@@ -250,9 +250,7 @@ function BankAccountsSection() {
         />
       </div>
 
-      {isFamilyView && workspaceId && (
-        <FamilyBreakdown workspaceId={workspaceId} />
-      )}
+      {isTeamView && workspaceId && <TeamBreakdown workspaceId={workspaceId} />}
 
       {investments && investments.length > 0 && (
         <Card>

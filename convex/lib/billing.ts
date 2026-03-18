@@ -56,12 +56,12 @@ function resolvePriceId(priceId: string): {
       plan: 'duo',
       interval: 'yearly',
     },
-    [process.env.STRIPE_FAMILY_MONTHLY_PRICE_ID ?? '']: {
-      plan: 'family',
+    [process.env.STRIPE_TEAM_MONTHLY_PRICE_ID ?? '']: {
+      plan: 'team',
       interval: 'monthly',
     },
-    [process.env.STRIPE_FAMILY_YEARLY_PRICE_ID ?? '']: {
-      plan: 'family',
+    [process.env.STRIPE_TEAM_YEARLY_PRICE_ID ?? '']: {
+      plan: 'team',
       interval: 'yearly',
     },
   }
@@ -83,7 +83,7 @@ export async function getWorkspaceSubscription(
   )
 
   if (!subscription) {
-    // Dev override: set DEV_PLAN_OVERRIDE=family in Convex env to bypass Stripe
+    // Dev override: set DEV_PLAN_OVERRIDE=team in Convex env to bypass Stripe
     const devPlan = process.env.DEV_PLAN_OVERRIDE as PlanKey | undefined
     if (devPlan && devPlan in PLANS) {
       return {
@@ -126,8 +126,8 @@ export async function getWorkspaceSubscription(
   }
 }
 
-/** Verify that the workspace has an active Family plan. Throws if not. */
-export async function requireFamilyPlan(
+/** Verify that the workspace has an active Team plan. Throws if not. */
+export async function requireTeamPlan(
   ctx: QueryCtx | MutationCtx,
   workspaceId: Id<'workspaces'>,
 ): Promise<void> {
@@ -141,7 +141,7 @@ export async function requireFamilyPlan(
     ctx as QueryCtx,
     owner.userId,
   )
-  if (subscription.plan !== 'family') {
-    throw new Error('Family plan required')
+  if (subscription.plan !== 'team') {
+    throw new Error('Team plan required')
   }
 }

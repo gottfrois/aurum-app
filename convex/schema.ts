@@ -42,7 +42,7 @@ export default defineSchema({
     onboardingStep: v.optional(v.string()),
     permissions: v.optional(
       v.object({
-        canViewFamilyDashboard: v.boolean(),
+        canViewTeamDashboard: v.boolean(),
         canViewMemberBreakdown: v.boolean(),
       }),
     ),

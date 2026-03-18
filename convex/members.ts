@@ -368,7 +368,7 @@ export const updateMemberPermissions = mutation({
   args: {
     memberId: v.id('workspaceMembers'),
     permissions: v.object({
-      canViewFamilyDashboard: v.boolean(),
+      canViewTeamDashboard: v.boolean(),
       canViewMemberBreakdown: v.boolean(),
     }),
   },
