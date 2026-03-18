@@ -43,7 +43,8 @@ export function NavMain({
   }>
 }) {
   const [dialogOpen, setDialogOpen] = React.useState(false)
-  const { isAllPortfolios, allPortfolioIds, singlePortfolioId } = usePortfolio()
+  const { isAllPortfolios, isTeamView, allPortfolioIds, singlePortfolioId } =
+    usePortfolio()
   const bankAccountsSingle = useQuery(
     api.powens.listBankAccounts,
     singlePortfolioId ? { portfolioId: singlePortfolioId } : 'skip',
@@ -91,18 +92,20 @@ export function NavMain({
   return (
     <SidebarGroup>
       <SidebarGroupContent className="flex flex-col gap-2">
-        <SidebarMenu>
-          <SidebarMenuItem className="flex items-center gap-2">
-            <SidebarMenuButton
-              tooltip="Add Connection"
-              className="min-w-8 bg-primary text-primary-foreground duration-200 ease-linear hover:bg-primary/90 hover:text-primary-foreground active:bg-primary/90 active:text-primary-foreground"
-              onClick={() => setDialogOpen(true)}
-            >
-              <CirclePlus />
-              <span>Add Connection</span>
-            </SidebarMenuButton>
-          </SidebarMenuItem>
-        </SidebarMenu>
+        {!isTeamView && (
+          <SidebarMenu>
+            <SidebarMenuItem className="flex items-center gap-2">
+              <SidebarMenuButton
+                tooltip="Add Connection"
+                className="min-w-8 bg-primary text-primary-foreground duration-200 ease-linear hover:bg-primary/90 hover:text-primary-foreground active:bg-primary/90 active:text-primary-foreground"
+                onClick={() => setDialogOpen(true)}
+              >
+                <CirclePlus />
+                <span>Add Connection</span>
+              </SidebarMenuButton>
+            </SidebarMenuItem>
+          </SidebarMenu>
+        )}
         <SidebarMenu>
           {items.map((item) =>
             item.title === 'Accounts' && activeCategories.length > 0 ? (

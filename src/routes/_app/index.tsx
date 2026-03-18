@@ -217,11 +217,17 @@ function BankAccountsSection() {
               by adding your first connection.
             </EmptyDescription>
           </EmptyHeader>
-          <EmptyContent>
-            <Button onClick={() => setDialogOpen(true)}>Add Connection</Button>
-          </EmptyContent>
+          {!isTeamView && (
+            <EmptyContent>
+              <Button onClick={() => setDialogOpen(true)}>
+                Add Connection
+              </Button>
+            </EmptyContent>
+          )}
         </Empty>
-        <AddConnectionDialog open={dialogOpen} onOpenChange={setDialogOpen} />
+        {!isTeamView && (
+          <AddConnectionDialog open={dialogOpen} onOpenChange={setDialogOpen} />
+        )}
       </>
     )
   }
