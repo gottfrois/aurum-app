@@ -9,12 +9,13 @@ export const Route = createFileRoute('/powens/callback')({
   validateSearch: (search: Record<string, unknown>) => ({
     connection_id: (search.connection_id as string | undefined) ?? '',
     state: (search.state as string | undefined) ?? '',
+    error: (search.error as string | undefined) ?? '',
   }),
   component: PowensCallback,
 })
 
 function PowensCallback() {
-  const { connection_id } = Route.useSearch()
+  const { connection_id, error: callbackError } = Route.useSearch()
   const navigate = useNavigate()
   const { singlePortfolioId } = usePortfolio()
   const { isAuthenticated } = useConvexAuth()
@@ -31,7 +32,20 @@ function PowensCallback() {
   const processed = React.useRef(false)
 
   React.useEffect(() => {
-    if (processed.current || !connection_id || !singlePortfolioId) return
+    if (processed.current) return
+
+    if (callbackError) {
+      processed.current = true
+      setStatus('error')
+      setError(
+        callbackError === 'access_denied'
+          ? 'Access was denied. Please try connecting your bank again.'
+          : `Connection failed: ${callbackError}`,
+      )
+      return
+    }
+
+    if (!connection_id || !singlePortfolioId) return
     if (onboardingState === undefined) return // wait for onboarding state
     processed.current = true
 
@@ -59,6 +73,7 @@ function PowensCallback() {
         setError(err instanceof Error ? err.message : 'Unknown error')
       })
   }, [
+    callbackError,
     connection_id,
     singlePortfolioId,
     handleCallback,
