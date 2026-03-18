@@ -152,6 +152,10 @@ export const Route = createRootRouteWithContext<{
       throw redirect({ to: '/sign-in/$', params: { _splat: '' } })
     }
 
+    if (userId && ctx.location.pathname.startsWith('/sign-in')) {
+      throw redirect({ to: '/' })
+    }
+
     return { userId, token }
   },
   notFoundComponent: () => <div>Route not found</div>,
@@ -207,15 +211,12 @@ function OnboardingGuard({ children }: { children: React.ReactNode }) {
     if (onboardingState === undefined) return // still loading
 
     if (onboardingState.status === 'none') {
-      void navigate({ to: '/onboarding', search: { step: 'legal' } })
+      void navigate({ to: '/onboarding' })
     } else if (
       onboardingState.status === 'in_progress' &&
       onboardingState.step
     ) {
-      void navigate({
-        to: '/onboarding',
-        search: { step: onboardingState.step },
-      })
+      void navigate({ to: '/onboarding' })
     }
   }, [isAuthLoading, isAuthenticated, isExempt, onboardingState, navigate])
 

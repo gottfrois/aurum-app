@@ -1,7 +1,7 @@
 import { useSignIn, useSignUp } from '@clerk/tanstack-react-start/legacy'
 import { useNavigate } from '@tanstack/react-router'
 import { Loader2 } from 'lucide-react'
-import { useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { Button } from '~/components/ui/button'
 import {
   Field,
@@ -12,6 +12,11 @@ import {
   FieldSeparator,
 } from '~/components/ui/field'
 import { Input } from '~/components/ui/input'
+import {
+  InputOTP,
+  InputOTPGroup,
+  InputOTPSlot,
+} from '~/components/ui/input-otp'
 import { cn } from '~/lib/utils'
 
 type Step = 'email' | 'code'
@@ -27,9 +32,38 @@ export function LoginForm({
   const [code, setCode] = useState('')
   const [error, setError] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
+  const [cooldown, setCooldown] = useState(0)
+  const cooldownRef = useRef<ReturnType<typeof setInterval> | null>(null)
 
-  const { signIn, isLoaded: signInLoaded } = useSignIn()
-  const { signUp, isLoaded: signUpLoaded } = useSignUp()
+  const startCooldown = useCallback(() => {
+    setCooldown(30)
+    cooldownRef.current = setInterval(() => {
+      setCooldown((prev) => {
+        if (prev <= 1) {
+          if (cooldownRef.current) clearInterval(cooldownRef.current)
+          return 0
+        }
+        return prev - 1
+      })
+    }, 1000)
+  }, [])
+
+  useEffect(() => {
+    return () => {
+      if (cooldownRef.current) clearInterval(cooldownRef.current)
+    }
+  }, [])
+
+  const {
+    signIn,
+    setActive: setSignInActive,
+    isLoaded: signInLoaded,
+  } = useSignIn()
+  const {
+    signUp,
+    setActive: setSignUpActive,
+    isLoaded: signUpLoaded,
+  } = useSignUp()
   const navigate = useNavigate()
 
   const isLoaded = signInLoaded && signUpLoaded
@@ -52,15 +86,22 @@ export function LoginForm({
         })
         setMode('sign-in')
         setStep('code')
+        startCooldown()
+      } else {
+        setError(
+          'Email code sign-in is not available. Please use Google sign-in.',
+        )
       }
     } catch (err: unknown) {
       const clerkErr = err as {
         errors?: Array<{ code?: string; longMessage?: string }>
       }
-      const isNotFound = clerkErr.errors?.some(
-        (e) => e.code === 'form_identifier_not_found',
+      const shouldTrySignUp = clerkErr.errors?.some(
+        (e) =>
+          e.code === 'form_identifier_not_found' ||
+          e.code === 'form_param_format_invalid',
       )
-      if (isNotFound) {
+      if (shouldTrySignUp) {
         // User doesn't exist — create account
         try {
           await signUp.create({ emailAddress: email })
@@ -69,14 +110,25 @@ export function LoginForm({
           })
           setMode('sign-up')
           setStep('code')
+          startCooldown()
         } catch (signUpErr: unknown) {
           const signUpClerkErr = signUpErr as {
-            errors?: Array<{ longMessage?: string }>
+            errors?: Array<{ code?: string; longMessage?: string }>
           }
-          setError(
-            signUpClerkErr.errors?.[0]?.longMessage ??
-              'Could not send code. Please try again.',
+          // Email already exists (e.g. from OAuth) — transfer to sign-in flow
+          const alreadyExists = signUpClerkErr.errors?.some(
+            (e) => e.code === 'form_identifier_exists',
           )
+          if (alreadyExists) {
+            setError(
+              'An account with this email already exists. Please use Google sign-in or try again.',
+            )
+          } else {
+            setError(
+              signUpClerkErr.errors?.[0]?.longMessage ??
+                'Could not send code. Please try again.',
+            )
+          }
         }
       } else {
         setError(
@@ -100,14 +152,16 @@ export function LoginForm({
           strategy: 'email_code',
           code,
         })
-        if (result.status === 'complete') {
-          await navigate({ to: '/onboarding', search: { step: 'legal' } })
+        if (result.status === 'complete' && result.createdSessionId) {
+          await setSignInActive({ session: result.createdSessionId })
+          await navigate({ to: '/onboarding' })
         }
       } else {
         if (!signUp) return
         const result = await signUp.attemptEmailAddressVerification({ code })
-        if (result.status === 'complete') {
-          await navigate({ to: '/onboarding', search: { step: 'legal' } })
+        if (result.status === 'complete' && result.createdSessionId) {
+          await setSignUpActive({ session: result.createdSessionId })
+          await navigate({ to: '/onboarding' })
         }
       }
     } catch (err: unknown) {
@@ -115,6 +169,39 @@ export function LoginForm({
       setError(
         clerkErr.errors?.[0]?.longMessage ??
           'Verification failed. Please try again.',
+      )
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  async function handleResendCode() {
+    if (cooldown > 0 || !signIn || !signUp) return
+    setError(null)
+    setLoading(true)
+    try {
+      if (mode === 'sign-in') {
+        const result = await signIn.create({ identifier: email })
+        const emailCodeFactor = result.supportedFirstFactors?.find(
+          (f) => f.strategy === 'email_code',
+        )
+        if (emailCodeFactor && 'emailAddressId' in emailCodeFactor) {
+          await signIn.prepareFirstFactor({
+            strategy: 'email_code',
+            emailAddressId: emailCodeFactor.emailAddressId,
+          })
+        }
+      } else {
+        await signUp.prepareEmailAddressVerification({
+          strategy: 'email_code',
+        })
+      }
+      startCooldown()
+    } catch (err: unknown) {
+      const clerkErr = err as { errors?: Array<{ longMessage?: string }> }
+      setError(
+        clerkErr.errors?.[0]?.longMessage ??
+          'Could not resend code. Please try again.',
       )
     } finally {
       setLoading(false)
@@ -155,17 +242,25 @@ export function LoginForm({
                 We sent a verification code to {email}
               </p>
             </div>
-            <Field>
-              <FieldLabel htmlFor="code">Verification code</FieldLabel>
-              <Input
+            <Field className="items-center">
+              <InputOTP
                 id="code"
-                type="text"
-                inputMode="numeric"
-                placeholder="Enter code"
+                maxLength={6}
                 value={code}
-                onChange={(e) => setCode(e.target.value)}
+                onChange={setCode}
                 autoFocus
-              />
+                data-1p-ignore
+                containerClassName="justify-center"
+              >
+                <InputOTPGroup>
+                  <InputOTPSlot index={0} />
+                  <InputOTPSlot index={1} />
+                  <InputOTPSlot index={2} />
+                  <InputOTPSlot index={3} />
+                  <InputOTPSlot index={4} />
+                  <InputOTPSlot index={5} />
+                </InputOTPGroup>
+              </InputOTP>
             </Field>
             {error && <FieldError>{error}</FieldError>}
             <Field>
@@ -178,6 +273,19 @@ export function LoginForm({
               </Button>
             </Field>
             <FieldDescription className="text-center">
+              {cooldown > 0 ? (
+                <span>Resend code in {cooldown}s</span>
+              ) : (
+                <button
+                  type="button"
+                  className="underline underline-offset-4"
+                  onClick={handleResendCode}
+                  disabled={loading}
+                >
+                  Resend code
+                </button>
+              )}
+              {' · '}
               <button
                 type="button"
                 className="underline underline-offset-4"
