@@ -184,21 +184,29 @@ function BankAccountsSection() {
 
   if (portfolioLoading || bankAccounts === undefined) {
     return (
-      <div className="space-y-6">
-        <Skeleton className="h-[250px] w-full" />
-        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-          {[1, 2, 3].map((i) => (
-            <Card key={i}>
-              <CardHeader>
-                <Skeleton className="h-4 w-32" />
-                <Skeleton className="h-8 w-24" />
-              </CardHeader>
-              <CardContent>
-                <Skeleton className="h-4 w-40" />
-              </CardContent>
-            </Card>
-          ))}
-        </div>
+      <div className="grid gap-4 lg:grid-cols-3 md:gap-6">
+        <Card className="lg:col-span-2">
+          <CardHeader>
+            <Skeleton className="h-4 w-24" />
+            <Skeleton className="h-8 w-36" />
+          </CardHeader>
+          <CardContent>
+            <Skeleton className="h-[250px] w-full" />
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader>
+            <Skeleton className="h-4 w-28" />
+          </CardHeader>
+          <CardContent className="flex flex-col items-center gap-4">
+            <Skeleton className="h-[200px] w-[200px] rounded-full" />
+            <div className="w-full space-y-2">
+              <Skeleton className="h-4 w-full" />
+              <Skeleton className="h-4 w-full" />
+              <Skeleton className="h-4 w-3/4" />
+            </div>
+          </CardContent>
+        </Card>
       </div>
     )
   }

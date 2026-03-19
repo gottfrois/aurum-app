@@ -457,15 +457,53 @@ function TransactionsContent() {
 
   if (portfolioLoading || transactions === undefined) {
     return (
-      <div className="flex flex-col gap-4 p-4 md:gap-6 md:p-6">
-        <div className="space-y-6">
-          <Skeleton className="h-[250px] w-full" />
-          <div className="grid gap-4 md:grid-cols-2">
-            <Skeleton className="h-[300px] w-full" />
-            <Skeleton className="h-[300px] w-full" />
+      <>
+        <div className="flex flex-col border-b">
+          <div className="flex flex-wrap items-center gap-3 px-4 py-3 lg:px-6">
+            <Skeleton className="h-9 w-56" />
+            <Skeleton className="h-9 w-24" />
+          </div>
+          <div className="px-4 pb-3 lg:px-6">
+            <Skeleton className="h-10 w-full" />
           </div>
         </div>
-      </div>
+        <div className="flex flex-col gap-4 p-4 md:gap-6 md:p-6">
+          <div className="grid gap-4 lg:grid-cols-3 md:gap-6">
+            <Card className="lg:col-span-2">
+              <CardHeader>
+                <Skeleton className="h-4 w-24" />
+                <Skeleton className="h-8 w-36" />
+              </CardHeader>
+              <CardContent>
+                <Skeleton className="h-[250px] w-full" />
+              </CardContent>
+            </Card>
+            <Card>
+              <CardHeader>
+                <Skeleton className="h-4 w-28" />
+              </CardHeader>
+              <CardContent className="flex flex-col items-center gap-4">
+                <Skeleton className="h-[200px] w-[200px] rounded-full" />
+                <div className="w-full space-y-2">
+                  <Skeleton className="h-4 w-full" />
+                  <Skeleton className="h-4 w-full" />
+                  <Skeleton className="h-4 w-3/4" />
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+          <Card>
+            <CardHeader>
+              <Skeleton className="h-5 w-28" />
+            </CardHeader>
+            <CardContent className="space-y-3">
+              {[1, 2, 3, 4, 5].map((i) => (
+                <Skeleton key={i} className="h-10 w-full" />
+              ))}
+            </CardContent>
+          </Card>
+        </div>
+      </>
     )
   }
 

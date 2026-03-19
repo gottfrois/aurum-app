@@ -137,8 +137,31 @@ function PortfoliosPage() {
       <>
         <SiteHeader title="Manage Portfolios" />
         <div className="mx-auto w-full max-w-3xl flex-1 px-10 py-16">
+          <header>
+            <Skeleton className="h-9 w-40" />
+          </header>
           <div className="mt-8 space-y-6">
-            <Skeleton className="h-48 w-full rounded-lg" />
+            <div className="rounded-lg border">
+              <div className="flex items-center justify-between border-b px-4 py-3">
+                <Skeleton className="h-4 w-24" />
+                <Skeleton className="h-8 w-28" />
+              </div>
+              {[1, 2].map((i) => (
+                <div
+                  key={i}
+                  className={`flex items-center justify-between px-4 py-3 ${i > 1 ? 'border-t' : ''}`}
+                >
+                  <div className="flex items-center gap-3">
+                    <Skeleton className="size-8 rounded-full" />
+                    <div className="space-y-1">
+                      <Skeleton className="h-4 w-32" />
+                      <Skeleton className="h-3 w-20" />
+                    </div>
+                  </div>
+                  <Skeleton className="size-8" />
+                </div>
+              ))}
+            </div>
           </div>
         </div>
       </>

@@ -8,6 +8,7 @@ import { BalanceChart } from '~/components/balance-chart'
 import { SiteHeader } from '~/components/site-header'
 import { StackedBalanceChart } from '~/components/stacked-balance-chart'
 import { Button } from '~/components/ui/button'
+import { Card, CardContent, CardHeader } from '~/components/ui/card'
 import {
   Empty,
   EmptyContent,
@@ -258,23 +259,52 @@ function BankAccountsList({ categoryFilter }: { categoryFilter?: string }) {
   if (portfolioLoading || bankAccounts === undefined) {
     return (
       <>
-        <Skeleton className="h-[250px] w-full" />
-        <Skeleton className="h-7 w-40" />
-        <ItemGroup className="rounded-lg border">
-          {[1, 2, 3].map((i) => (
-            <React.Fragment key={i}>
-              {i > 1 && <ItemSeparator />}
-              <Item>
-                <Skeleton className="size-8 rounded-sm" />
-                <div className="flex-1 space-y-2">
-                  <Skeleton className="h-4 w-40" />
-                  <Skeleton className="h-3 w-24" />
-                </div>
-                <Skeleton className="h-6 w-20" />
-              </Item>
-            </React.Fragment>
+        <div className="grid gap-4 lg:grid-cols-3 md:gap-6">
+          <Card className="lg:col-span-2">
+            <CardHeader>
+              <Skeleton className="h-4 w-24" />
+              <Skeleton className="h-8 w-36" />
+            </CardHeader>
+            <CardContent>
+              <Skeleton className="h-[250px] w-full" />
+            </CardContent>
+          </Card>
+          <Card>
+            <CardHeader>
+              <Skeleton className="h-4 w-28" />
+            </CardHeader>
+            <CardContent className="flex flex-col items-center gap-4">
+              <Skeleton className="h-[200px] w-[200px] rounded-full" />
+              <div className="w-full space-y-2">
+                <Skeleton className="h-4 w-full" />
+                <Skeleton className="h-4 w-full" />
+                <Skeleton className="h-4 w-3/4" />
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+        <div className="space-y-6">
+          {[1, 2].map((g) => (
+            <div key={g} className="space-y-2">
+              <Skeleton className="h-4 w-28" />
+              <ItemGroup className="rounded-lg border">
+                {[1, 2, 3].map((i) => (
+                  <React.Fragment key={i}>
+                    {i > 1 && <ItemSeparator />}
+                    <Item>
+                      <Skeleton className="size-8 rounded-sm" />
+                      <div className="flex-1 space-y-2">
+                        <Skeleton className="h-4 w-40" />
+                        <Skeleton className="h-3 w-24" />
+                      </div>
+                      <Skeleton className="h-6 w-20" />
+                    </Item>
+                  </React.Fragment>
+                ))}
+              </ItemGroup>
+            </div>
           ))}
-        </ItemGroup>
+        </div>
       </>
     )
   }
