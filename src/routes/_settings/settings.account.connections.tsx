@@ -2,6 +2,7 @@ import { createFileRoute } from '@tanstack/react-router'
 import { useAction, useQuery } from 'convex/react'
 import { ChevronDown, Link2, Loader2 } from 'lucide-react'
 import * as React from 'react'
+import { toast } from 'sonner'
 import { AddConnectionDialog } from '~/components/add-connection-dialog'
 import { ConfirmDialog } from '~/components/confirm-dialog'
 import {
@@ -207,9 +208,11 @@ function ConnectionItem({
 }) {
   const deleteConnection = useAction(api.powens.deleteConnection)
   const generateManageUrl = useAction(api.powens.generateManageUrl)
+  const syncConnection = useAction(api.powens.syncConnection)
   const [confirmOpen, setConfirmOpen] = React.useState(false)
   const [deleting, setDeleting] = React.useState(false)
   const [editing, setEditing] = React.useState(false)
+  const [syncing, setSyncing] = React.useState(false)
 
   async function handleDelete() {
     setDeleting(true)
@@ -239,15 +242,42 @@ function ConnectionItem({
         <ItemCardItemAction>
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <button className="inline-flex items-center gap-1.5 rounded-md border px-2.5 py-1.5 text-xs font-medium transition-colors hover:bg-accent">
-                <span
-                  className={`size-2 shrink-0 rounded-full ${getConnectionState(connection.state).dotColor}`}
-                />
-                {getConnectionState(connection.state).label}
-                <ChevronDown className="size-3 text-muted-foreground" />
-              </button>
+              <Button variant="outline" disabled={syncing}>
+                {syncing ? (
+                  <>
+                    <Loader2 className="size-4 animate-spin" />
+                    Syncing
+                  </>
+                ) : (
+                  <>
+                    <span
+                      className={`size-2 shrink-0 rounded-full ${getConnectionState(connection.state).dotColor}`}
+                    />
+                    {getConnectionState(connection.state).label}
+                    <ChevronDown className="size-4 text-muted-foreground" />
+                  </>
+                )}
+              </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end">
+              <DropdownMenuItem
+                onClick={async () => {
+                  setSyncing(true)
+                  try {
+                    await syncConnection({
+                      connectionId: connection._id,
+                      portfolioId: connection.portfolioId,
+                    })
+                  } catch (err) {
+                    console.error('Failed to sync connection:', err)
+                    toast.error('Failed to sync connection')
+                  } finally {
+                    setSyncing(false)
+                  }
+                }}
+              >
+                Sync
+              </DropdownMenuItem>
               <DropdownMenuItem
                 disabled={editing}
                 onClick={async () => {

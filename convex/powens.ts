@@ -763,6 +763,29 @@ export const updateConnectionState = internalMutation({
   },
 })
 
+export const syncConnection = action({
+  args: {
+    connectionId: v.id('connections'),
+    portfolioId: v.id('portfolios'),
+  },
+  handler: async (ctx, args) => {
+    await requireAuthUserId(ctx)
+
+    const connection = await ctx.runQuery(
+      internal.powens.getConnectionInternal,
+      { connectionId: args.connectionId },
+    )
+    if (!connection) {
+      throw new Error('Connection not found')
+    }
+
+    await ctx.runAction(internal.powens.syncConnectionFromPowens, {
+      portfolioId: args.portfolioId,
+      powensConnectionId: connection.powensConnectionId,
+    })
+  },
+})
+
 export const deleteConnection = action({
   args: {
     connectionId: v.id('connections'),
