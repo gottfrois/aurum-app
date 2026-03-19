@@ -15,6 +15,7 @@ interface BulkOperationState {
   label: string
   processed: number
   total: number
+  updated?: number
   error?: string
 }
 
@@ -27,7 +28,7 @@ interface BulkOperationContextValue {
   pause: () => void
   resume: () => void
   cancel: () => void
-  complete: () => void
+  complete: (updated?: number) => void
   setError: (msg: string) => void
   reset: () => void
 }
@@ -76,8 +77,8 @@ export function BulkOperationProvider({
     setState((s) => ({ ...s, status: 'cancelled' }))
   }, [])
 
-  const complete = React.useCallback(() => {
-    setState((s) => ({ ...s, status: 'complete' }))
+  const complete = React.useCallback((updated?: number) => {
+    setState((s) => ({ ...s, status: 'complete', updated }))
   }, [])
 
   const setError = React.useCallback((msg: string) => {
@@ -166,7 +167,11 @@ function DynamicIsland() {
             <div className="flex flex-col gap-1">
               <span className="whitespace-nowrap">
                 {state.status === 'complete' && (
-                  <>Done &mdash; {state.processed} transactions updated</>
+                  <>
+                    Done &mdash;{' '}
+                    {(state.updated ?? state.processed).toLocaleString()}{' '}
+                    transactions updated
+                  </>
                 )}
                 {state.status === 'cancelled' && <>Cancelled</>}
                 {state.status === 'error' &&

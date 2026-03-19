@@ -47,8 +47,6 @@ export function useRetroactiveRuleApplication() {
         return
       }
 
-      bulkOp?.start(params.pattern, transactions.length)
-
       let matcher: (text: string) => boolean
       if (params.matchType === 'regex') {
         const re = new RegExp(params.pattern, 'i')
@@ -58,7 +56,9 @@ export function useRetroactiveRuleApplication() {
         matcher = (text) => text.toLowerCase().includes(lower)
       }
 
+      bulkOp?.start(params.pattern, transactions.length)
       let processed = 0
+      let updated = 0
 
       for (let i = 0; i < transactions.length; i += BATCH_SIZE) {
         // Check cancel
@@ -134,6 +134,7 @@ export function useRetroactiveRuleApplication() {
         if (categoryItems.length > 0) {
           try {
             await batchUpdateCategories({ items: categoryItems })
+            updated += categoryItems.length
           } catch {
             bulkOp?.setError('Failed to save batch')
             return
@@ -146,6 +147,7 @@ export function useRetroactiveRuleApplication() {
               transactionIds: exclusionIds,
               excludedFromBudget: true,
             })
+            updated += exclusionIds.length
           } catch {
             bulkOp?.setError('Failed to save batch')
             return
@@ -157,7 +159,7 @@ export function useRetroactiveRuleApplication() {
       }
 
       if (bulkOp?.cancelRef.current) return
-      bulkOp?.complete()
+      bulkOp?.complete(updated)
     },
     [
       privateKey,
