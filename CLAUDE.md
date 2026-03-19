@@ -49,5 +49,15 @@ Bunkr is a self-hosted personal finance app (Finary clone). It aggregates bankin
 The app uses a centralized command system (`src/lib/commands.ts`, `src/hooks/use-command.ts`) with `react-hotkeys-hook` for keyboard shortcuts.
 
 - **Register commands via `useCommand()`** when an action should be discoverable in the command palette (Cmd+K). Define the command in `COMMAND_DEFINITIONS` in `src/lib/commands.ts` with its metadata (label, group, icon, hotkey), then call `useCommand('command.id', { handler })` in the component that owns the action.
-- **Buttons in dialogs should show hotkey hints** using the `<Kbd>` component from shadcn (e.g. `<Button>Cancel <Kbd>Esc</Kbd></Button>`). Bind the hotkey with `useHotkeys()` from `react-hotkeys-hook`. Common pattern: `Esc` for cancel, `↵` (Enter) for the primary action.
 - **Dropdown menu items should not have icons** — keep them text-only for visual consistency.
+
+## Dialog Conventions
+
+All dialogs must follow these patterns for consistency:
+
+- **Always include a Cancel button** with `<Kbd>Esc</Kbd>` hint and an `Esc` hotkey via `useHotkeys('escape', onCancel, { enableOnFormTags: true, preventDefault: true })`.
+- **Primary action uses `mod+enter`** (not plain Enter) to avoid conflicts with form inputs. Display with `<HotkeyDisplay hotkey={{ keys: 'mod+enter' }} />`. Bind via `useHotkeys('mod+enter', handler, { enabled: !disabled, enableOnFormTags: true, preventDefault: true })`.
+- **Extract footer into a separate component** (e.g. `CreateFooFooter`) that owns the hotkey bindings, to keep the main dialog component clean.
+- **Use the Button `loading` prop** instead of custom `{loading ? 'Saving...' : 'Save'}` text patterns.
+- **Hide the close button** with `<DialogContent showCloseButton={false}>` — the Cancel button with Esc replaces it.
+- **Use `<Kbd>` from shadcn** (`src/components/ui/kbd.tsx`) for single keys and `<HotkeyDisplay>` for key combos. The `Kbd` component auto-adapts its colors inside primary and destructive buttons.
