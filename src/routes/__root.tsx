@@ -149,11 +149,14 @@ export const Route = createRootRouteWithContext<{
       ctx.context.convexQueryClient.serverHttpClient?.setAuth(token)
     }
 
-    if (!userId && !ctx.location.pathname.startsWith('/sign-in')) {
+    const isSignIn = ctx.location.pathname.startsWith('/sign-in')
+    const isAuthenticated = userId && token
+
+    if (!isAuthenticated && !isSignIn) {
       throw redirect({ to: '/sign-in/$', params: { _splat: '' } })
     }
 
-    if (userId && ctx.location.pathname.startsWith('/sign-in')) {
+    if (isAuthenticated && isSignIn) {
       throw redirect({ to: '/' })
     }
 
