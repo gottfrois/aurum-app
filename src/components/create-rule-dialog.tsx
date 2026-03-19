@@ -22,6 +22,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '~/components/ui/select'
+import { Switch } from '~/components/ui/switch'
 import { useRetroactiveRuleApplication } from '~/hooks/use-retroactive-rule-application'
 import { useCategories } from '~/lib/categories'
 import { cn } from '~/lib/utils'
@@ -32,6 +33,7 @@ interface CreateRuleDialogProps {
   onOpenChange: (open: boolean) => void
   defaultPattern?: string
   defaultCategoryKey?: string
+  defaultExcludeFromBudget?: boolean
 }
 
 export function CreateRuleDialog({
@@ -39,37 +41,45 @@ export function CreateRuleDialog({
   onOpenChange,
   defaultPattern = '',
   defaultCategoryKey = '',
+  defaultExcludeFromBudget = false,
 }: CreateRuleDialogProps) {
   const [pattern, setPattern] = React.useState(defaultPattern)
   const [categoryKey, setCategoryKey] = React.useState(defaultCategoryKey)
+  const [excludeFromBudget, setExcludeFromBudget] = React.useState(
+    defaultExcludeFromBudget,
+  )
   const [applyRetroactively, setApplyRetroactively] = React.useState(true)
   const [saving, setSaving] = React.useState(false)
 
   const { categories } = useCategories()
-  const createRule = useMutation(api.categoryRules.createRule)
+  const createRule = useMutation(api.transactionRules.createRule)
   const { apply } = useRetroactiveRuleApplication()
 
   React.useEffect(() => {
     if (open) {
       setPattern(defaultPattern)
       setCategoryKey(defaultCategoryKey)
+      setExcludeFromBudget(defaultExcludeFromBudget)
       setApplyRetroactively(true)
     }
-  }, [open, defaultPattern, defaultCategoryKey])
+  }, [open, defaultPattern, defaultCategoryKey, defaultExcludeFromBudget])
+
+  const hasAction = !!categoryKey || excludeFromBudget
 
   const handleSave = async () => {
-    if (!pattern.trim() || !categoryKey) return
+    if (!pattern.trim() || !hasAction) return
     setSaving(true)
     try {
       await createRule({
         pattern: pattern.trim(),
         matchType: 'contains',
-        categoryKey,
+        categoryKey: categoryKey || undefined,
+        excludeFromBudget: excludeFromBudget || undefined,
       })
       toast.success('Rule created', {
         description: applyRetroactively
-          ? 'Existing transactions are being recategorized.'
-          : 'New transactions will be auto-categorized.',
+          ? 'Existing transactions are being updated.'
+          : 'New transactions will be processed automatically.',
       })
       onOpenChange(false)
 
@@ -77,7 +87,8 @@ export function CreateRuleDialog({
         apply({
           pattern: pattern.trim(),
           matchType: 'contains',
-          categoryKey,
+          categoryKey: categoryKey || undefined,
+          excludeFromBudget: excludeFromBudget || undefined,
         })
       }
     } catch {
@@ -91,10 +102,10 @@ export function CreateRuleDialog({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-md" showCloseButton={false}>
         <DialogHeader>
-          <DialogTitle>Auto-categorize Transactions</DialogTitle>
+          <DialogTitle>Create Automation Rule</DialogTitle>
           <DialogDescription>
             Transactions whose description contains this text will be
-            automatically assigned the chosen category.
+            automatically processed with the selected actions.
           </DialogDescription>
         </DialogHeader>
         <div className="space-y-4">
@@ -114,7 +125,7 @@ export function CreateRuleDialog({
             <Label>Assign category</Label>
             <Select value={categoryKey} onValueChange={setCategoryKey}>
               <SelectTrigger>
-                <SelectValue placeholder="Select category" />
+                <SelectValue placeholder="No category (optional)" />
               </SelectTrigger>
               <SelectContent>
                 {categories.map((cat) => (
@@ -131,6 +142,16 @@ export function CreateRuleDialog({
               </SelectContent>
             </Select>
           </div>
+          <div className="flex items-center justify-between">
+            <Label htmlFor="exclude-budget" className="font-normal">
+              Exclude from budget
+            </Label>
+            <Switch
+              id="exclude-budget"
+              checked={excludeFromBudget}
+              onCheckedChange={setExcludeFromBudget}
+            />
+          </div>
           <div className="flex items-center gap-2">
             <Checkbox
               id="apply-retroactively"
@@ -140,14 +161,14 @@ export function CreateRuleDialog({
               }
             />
             <Label htmlFor="apply-retroactively" className="font-normal">
-              Apply to existing uncategorized transactions
+              Apply to existing transactions
             </Label>
           </div>
         </div>
         <CreateRuleFooter
           onCancel={() => onOpenChange(false)}
           onConfirm={handleSave}
-          disabled={saving || !pattern.trim() || !categoryKey}
+          disabled={saving || !pattern.trim() || !hasAction}
           saving={saving}
         />
       </DialogContent>

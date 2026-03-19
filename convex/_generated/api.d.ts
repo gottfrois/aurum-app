@@ -12,7 +12,6 @@ import type * as aiFilters from "../aiFilters.js";
 import type * as balanceSnapshots from "../balanceSnapshots.js";
 import type * as billing from "../billing.js";
 import type * as categories from "../categories.js";
-import type * as categoryRules from "../categoryRules.js";
 import type * as email from "../email.js";
 import type * as encryptionKeys from "../encryptionKeys.js";
 import type * as filterViews from "../filterViews.js";
@@ -31,6 +30,7 @@ import type * as powens from "../powens.js";
 import type * as seed from "../seed.js";
 import type * as stripe from "../stripe.js";
 import type * as team from "../team.js";
+import type * as transactionRules from "../transactionRules.js";
 import type * as transactions from "../transactions.js";
 import type * as workspaces from "../workspaces.js";
 
@@ -45,7 +45,6 @@ declare const fullApi: ApiFromModules<{
   balanceSnapshots: typeof balanceSnapshots;
   billing: typeof billing;
   categories: typeof categories;
-  categoryRules: typeof categoryRules;
   email: typeof email;
   encryptionKeys: typeof encryptionKeys;
   filterViews: typeof filterViews;
@@ -64,6 +63,7 @@ declare const fullApi: ApiFromModules<{
   seed: typeof seed;
   stripe: typeof stripe;
   team: typeof team;
+  transactionRules: typeof transactionRules;
   transactions: typeof transactions;
   workspaces: typeof workspaces;
 }>;

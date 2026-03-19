@@ -1462,9 +1462,9 @@ export const syncTransactionsFromWebhook = internalAction({
     )
     if (!connection) return
 
-    // Load category rules for auto-categorization
-    const categoryRules = await ctx.runQuery(
-      internal.categoryRules.listRulesForWorkspace,
+    // Load transaction rules for auto-categorization and exclusion
+    const transactionRules = await ctx.runQuery(
+      internal.transactionRules.listRulesForWorkspace,
       { workspaceId: portfolio.workspaceId },
     )
 
@@ -1515,13 +1515,13 @@ export const syncTransactionsFromWebhook = internalAction({
 
         if (rawTransactions.length === 0) break
 
-        // Apply category rules to incoming transactions
+        // Apply transaction rules to incoming transactions
+        const excludedIds: Array<number> = []
         for (const txn of rawTransactions) {
-          if (txn.userCategoryKey) continue
           const text = [txn.wording, txn.originalWording, txn.simplifiedWording]
             .filter(Boolean)
             .join(' ')
-          for (const rule of categoryRules) {
+          for (const rule of transactionRules) {
             let matched = false
             if (rule.matchType === 'contains') {
               matched = text.toLowerCase().includes(rule.pattern.toLowerCase())
@@ -1533,8 +1533,12 @@ export const syncTransactionsFromWebhook = internalAction({
               }
             }
             if (matched) {
-              txn.userCategoryKey = rule.categoryKey
-              break
+              if (rule.categoryKey && !txn.userCategoryKey) {
+                txn.userCategoryKey = rule.categoryKey
+              }
+              if (rule.excludeFromBudget) {
+                excludedIds.push(txn.powensTransactionId)
+              }
             }
           }
         }
@@ -1615,6 +1619,24 @@ export const syncTransactionsFromWebhook = internalAction({
           )
         }
 
+        // Apply excludeFromBudget for matched rules
+        if (excludedIds.length > 0) {
+          const exclusionPatches = excludedIds
+            .map((powensId) =>
+              transactionIds.find((e) => e.powensTransactionId === powensId),
+            )
+            .filter(Boolean) as Array<{ id: Id<'transactions'> }>
+          if (exclusionPatches.length > 0) {
+            await ctx.runMutation(
+              internal.transactions.batchUpdateExclusionChunk,
+              {
+                transactionIds: exclusionPatches.map((e) => e.id),
+                excludedFromBudget: true,
+              },
+            )
+          }
+        }
+
         if (rawTransactions.length < limit) break
         offset += limit
       }
@@ -1645,8 +1667,8 @@ export const backfillTransactions = internalAction({
       throw new Error('Workspace encryption not configured — cannot sync')
     }
 
-    const categoryRules = await ctx.runQuery(
-      internal.categoryRules.listRulesForWorkspace,
+    const transactionRules = await ctx.runQuery(
+      internal.transactionRules.listRulesForWorkspace,
       { workspaceId: portfolio.workspaceId },
     )
 
@@ -1697,12 +1719,12 @@ export const backfillTransactions = internalAction({
 
         if (rawTransactions.length === 0) break
 
+        const backfillExcludedIds: Array<number> = []
         for (const txn of rawTransactions) {
-          if (txn.userCategoryKey) continue
           const text = [txn.wording, txn.originalWording, txn.simplifiedWording]
             .filter(Boolean)
             .join(' ')
-          for (const rule of categoryRules) {
+          for (const rule of transactionRules) {
             let matched = false
             if (rule.matchType === 'contains') {
               matched = text.toLowerCase().includes(rule.pattern.toLowerCase())
@@ -1714,8 +1736,12 @@ export const backfillTransactions = internalAction({
               }
             }
             if (matched) {
-              txn.userCategoryKey = rule.categoryKey
-              break
+              if (rule.categoryKey && !txn.userCategoryKey) {
+                txn.userCategoryKey = rule.categoryKey
+              }
+              if (rule.excludeFromBudget) {
+                backfillExcludedIds.push(txn.powensTransactionId)
+              }
             }
           }
         }
@@ -1794,6 +1820,24 @@ export const backfillTransactions = internalAction({
             internal.encryptionKeys.patchTransactionFieldGroups,
             { items: patches },
           )
+        }
+
+        // Apply excludeFromBudget for matched rules
+        if (backfillExcludedIds.length > 0) {
+          const exclusionPatches = backfillExcludedIds
+            .map((powensId) =>
+              transactionIds.find((e) => e.powensTransactionId === powensId),
+            )
+            .filter(Boolean) as Array<{ id: Id<'transactions'> }>
+          if (exclusionPatches.length > 0) {
+            await ctx.runMutation(
+              internal.transactions.batchUpdateExclusionChunk,
+              {
+                transactionIds: exclusionPatches.map((e) => e.id),
+                excludedFromBudget: true,
+              },
+            )
+          }
         }
 
         totalSynced += rawTransactions.length

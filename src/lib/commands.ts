@@ -1,6 +1,7 @@
 import {
   ArrowLeftRight,
   Command,
+  EyeOff,
   FolderOpen,
   Keyboard,
   Landmark,
@@ -79,6 +80,12 @@ export const COMMAND_DEFINITIONS: Record<string, CommandDefinition> = {
     label: 'Change category',
     group: 'Selection',
     icon: FolderOpen,
+  },
+  'selection.toggle-exclusion': {
+    id: 'selection.toggle-exclusion',
+    label: 'Exclude or include in budget',
+    group: 'Selection',
+    icon: EyeOff,
   },
   'selection.clear': {
     id: 'selection.clear',

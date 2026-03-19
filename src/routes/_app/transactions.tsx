@@ -62,6 +62,7 @@ interface TransactionRecord {
   categoryParent?: string
   userCategoryKey?: string
   labelIds?: Array<string>
+  excludedFromBudget?: boolean
   value: number
   originalValue?: number
   originalCurrency?: string
@@ -331,6 +332,7 @@ function TransactionsContent() {
     if (!filteredTransactions) return []
     const monthMap = new Map<string, { income: number; expenses: number }>()
     for (const t of filteredTransactions) {
+      if (t.excludedFromBudget) continue
       const month = t.date.slice(0, 7) // YYYY-MM
       const entry = monthMap.get(month) ?? { income: 0, expenses: 0 }
       if (t.value > 0) {
@@ -357,6 +359,7 @@ function TransactionsContent() {
     const categoryTotals = new Map<string, number>()
     let expenseSum = 0
     for (const t of filteredTransactions) {
+      if (t.excludedFromBudget) continue
       if (t.value >= 0) continue
       const key = resolveTransactionCategoryKey(t)
       categoryTotals.set(
@@ -389,6 +392,7 @@ function TransactionsContent() {
     const categoryExpenses = new Map<string, number>()
 
     for (const t of filteredTransactions) {
+      if (t.excludedFromBudget) continue
       if (t.value > 0) {
         totalIncome += t.value
       } else {
@@ -449,6 +453,7 @@ function TransactionsContent() {
       categoryParent: t.categoryParent,
       userCategoryKey: t.userCategoryKey,
       labelIds: t.labelIds,
+      excludedFromBudget: t.excludedFromBudget,
       value: t.value,
       originalValue: t.originalValue,
       originalCurrency: t.originalCurrency,

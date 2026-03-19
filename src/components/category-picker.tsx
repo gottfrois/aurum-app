@@ -28,6 +28,7 @@ interface CategoryPickerProps {
   currentCategoryKey: string
   wording: string
   onCreateRule?: (wording: string, categoryKey: string) => void
+  onAfterChange?: () => void
 }
 
 export function CategoryPicker({
@@ -35,6 +36,7 @@ export function CategoryPicker({
   currentCategoryKey,
   wording,
   onCreateRule,
+  onAfterChange,
 }: CategoryPickerProps) {
   const [open, setOpen] = React.useState(false)
   const { categories, getCategory } = useCategories()
@@ -68,6 +70,7 @@ export function CategoryPicker({
         encryptedCategories,
       })
       const cat = getCategory(categoryKey)
+      onAfterChange?.()
       toast.success('Category updated', {
         description: `Changed to "${cat.label}"`,
         action: onCreateRule

@@ -17,15 +17,19 @@ export function useRetroactiveRuleApplication() {
   const { allPortfolioIds } = usePortfolio()
   const bulkOp = useBulkOperationOptional()
   const convex = useConvex()
-  const batchUpdate = useMutation(
+  const batchUpdateCategories = useMutation(
     api.transactions.batchUpdateTransactionCategories,
+  )
+  const batchUpdateExclusion = useMutation(
+    api.transactions.batchUpdateTransactionExclusion,
   )
 
   const apply = useCallback(
     async (params: {
       pattern: string
       matchType: 'contains' | 'regex'
-      categoryKey: string
+      categoryKey?: string
+      excludeFromBudget?: boolean
     }) => {
       if (!privateKey || !workspacePublicKey) {
         bulkOp?.setError('Encryption not unlocked')
@@ -67,10 +71,11 @@ export function useRetroactiveRuleApplication() {
         if (bulkOp?.cancelRef.current) break
 
         const chunk = transactions.slice(i, i + BATCH_SIZE)
-        const items: Array<{
+        const categoryItems: Array<{
           transactionId: (typeof transactions)[number]['_id']
           encryptedCategories: string
         }> = []
+        const exclusionIds: Array<(typeof transactions)[number]['_id']> = []
 
         for (const txn of chunk) {
           try {
@@ -80,16 +85,6 @@ export function useRetroactiveRuleApplication() {
               privateKey,
               txn._id,
             )
-
-            // Decrypt categories to check if already user-categorized
-            const categories = await decryptFieldGroups(
-              { encryptedCategories: txn.encryptedCategories },
-              privateKey,
-              txn._id,
-            )
-
-            // Skip if user already set a category
-            if (categories.userCategoryKey) continue
 
             // Build search text from wording fields
             const searchParts = [
@@ -101,29 +96,56 @@ export function useRetroactiveRuleApplication() {
 
             if (!matcher(searchText)) continue
 
-            // Re-encrypt categories with the new userCategoryKey
-            const newCategories = {
-              ...categories,
-              userCategoryKey: params.categoryKey,
+            // Apply category action
+            if (params.categoryKey) {
+              const categories = await decryptFieldGroups(
+                { encryptedCategories: txn.encryptedCategories },
+                privateKey,
+                txn._id,
+              )
+
+              if (!categories.userCategoryKey) {
+                const newCategories = {
+                  ...categories,
+                  userCategoryKey: params.categoryKey,
+                }
+                const encrypted = await encryptData(
+                  newCategories,
+                  pubKey,
+                  txn._id,
+                  'encryptedCategories',
+                )
+                categoryItems.push({
+                  transactionId: txn._id,
+                  encryptedCategories: encrypted,
+                })
+              }
             }
-            const encrypted = await encryptData(
-              newCategories,
-              pubKey,
-              txn._id,
-              'encryptedCategories',
-            )
-            items.push({
-              transactionId: txn._id,
-              encryptedCategories: encrypted,
-            })
+
+            // Apply exclusion action
+            if (params.excludeFromBudget && !txn.excludedFromBudget) {
+              exclusionIds.push(txn._id)
+            }
           } catch {
             // Skip transactions that fail to decrypt
           }
         }
 
-        if (items.length > 0) {
+        if (categoryItems.length > 0) {
           try {
-            await batchUpdate({ items })
+            await batchUpdateCategories({ items: categoryItems })
+          } catch {
+            bulkOp?.setError('Failed to save batch')
+            return
+          }
+        }
+
+        if (exclusionIds.length > 0) {
+          try {
+            await batchUpdateExclusion({
+              transactionIds: exclusionIds,
+              excludedFromBudget: true,
+            })
           } catch {
             bulkOp?.setError('Failed to save batch')
             return
@@ -143,7 +165,8 @@ export function useRetroactiveRuleApplication() {
       allPortfolioIds,
       bulkOp,
       convex,
-      batchUpdate,
+      batchUpdateCategories,
+      batchUpdateExclusion,
     ],
   )
 

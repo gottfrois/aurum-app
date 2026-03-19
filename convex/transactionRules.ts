@@ -15,7 +15,7 @@ export const listRules = query({
     if (!member) return []
 
     return await ctx.db
-      .query('categoryRules')
+      .query('transactionRules')
       .withIndex('by_workspaceId', (q) =>
         q.eq('workspaceId', member.workspaceId),
       )
@@ -27,7 +27,8 @@ export const createRule = mutation({
   args: {
     pattern: v.string(),
     matchType: v.union(v.literal('contains'), v.literal('regex')),
-    categoryKey: v.string(),
+    categoryKey: v.optional(v.string()),
+    excludeFromBudget: v.optional(v.boolean()),
   },
   handler: async (ctx, args) => {
     const userId = await requireAuthUserId(ctx)
@@ -39,11 +40,16 @@ export const createRule = mutation({
       throw new Error('Only workspace owners can create rules')
     }
 
-    return await ctx.db.insert('categoryRules', {
+    if (!args.categoryKey && !args.excludeFromBudget) {
+      throw new Error('At least one action is required')
+    }
+
+    return await ctx.db.insert('transactionRules', {
       workspaceId: member.workspaceId,
       pattern: args.pattern,
       matchType: args.matchType,
       categoryKey: args.categoryKey,
+      excludeFromBudget: args.excludeFromBudget,
       createdBy: userId,
       createdAt: Date.now(),
     })
@@ -52,10 +58,11 @@ export const createRule = mutation({
 
 export const updateRule = mutation({
   args: {
-    ruleId: v.id('categoryRules'),
+    ruleId: v.id('transactionRules'),
     pattern: v.optional(v.string()),
     matchType: v.optional(v.union(v.literal('contains'), v.literal('regex'))),
     categoryKey: v.optional(v.string()),
+    excludeFromBudget: v.optional(v.boolean()),
   },
   handler: async (ctx, args) => {
     const userId = await requireAuthUserId(ctx)
@@ -67,22 +74,24 @@ export const updateRule = mutation({
       throw new Error('Only workspace owners can update rules')
     }
 
-    const rule = await ctx.db.get('categoryRules', args.ruleId)
+    const rule = await ctx.db.get(args.ruleId)
     if (!rule || rule.workspaceId !== member.workspaceId) {
       throw new Error('Rule not found')
     }
 
-    const patch: Record<string, string> = {}
+    const patch: Record<string, string | boolean | undefined> = {}
     if (args.pattern !== undefined) patch.pattern = args.pattern
     if (args.matchType !== undefined) patch.matchType = args.matchType
     if (args.categoryKey !== undefined) patch.categoryKey = args.categoryKey
+    if (args.excludeFromBudget !== undefined)
+      patch.excludeFromBudget = args.excludeFromBudget
 
-    await ctx.db.patch('categoryRules', args.ruleId, patch)
+    await ctx.db.patch(args.ruleId, patch)
   },
 })
 
 export const deleteRule = mutation({
-  args: { ruleId: v.id('categoryRules') },
+  args: { ruleId: v.id('transactionRules') },
   handler: async (ctx, args) => {
     const userId = await requireAuthUserId(ctx)
     const member = await ctx.db
@@ -93,39 +102,22 @@ export const deleteRule = mutation({
       throw new Error('Only workspace owners can delete rules')
     }
 
-    const rule = await ctx.db.get('categoryRules', args.ruleId)
+    const rule = await ctx.db.get(args.ruleId)
     if (!rule || rule.workspaceId !== member.workspaceId) {
       throw new Error('Rule not found')
     }
 
-    await ctx.db.delete('categoryRules', args.ruleId)
+    await ctx.db.delete(args.ruleId)
   },
 })
 
 // Internal helpers
 
-export const getRuleInternal = internalQuery({
-  args: { ruleId: v.id('categoryRules') },
-  handler: async (ctx, args) => {
-    return await ctx.db.get('categoryRules', args.ruleId)
-  },
-})
-
-export const getWorkspacePortfolios = internalQuery({
-  args: { workspaceId: v.id('workspaces') },
-  handler: async (ctx, args) => {
-    return await ctx.db
-      .query('portfolios')
-      .withIndex('by_workspaceId', (q) => q.eq('workspaceId', args.workspaceId))
-      .collect()
-  },
-})
-
 export const listRulesForWorkspace = internalQuery({
   args: { workspaceId: v.id('workspaces') },
   handler: async (ctx, args) => {
     return await ctx.db
-      .query('categoryRules')
+      .query('transactionRules')
       .withIndex('by_workspaceId', (q) => q.eq('workspaceId', args.workspaceId))
       .collect()
   },

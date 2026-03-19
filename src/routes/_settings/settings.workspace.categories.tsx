@@ -220,9 +220,9 @@ function CategoriesList() {
 }
 
 function RulesList() {
-  const rules = useQuery(api.categoryRules.listRules)
+  const rules = useQuery(api.transactionRules.listRules)
   const categories = useQuery(api.categories.listCategories)
-  const deleteRule = useMutation(api.categoryRules.deleteRule)
+  const deleteRule = useMutation(api.transactionRules.deleteRule)
   const [createOpen, setCreateOpen] = React.useState(false)
 
   if (rules === undefined) {
@@ -231,7 +231,7 @@ function RulesList() {
 
   const categoryMap = new Map((categories ?? []).map((c) => [c.key, c]))
 
-  const handleDelete = async (ruleId: Id<'categoryRules'>) => {
+  const handleDelete = async (ruleId: Id<'transactionRules'>) => {
     try {
       await deleteRule({ ruleId })
       toast.success('Rule deleted')
@@ -244,7 +244,7 @@ function RulesList() {
     <ItemCard>
       <ItemCardHeader>
         <ItemCardHeaderContent>
-          <ItemCardHeaderTitle>Auto-categorization Rules</ItemCardHeaderTitle>
+          <ItemCardHeaderTitle>Automation Rules</ItemCardHeaderTitle>
         </ItemCardHeaderContent>
         <Button size="sm" onClick={() => setCreateOpen(true)}>
           <Plus className="size-4" />
@@ -254,11 +254,14 @@ function RulesList() {
       <ItemCardItems>
         {rules.length === 0 ? (
           <div className="p-6 text-center text-sm text-muted-foreground">
-            No rules yet. Create a rule to auto-categorize transactions.
+            No rules yet. Create a rule to auto-categorize or exclude
+            transactions.
           </div>
         ) : (
           rules.map((rule) => {
-            const cat = categoryMap.get(rule.categoryKey)
+            const cat = rule.categoryKey
+              ? categoryMap.get(rule.categoryKey)
+              : undefined
             return (
               <ItemCardItem key={rule._id}>
                 <ItemCardItemContent>
@@ -279,6 +282,11 @@ function RulesList() {
                           {cat.label}
                         </span>
                       </div>
+                    )}
+                    {rule.excludeFromBudget && (
+                      <Badge variant="outline" className="text-[10px]">
+                        Excluded from budget
+                      </Badge>
                     )}
                   </div>
                 </ItemCardItemContent>

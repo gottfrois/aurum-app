@@ -167,6 +167,7 @@ export default defineSchema({
     active: v.boolean(),
     deleted: v.boolean(),
     labelIds: v.optional(v.array(v.id('labels'))),
+    excludedFromBudget: v.optional(v.boolean()),
     encryptedDetails: v.string(),
     encryptedFinancials: v.string(),
     encryptedCategories: v.string(),
@@ -189,11 +190,12 @@ export default defineSchema({
     .index('by_workspaceId', ['workspaceId'])
     .index('by_workspaceId_key', ['workspaceId', 'key']),
 
-  categoryRules: defineTable({
+  transactionRules: defineTable({
     workspaceId: v.id('workspaces'),
     pattern: v.string(),
     matchType: v.union(v.literal('contains'), v.literal('regex')),
-    categoryKey: v.string(),
+    categoryKey: v.optional(v.string()),
+    excludeFromBudget: v.optional(v.boolean()),
     createdBy: v.string(),
     createdAt: v.number(),
   }).index('by_workspaceId', ['workspaceId']),

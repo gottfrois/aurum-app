@@ -112,12 +112,18 @@ export function TimelineBrush({
 
     if (startDays < edgeThreshold) {
       const newMin = startOfDay(addMonths(viewMin, -3))
-      setViewMin(newMin < effectiveMinDate ? effectiveMinDate : newMin)
+      const clamped = newMin < effectiveMinDate ? effectiveMinDate : newMin
+      if (clamped.getTime() !== viewMin.getTime()) {
+        setViewMin(clamped)
+      }
     }
     if (endDays < edgeThreshold) {
       const newMax = startOfDay(addMonths(viewMax, 3))
       const today = startOfDay(new Date())
-      setViewMax(newMax > today ? today : newMax)
+      const clamped = newMax > today ? today : newMax
+      if (clamped.getTime() !== viewMax.getTime()) {
+        setViewMax(clamped)
+      }
     }
   }, [start, end, viewMin, viewMax, dragType, effectiveMinDate])
 

@@ -4,6 +4,7 @@ import {
   Calendar,
   CircleDot,
   DollarSign,
+  EyeOff,
   FileType,
   Tag,
   Tags,
@@ -24,6 +25,7 @@ export type TransactionFilterField =
   | 'type'
   | 'status'
   | 'counterparty'
+  | 'excluded'
 
 interface TransactionFilterDeps {
   accountOptions: Array<EnumOption>
@@ -151,6 +153,22 @@ export function createTransactionFilterConfig(
       defaultOperator: 'contains',
       accessor: (r) => r.counterparty,
       icon: Users,
+    },
+    {
+      name: 'excluded',
+      label: 'Budget',
+      valueType: 'enum',
+      operators: ['is_any_of'],
+      defaultOperator: 'is_any_of',
+      enumOptions: [
+        { value: 'included', label: 'Included' },
+        { value: 'excluded', label: 'Excluded' },
+      ],
+      accessor: (r) =>
+        (r as Record<string, unknown>).excludedFromBudget
+          ? 'excluded'
+          : 'included',
+      icon: EyeOff,
     },
   ]
 

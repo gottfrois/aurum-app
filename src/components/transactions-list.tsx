@@ -20,6 +20,7 @@ import {
   ChevronRight,
   ChevronsLeft,
   ChevronsRight,
+  EyeOff,
   Plus,
   Search,
 } from 'lucide-react'
@@ -49,6 +50,7 @@ import {
   SheetHeader,
   SheetTitle,
 } from '~/components/ui/sheet'
+import { Switch } from '~/components/ui/switch'
 import {
   Table,
   TableBody,
@@ -78,6 +80,7 @@ export interface TransactionRow {
   categoryParent?: string
   userCategoryKey?: string
   labelIds?: Array<string>
+  excludedFromBudget?: boolean
   value: number
   originalValue?: number
   originalCurrency?: string
@@ -136,22 +139,34 @@ export function TransactionsList({
   const [globalFilter, setGlobalFilter] = React.useState('')
   const [rowSelection, setRowSelection] = React.useState<RowSelectionState>({})
   const [selectAllMatching, setSelectAllMatching] = React.useState(false)
-  const [selectedTransaction, setSelectedTransaction] =
-    React.useState<TransactionRow | null>(null)
+  const [selectedTransactionId, setSelectedTransactionId] = React.useState<
+    string | null
+  >(null)
+  const selectedTransaction = React.useMemo(
+    () => data.find((t) => t._id === selectedTransactionId) ?? null,
+    [data, selectedTransactionId],
+  )
   const [ruleDialog, setRuleDialog] = React.useState<{
     open: boolean
     pattern: string
     categoryKey: string
-  }>({ open: false, pattern: '', categoryKey: '' })
+    excludeFromBudget: boolean
+  }>({ open: false, pattern: '', categoryKey: '', excludeFromBudget: false })
 
   const updateTransactionLabels = useMutation(
     api.transactions.updateTransactionLabels,
+  )
+  const updateTransactionExclusion = useMutation(
+    api.transactions.updateTransactionExclusion,
   )
   const batchUpdateLabels = useMutation(
     api.transactions.batchUpdateTransactionLabels,
   )
   const batchUpdateCategory = useMutation(
     api.transactions.batchUpdateTransactionCategory,
+  )
+  const batchUpdateExclusion = useMutation(
+    api.transactions.batchUpdateTransactionExclusion,
   )
   const labelMap = React.useMemo(() => {
     const map = new Map<string, LabelData>()
@@ -162,8 +177,18 @@ export function TransactionsList({
   }, [labels])
 
   const handleCreateRule = React.useCallback(
-    (wording: string, categoryKey: string) => {
-      setRuleDialog({ open: true, pattern: wording, categoryKey })
+    (
+      wording: string,
+      categoryKey: string,
+      excludeFromBudget: boolean = false,
+    ) => {
+      setSelectedTransactionId(null)
+      setRuleDialog({
+        open: true,
+        pattern: wording,
+        categoryKey,
+        excludeFromBudget,
+      })
     },
     [],
   )
@@ -243,7 +268,14 @@ export function TransactionsList({
 
           return (
             <div className="flex max-w-[150px] items-center gap-2 sm:max-w-[200px] md:max-w-[300px] lg:max-w-[400px]">
-              <span className="truncate">{row.original.wording}</span>
+              <span
+                className={cn(
+                  'truncate',
+                  row.original.excludedFromBudget && 'line-through',
+                )}
+              >
+                {row.original.wording}
+              </span>
               {row.original.coming && (
                 <Badge variant="outline" className="shrink-0 text-xs">
                   Pending
@@ -477,6 +509,56 @@ export function TransactionsList({
     [getSelectedIds, batchUpdateCategory, workspacePublicKey, getCategory],
   )
 
+  const handleExclusionToggle = React.useCallback(
+    async (transactionId: string, excluded: boolean, wording?: string) => {
+      try {
+        await updateTransactionExclusion({
+          transactionId: transactionId as Id<'transactions'>,
+          excludedFromBudget: excluded,
+        })
+        if (excluded && wording) {
+          // Close the sheet so the toast action button is not blocked by the overlay
+          setSelectedTransactionId(null)
+          toast('Excluded from budget', {
+            action: {
+              label: 'Create rule',
+              onClick: () => {
+                handleCreateRule(wording, '', true)
+              },
+            },
+          })
+        } else if (!excluded) {
+          toast.success('Included in budget')
+        }
+      } catch {
+        toast.error('Failed to update transaction')
+      }
+    },
+    [updateTransactionExclusion, handleCreateRule],
+  )
+
+  const handleBulkExclusionChange = React.useCallback(
+    async (excluded: boolean) => {
+      const ids = getSelectedIds()
+      if (ids.length === 0) return
+
+      try {
+        await batchUpdateExclusion({
+          transactionIds: ids as Array<Id<'transactions'>>,
+          excludedFromBudget: excluded,
+        })
+        toast.success(
+          excluded
+            ? `Excluding ${ids.length} transactions from budget...`
+            : `Including ${ids.length} transactions in budget...`,
+        )
+      } catch {
+        toast.error('Failed to update exclusion')
+      }
+    },
+    [getSelectedIds, batchUpdateExclusion],
+  )
+
   const selectedRows = React.useMemo(() => getSelectedRows(), [getSelectedRows])
 
   useCommand('selection.change-labels', {
@@ -503,6 +585,14 @@ export function TransactionsList({
         onSelect={handleBulkCategoryChange}
         onBack={onBack}
       />
+    ),
+  })
+
+  useCommand('selection.toggle-exclusion', {
+    handler: () => {},
+    disabled: !hasSelection,
+    view: ({ onBack }) => (
+      <BulkExclusionView onSelect={handleBulkExclusionChange} onBack={onBack} />
     ),
   })
 
@@ -548,9 +638,12 @@ export function TransactionsList({
               table.getRowModel().rows.map((row) => (
                 <TableRow
                   key={row.id}
-                  className="cursor-pointer"
+                  className={cn(
+                    'cursor-pointer',
+                    row.original.excludedFromBudget && 'text-muted-foreground',
+                  )}
                   data-state={row.getIsSelected() && 'selected'}
-                  onClick={() => setSelectedTransaction(row.original)}
+                  onClick={() => setSelectedTransactionId(row.original._id)}
                 >
                   {row.getVisibleCells().map((cell) => (
                     <TableCell key={cell.id}>
@@ -659,14 +752,16 @@ export function TransactionsList({
       <TransactionDetailSheet
         transaction={selectedTransaction}
         onOpenChange={(open) => {
-          if (!open) setSelectedTransaction(null)
+          if (!open) setSelectedTransactionId(null)
         }}
+        onClose={() => setSelectedTransactionId(null)}
         currency={currency}
         formatCurrency={formatCurrency}
         onCreateRule={handleCreateRule}
         labels={labels}
         workspaceId={workspaceId}
         onLabelToggle={handleLabelToggle}
+        onExclusionToggle={handleExclusionToggle}
       />
 
       <CreateRuleDialog
@@ -674,6 +769,7 @@ export function TransactionsList({
         onOpenChange={(open) => setRuleDialog((prev) => ({ ...prev, open }))}
         defaultPattern={ruleDialog.pattern}
         defaultCategoryKey={ruleDialog.categoryKey}
+        defaultExcludeFromBudget={ruleDialog.excludeFromBudget}
       />
     </div>
   )
@@ -933,21 +1029,33 @@ function BulkCategoryView({
 function TransactionDetailSheet({
   transaction,
   onOpenChange,
+  onClose,
   currency,
   formatCurrency,
   onCreateRule,
   labels,
   workspaceId,
   onLabelToggle,
+  onExclusionToggle,
 }: {
   transaction: TransactionRow | null
   onOpenChange: (open: boolean) => void
+  onClose: () => void
   currency: string
   formatCurrency: (value: number, currency: string) => string
-  onCreateRule: (wording: string, categoryKey: string) => void
+  onCreateRule: (
+    wording: string,
+    categoryKey: string,
+    excludeFromBudget?: boolean,
+  ) => void
   labels: Array<LabelData>
   workspaceId?: string
   onLabelToggle: (transactionId: string, labelIds: Array<string>) => void
+  onExclusionToggle: (
+    transactionId: string,
+    excluded: boolean,
+    wording?: string,
+  ) => void
 }) {
   if (!transaction) return null
 
@@ -1030,6 +1138,7 @@ function TransactionDetailSheet({
               currentCategoryKey={categoryKey}
               wording={transaction.wording}
               onCreateRule={onCreateRule}
+              onAfterChange={onClose}
             />
           </div>
 
@@ -1049,6 +1158,23 @@ function TransactionDetailSheet({
             </div>
           )}
 
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <EyeOff className="size-4 text-muted-foreground" />
+              <span className="text-sm">Exclude from budget</span>
+            </div>
+            <Switch
+              checked={transaction.excludedFromBudget ?? false}
+              onCheckedChange={(checked) => {
+                onExclusionToggle(
+                  transaction._id,
+                  checked,
+                  checked ? transaction.wording : undefined,
+                )
+              }}
+            />
+          </div>
+
           <Separator />
 
           <dl className="grid gap-3">
@@ -1064,5 +1190,47 @@ function TransactionDetailSheet({
         </div>
       </SheetContent>
     </Sheet>
+  )
+}
+
+function BulkExclusionView({
+  onSelect,
+  onBack,
+}: {
+  onSelect: (excluded: boolean) => void
+  onBack: () => void
+}) {
+  const options = [
+    { label: 'Exclude from budget', value: true },
+    { label: 'Include in budget', value: false },
+  ]
+
+  return (
+    <>
+      <div className="flex h-12 items-center gap-2 border-b px-3">
+        <button
+          onClick={onBack}
+          className="flex size-6 shrink-0 items-center justify-center rounded-md text-muted-foreground hover:bg-accent hover:text-foreground"
+        >
+          <ChevronLeft className="size-4" />
+        </button>
+        <span className="text-sm font-medium">Budget exclusion</span>
+      </div>
+      <div className="min-h-[300px] max-h-[300px] overflow-y-auto overflow-x-hidden scroll-py-1 px-2 py-1">
+        {options.map((option) => (
+          <button
+            key={String(option.value)}
+            onClick={() => {
+              onSelect(option.value)
+              onBack()
+            }}
+            className="flex w-full items-center gap-2 rounded-sm px-2 py-2 text-sm hover:bg-accent"
+          >
+            <EyeOff className="size-4" />
+            <span>{option.label}</span>
+          </button>
+        ))}
+      </div>
+    </>
   )
 }

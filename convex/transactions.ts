@@ -255,6 +255,91 @@ export const getTransactionVolumeAllPortfolios = query({
   },
 })
 
+export const updateTransactionExclusion = mutation({
+  args: {
+    transactionId: v.id('transactions'),
+    excludedFromBudget: v.boolean(),
+  },
+  handler: async (ctx, args) => {
+    const userId = await requireAuthUserId(ctx)
+
+    const transaction = await ctx.db.get(args.transactionId)
+    if (!transaction) throw new Error('Transaction not found')
+
+    const portfolio = await ctx.db.get('portfolios', transaction.portfolioId)
+    if (!portfolio) throw new Error('Portfolio not found')
+
+    const member = await ctx.db
+      .query('workspaceMembers')
+      .withIndex('by_userId', (q) => q.eq('userId', userId))
+      .first()
+    if (!member || member.workspaceId !== portfolio.workspaceId) {
+      throw new Error('Not authorized')
+    }
+
+    await ctx.db.patch(args.transactionId, {
+      excludedFromBudget: args.excludedFromBudget,
+    })
+  },
+})
+
+export const batchUpdateTransactionExclusion = mutation({
+  args: {
+    transactionIds: v.array(v.id('transactions')),
+    excludedFromBudget: v.boolean(),
+  },
+  handler: async (ctx, args) => {
+    const userId = await requireAuthUserId(ctx)
+
+    const member = await ctx.db
+      .query('workspaceMembers')
+      .withIndex('by_userId', (q) => q.eq('userId', userId))
+      .first()
+    if (!member) throw new Error('Not authorized')
+
+    await ctx.scheduler.runAfter(
+      0,
+      internal.transactions.batchUpdateExclusionAsync,
+      {
+        transactionIds: args.transactionIds,
+        excludedFromBudget: args.excludedFromBudget,
+      },
+    )
+  },
+})
+
+export const batchUpdateExclusionAsync = internalAction({
+  args: {
+    transactionIds: v.array(v.id('transactions')),
+    excludedFromBudget: v.boolean(),
+  },
+  handler: async (ctx, args) => {
+    for (let i = 0; i < args.transactionIds.length; i += BATCH_CHUNK_SIZE) {
+      const chunk = args.transactionIds.slice(i, i + BATCH_CHUNK_SIZE)
+      await ctx.runMutation(internal.transactions.batchUpdateExclusionChunk, {
+        transactionIds: chunk,
+        excludedFromBudget: args.excludedFromBudget,
+      })
+    }
+  },
+})
+
+export const batchUpdateExclusionChunk = internalMutation({
+  args: {
+    transactionIds: v.array(v.id('transactions')),
+    excludedFromBudget: v.boolean(),
+  },
+  handler: async (ctx, args) => {
+    for (const transactionId of args.transactionIds) {
+      const transaction = await ctx.db.get(transactionId)
+      if (!transaction) continue
+      await ctx.db.patch(transactionId, {
+        excludedFromBudget: args.excludedFromBudget,
+      })
+    }
+  },
+})
+
 export const batchUpdateTransactionCategories = mutation({
   args: {
     items: v.array(
