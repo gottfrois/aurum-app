@@ -14,7 +14,7 @@ import { SiteHeader } from '~/components/site-header'
 import { TimelineBrush } from '~/components/timeline-brush'
 import type { TransactionRow } from '~/components/transactions-list'
 import { TransactionsList } from '~/components/transactions-list'
-import { Card, CardContent, CardHeader, CardTitle } from '~/components/ui/card'
+import { Card, CardContent, CardHeader } from '~/components/ui/card'
 import {
   Empty,
   EmptyDescription,
@@ -492,16 +492,11 @@ function TransactionsContent() {
               </CardContent>
             </Card>
           </div>
-          <Card>
-            <CardHeader>
-              <Skeleton className="h-5 w-28" />
-            </CardHeader>
-            <CardContent className="space-y-3">
-              {[1, 2, 3, 4, 5].map((i) => (
-                <Skeleton key={i} className="h-10 w-full" />
-              ))}
-            </CardContent>
-          </Card>
+          <div className="space-y-3">
+            {[1, 2, 3, 4, 5].map((i) => (
+              <Skeleton key={i} className="h-10 w-full" />
+            ))}
+          </div>
         </div>
       </>
     )
@@ -612,19 +607,12 @@ function TransactionsContent() {
           />
         )}
 
-        <Card>
-          <CardHeader>
-            <CardTitle>Transactions</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <TransactionsList
-              data={tableData}
-              currency={currency}
-              labels={labels}
-              workspaceId={workspaceId ?? undefined}
-            />
-          </CardContent>
-        </Card>
+        <TransactionsList
+          data={tableData}
+          currency={currency}
+          labels={labels}
+          workspaceId={workspaceId ?? undefined}
+        />
       </div>
     </>
   )
