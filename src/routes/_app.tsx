@@ -34,7 +34,7 @@ function AppCommands() {
   })
 
   useCommand('shortcuts.show', {
-    handler: () => setShortcutsOpen(true),
+    handler: () => setShortcutsOpen((prev) => !prev),
   })
 
   useNavigationCommands()

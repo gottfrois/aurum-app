@@ -63,6 +63,7 @@ export function useCommand(
       enableOnFormTags: scope === 'system',
       enableOnContentEditable: scope === 'system',
       preventDefault: true,
+      useKey: true,
     },
     [options.disabled],
   )

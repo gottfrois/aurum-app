@@ -1,57 +1,85 @@
+import { Link } from '@tanstack/react-router'
 import {
   ArrowLeftRight,
+  Keyboard,
   Landmark,
   LayoutDashboard,
   Settings,
 } from 'lucide-react'
 import type * as React from 'react'
 import { NavMain } from '~/components/nav-main'
-import { NavSecondary } from '~/components/nav-secondary'
 import { NavUser } from '~/components/nav-user'
 import { PortfolioSwitcher } from '~/components/portfolio-switcher'
+import { HotkeyDisplay, Kbd } from '~/components/ui/kbd'
 import {
   Sidebar,
   SidebarContent,
   SidebarFooter,
+  SidebarGroup,
+  SidebarGroupContent,
   SidebarHeader,
+  SidebarMenu,
+  SidebarMenuButton,
+  SidebarMenuItem,
 } from '~/components/ui/sidebar'
+import { useCommandRegistry } from '~/contexts/command-context'
 
-const data = {
-  navMain: [
-    {
-      title: 'Dashboard',
-      url: '/',
-      icon: LayoutDashboard,
-    },
-    {
-      title: 'Transactions',
-      url: '/transactions',
-      icon: ArrowLeftRight,
-    },
-    {
-      title: 'Accounts',
-      url: '/accounts',
-      icon: Landmark,
-    },
-  ],
-  navSecondary: [
-    {
-      title: 'Settings',
-      url: '/settings',
-      icon: Settings,
-    },
-  ],
-}
+const navMain = [
+  {
+    title: 'Dashboard',
+    url: '/',
+    icon: LayoutDashboard,
+  },
+  {
+    title: 'Transactions',
+    url: '/transactions',
+    icon: ArrowLeftRight,
+  },
+  {
+    title: 'Accounts',
+    url: '/accounts',
+    icon: Landmark,
+  },
+]
 
 export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
+  const { commands } = useCommandRegistry()
+  const shortcutsCommand = commands.find((c) => c.id === 'shortcuts.show')
+
   return (
     <Sidebar collapsible="offcanvas" {...props}>
       <SidebarHeader>
         <PortfolioSwitcher />
       </SidebarHeader>
       <SidebarContent>
-        <NavMain items={data.navMain} />
-        <NavSecondary items={data.navSecondary} className="mt-auto" />
+        <NavMain items={navMain} />
+        <SidebarGroup className="mt-auto">
+          <SidebarGroupContent>
+            <SidebarMenu>
+              {shortcutsCommand && (
+                <SidebarMenuItem>
+                  <SidebarMenuButton onClick={shortcutsCommand.handler}>
+                    <Keyboard />
+                    <span>Shortcuts</span>
+                    <Kbd className="ml-auto">?</Kbd>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
+              )}
+              <SidebarMenuItem>
+                <SidebarMenuButton asChild>
+                  <Link to="/settings">
+                    <Settings />
+                    <span>Settings</span>
+                    <HotkeyDisplay
+                      hotkey={{ keys: 'g+s' }}
+                      className="ml-auto"
+                    />
+                  </Link>
+                </SidebarMenuButton>
+              </SidebarMenuItem>
+            </SidebarMenu>
+          </SidebarGroupContent>
+        </SidebarGroup>
       </SidebarContent>
       <SidebarFooter>
         <NavUser />
