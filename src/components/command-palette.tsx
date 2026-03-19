@@ -1,13 +1,5 @@
-import { useNavigate } from '@tanstack/react-router'
 import { useAction } from 'convex/react'
-import {
-  ArrowLeftRight,
-  Landmark,
-  LayoutDashboard,
-  Loader2,
-  Settings,
-  Sparkles,
-} from 'lucide-react'
+import { Loader2, Sparkles } from 'lucide-react'
 import * as React from 'react'
 import { toast } from 'sonner'
 import {
@@ -18,21 +10,14 @@ import {
   CommandItem,
   CommandList,
   CommandSeparator,
-  CommandShortcut,
 } from '~/components/ui/command'
+import { HotkeyDisplay } from '~/components/ui/kbd'
 import type { CommandEntry } from '~/contexts/command-context'
 import { useCommandRegistry } from '~/contexts/command-context'
 import { serializeFilterConfig } from '~/lib/filters/ai/prompt'
 import { createTransactionFilterConfig } from '~/lib/filters/transactions'
 import type { FilterCondition } from '~/lib/filters/types'
 import { api } from '../../convex/_generated/api'
-
-const NAV_ITEMS = [
-  { title: 'Dashboard', url: '/', icon: LayoutDashboard },
-  { title: 'Transactions', url: '/transactions', icon: ArrowLeftRight },
-  { title: 'Accounts', url: '/accounts', icon: Landmark },
-  { title: 'Settings', url: '/settings', icon: Settings },
-] as const
 
 // Event for passing AI-generated filters to the transactions page
 const AI_FILTER_EVENT = 'bunkr:ai-filters'
@@ -62,7 +47,6 @@ export function CommandPalette() {
   const [activeCommandId, setActiveCommandId] = React.useState<string | null>(
     null,
   )
-  const navigate = useNavigate()
   const askAI = useAction(api.aiFilters.askAI)
 
   const open = paletteState.open
@@ -71,17 +55,6 @@ export function CommandPalette() {
   const activeCommand = activeCommandId
     ? commands.find((c) => c.id === activeCommandId)
     : null
-
-  React.useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'k' && (e.metaKey || e.ctrlKey)) {
-        e.preventDefault()
-        setPaletteState((prev) => ({ open: !prev.open }))
-      }
-    }
-    document.addEventListener('keydown', handleKeyDown)
-    return () => document.removeEventListener('keydown', handleKeyDown)
-  }, [setPaletteState])
 
   const handleOpenChange = (value: boolean) => {
     setPaletteState({ open: value })
@@ -93,19 +66,12 @@ export function CommandPalette() {
     }
   }
 
-  const handleNav = (url: string) => {
-    setPaletteState({ open: false })
-    void navigate({ to: url })
-  }
-
   const handleAISubmit = async (query: string) => {
     const trimmed = query.trim()
     if (!trimmed || loading) return
 
     setLoading(true)
     try {
-      // Use empty deps for serialization — enum options won't be available
-      // but the field metadata (names, types, operators) is sufficient
       const config = createTransactionFilterConfig({
         accountOptions: [],
         categoryOptions: [],
@@ -122,7 +88,6 @@ export function CommandPalette() {
       }
 
       setPaletteState({ open: false })
-      void navigate({ to: '/transactions' })
       // Dispatch after a tick so the transactions page can mount and listen
       setTimeout(() => dispatchAIFilters(conditions), 100)
     } catch {
@@ -132,11 +97,12 @@ export function CommandPalette() {
     }
   }
 
-  // Group registered commands
+  // Group registered commands, filtering out hidden ones
   const groupedCommands = React.useMemo(() => {
+    const visible = commands.filter((c) => !c.hidden && !c.disabled)
     const filtered = filterGroup
-      ? commands.filter((c) => c.group === filterGroup)
-      : commands
+      ? visible.filter((c) => c.group === filterGroup)
+      : visible
     const groups = new Map<string, typeof filtered>()
     for (const cmd of filtered) {
       const list = groups.get(cmd.group) ?? []
@@ -151,7 +117,7 @@ export function CommandPalette() {
       setActiveCommandId(cmd.id)
     } else {
       setPaletteState({ open: false })
-      cmd.onSelect()
+      cmd.handler()
     }
   }
 
@@ -218,10 +184,17 @@ export function CommandPalette() {
                   {cmds.map((cmd) => (
                     <CommandItem
                       key={cmd.id}
+                      keywords={cmd.keywords}
                       onSelect={() => handleCommandSelect(cmd)}
                     >
                       {cmd.icon && <cmd.icon />}
                       <span>{cmd.label}</span>
+                      {cmd.hotkey && (
+                        <HotkeyDisplay
+                          hotkey={cmd.hotkey}
+                          className="ml-auto"
+                        />
+                      )}
                     </CommandItem>
                   ))}
                 </CommandGroup>
@@ -230,27 +203,12 @@ export function CommandPalette() {
             ))}
 
             {!filterGroup && (
-              <>
-                <CommandGroup heading="Navigation">
-                  {NAV_ITEMS.map((item) => (
-                    <CommandItem
-                      key={item.url}
-                      onSelect={() => handleNav(item.url)}
-                    >
-                      <item.icon />
-                      <span>{item.title}</span>
-                    </CommandItem>
-                  ))}
-                </CommandGroup>
-                <CommandSeparator />
-                <CommandGroup heading="AI">
-                  <CommandItem onSelect={() => setAIMode(true)}>
-                    <Sparkles />
-                    <span>Ask AI to filter...</span>
-                    <CommandShortcut>AI</CommandShortcut>
-                  </CommandItem>
-                </CommandGroup>
-              </>
+              <CommandGroup heading="AI">
+                <CommandItem onSelect={() => setAIMode(true)}>
+                  <Sparkles />
+                  <span>Ask AI to filter...</span>
+                </CommandItem>
+              </CommandGroup>
             )}
           </CommandList>
         </>

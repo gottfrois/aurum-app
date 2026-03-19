@@ -1,7 +1,8 @@
 import { createFileRoute } from '@tanstack/react-router'
 import { useMutation, useQuery } from 'convex/react'
 import { KeyRound, ShieldCheck, TriangleAlert } from 'lucide-react'
-import { useRef, useState } from 'react'
+import { useCallback, useRef, useState } from 'react'
+import { useHotkeys } from 'react-hotkeys-hook'
 import { toast } from 'sonner'
 import {
   ItemCard,
@@ -24,6 +25,7 @@ import {
   DialogTitle,
 } from '~/components/ui/dialog'
 import { Input } from '~/components/ui/input'
+import { Kbd } from '~/components/ui/kbd'
 import { Skeleton } from '~/components/ui/skeleton'
 import { useEncryption } from '~/contexts/encryption-context'
 import { usePortfolio } from '~/contexts/portfolio-context'
@@ -531,20 +533,50 @@ function KeyRotationDialog({
               Stop
             </Button>
           ) : (
-            <>
-              <Button variant="outline" onClick={() => onOpenChange(false)}>
-                Cancel
-              </Button>
-              <Button
-                onClick={handleRotateComplete}
-                disabled={!passphrase || rotating}
-              >
-                Rotate keys
-              </Button>
-            </>
+            <RotationFooter
+              onCancel={() => onOpenChange(false)}
+              onConfirm={handleRotateComplete}
+              disabled={!passphrase || rotating}
+            />
           )}
         </DialogFooter>
       </DialogContent>
     </Dialog>
+  )
+}
+
+function RotationFooter({
+  onCancel,
+  onConfirm,
+  disabled,
+}: {
+  onCancel: () => void
+  onConfirm: () => void
+  disabled: boolean
+}) {
+  const handleConfirm = useCallback(() => {
+    if (!disabled) onConfirm()
+  }, [disabled, onConfirm])
+
+  useHotkeys('escape', onCancel, {
+    enableOnFormTags: true,
+    preventDefault: true,
+  })
+
+  useHotkeys('enter', handleConfirm, {
+    enabled: !disabled,
+    enableOnFormTags: true,
+    preventDefault: true,
+  })
+
+  return (
+    <>
+      <Button variant="outline" onClick={onCancel}>
+        Cancel <Kbd>Esc</Kbd>
+      </Button>
+      <Button onClick={handleConfirm} disabled={disabled}>
+        Rotate keys <Kbd>↵</Kbd>
+      </Button>
+    </>
   )
 }

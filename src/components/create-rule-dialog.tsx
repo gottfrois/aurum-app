@@ -1,5 +1,6 @@
 import { useMutation } from 'convex/react'
 import * as React from 'react'
+import { useHotkeys } from 'react-hotkeys-hook'
 import { toast } from 'sonner'
 import { Button } from '~/components/ui/button'
 import { Checkbox } from '~/components/ui/checkbox'
@@ -12,6 +13,7 @@ import {
   DialogTitle,
 } from '~/components/ui/dialog'
 import { Input } from '~/components/ui/input'
+import { Kbd } from '~/components/ui/kbd'
 import { Label } from '~/components/ui/label'
 import {
   Select,
@@ -142,18 +144,51 @@ export function CreateRuleDialog({
             </Label>
           </div>
         </div>
-        <DialogFooter>
-          <Button variant="outline" onClick={() => onOpenChange(false)}>
-            Cancel
-          </Button>
-          <Button
-            onClick={handleSave}
-            disabled={saving || !pattern.trim() || !categoryKey}
-          >
-            {saving ? 'Creating...' : 'Create rule'}
-          </Button>
-        </DialogFooter>
+        <CreateRuleFooter
+          onCancel={() => onOpenChange(false)}
+          onConfirm={handleSave}
+          disabled={saving || !pattern.trim() || !categoryKey}
+          saving={saving}
+        />
       </DialogContent>
     </Dialog>
+  )
+}
+
+function CreateRuleFooter({
+  onCancel,
+  onConfirm,
+  disabled,
+  saving,
+}: {
+  onCancel: () => void
+  onConfirm: () => void
+  disabled: boolean
+  saving: boolean
+}) {
+  const handleConfirm = React.useCallback(() => {
+    if (!disabled) onConfirm()
+  }, [disabled, onConfirm])
+
+  useHotkeys('escape', onCancel, {
+    enableOnFormTags: true,
+    preventDefault: true,
+  })
+
+  useHotkeys('enter', handleConfirm, {
+    enabled: !disabled,
+    enableOnFormTags: true,
+    preventDefault: true,
+  })
+
+  return (
+    <DialogFooter>
+      <Button variant="outline" onClick={onCancel}>
+        Cancel <Kbd>Esc</Kbd>
+      </Button>
+      <Button onClick={handleConfirm} disabled={disabled}>
+        {saving ? 'Creating...' : 'Create rule'} <Kbd>↵</Kbd>
+      </Button>
+    </DialogFooter>
   )
 }

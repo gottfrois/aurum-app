@@ -5,7 +5,7 @@ import {
   TRANSACTION_CATEGORIES,
 } from './transaction-categories'
 
-interface CategoryInfo {
+export interface CategoryInfo {
   key: string
   label: string
   color: string

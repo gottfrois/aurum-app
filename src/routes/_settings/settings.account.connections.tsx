@@ -1,6 +1,6 @@
 import { createFileRoute } from '@tanstack/react-router'
 import { useAction, useQuery } from 'convex/react'
-import { ChevronDown, Link2, Loader2, Pencil, Trash2 } from 'lucide-react'
+import { ChevronDown, Link2, Loader2 } from 'lucide-react'
 import * as React from 'react'
 import { AddConnectionDialog } from '~/components/add-connection-dialog'
 import { ConfirmDialog } from '~/components/confirm-dialog'
@@ -264,18 +264,13 @@ function ConnectionItem({
                   }
                 }}
               >
-                {editing ? (
-                  <Loader2 className="size-4 animate-spin" />
-                ) : (
-                  <Pencil className="size-4" />
-                )}
+                {editing && <Loader2 className="size-4 animate-spin" />}
                 Manage
               </DropdownMenuItem>
               <DropdownMenuItem
                 variant="destructive"
                 onClick={() => setConfirmOpen(true)}
               >
-                <Trash2 className="size-4" />
                 Disconnect
               </DropdownMenuItem>
             </DropdownMenuContent>

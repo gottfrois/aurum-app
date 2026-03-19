@@ -1,5 +1,6 @@
 import { Check, Copy } from 'lucide-react'
-import { useState } from 'react'
+import { useCallback, useState } from 'react'
+import { useHotkeys } from 'react-hotkeys-hook'
 import {
   AlertDialog,
   AlertDialogAction,
@@ -12,6 +13,7 @@ import {
 } from '~/components/ui/alert-dialog'
 import { Badge } from '~/components/ui/badge'
 import { Input } from '~/components/ui/input'
+import { Kbd } from '~/components/ui/kbd'
 import { Label } from '~/components/ui/label'
 
 interface ConfirmDialogProps {
@@ -59,6 +61,28 @@ export function ConfirmDialog({
     onOpenChange(nextOpen)
   }
 
+  const handleCancel = useCallback(() => {
+    handleOpenChange(false)
+  }, [])
+
+  const handleConfirm = useCallback(() => {
+    if (!loading && isConfirmed) {
+      onConfirm()
+    }
+  }, [loading, isConfirmed, onConfirm])
+
+  useHotkeys('escape', handleCancel, {
+    enabled: open,
+    enableOnFormTags: true,
+    preventDefault: true,
+  })
+
+  useHotkeys('enter', handleConfirm, {
+    enabled: open && isConfirmed,
+    enableOnFormTags: true,
+    preventDefault: true,
+  })
+
   return (
     <AlertDialog open={open} onOpenChange={handleOpenChange}>
       <AlertDialogContent>
@@ -93,7 +117,7 @@ export function ConfirmDialog({
         )}
         <AlertDialogFooter>
           <AlertDialogCancel disabled={loading}>
-            {cancelLabel}
+            {cancelLabel} <Kbd>Esc</Kbd>
           </AlertDialogCancel>
           <AlertDialogAction
             variant="destructive"
@@ -103,7 +127,7 @@ export function ConfirmDialog({
               onConfirm()
             }}
           >
-            {loading ? `${confirmLabel}...` : confirmLabel}
+            {loading ? `${confirmLabel}...` : confirmLabel} <Kbd>↵</Kbd>
           </AlertDialogAction>
         </AlertDialogFooter>
       </AlertDialogContent>

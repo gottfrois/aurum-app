@@ -22,7 +22,6 @@ import {
   ChevronsRight,
   Plus,
   Search,
-  Tags,
 } from 'lucide-react'
 import * as React from 'react'
 import { toast } from 'sonner'
@@ -58,10 +57,12 @@ import {
   TableHeader,
   TableRow,
 } from '~/components/ui/table'
-import type { CommandEntry } from '~/contexts/command-context'
-import { useRegisterCommands } from '~/contexts/command-context'
+import { useEncryption } from '~/contexts/encryption-context'
 import { useFormatCurrency } from '~/contexts/privacy-context'
+import { useCommand } from '~/hooks/use-command'
+import type { CategoryInfo } from '~/lib/categories'
 import { resolveTransactionCategoryKey, useCategories } from '~/lib/categories'
+import { encryptData, importPublicKey } from '~/lib/crypto'
 import { cn } from '~/lib/utils'
 import { api } from '../../convex/_generated/api'
 import type { Id } from '../../convex/_generated/dataModel'
@@ -127,7 +128,8 @@ export function TransactionsList({
   workspaceId,
 }: TransactionsListProps) {
   const formatCurrency = useFormatCurrency()
-  const { getCategory } = useCategories()
+  const { categories, getCategory } = useCategories()
+  const { workspacePublicKey } = useEncryption()
   const [sorting, setSorting] = React.useState<SortingState>([
     { id: 'date', desc: true },
   ])
@@ -147,6 +149,9 @@ export function TransactionsList({
   )
   const batchUpdateLabels = useMutation(
     api.transactions.batchUpdateTransactionLabels,
+  )
+  const batchUpdateCategory = useMutation(
+    api.transactions.batchUpdateTransactionCategory,
   )
   const labelMap = React.useMemo(() => {
     const map = new Map<string, LabelData>()
@@ -387,17 +392,6 @@ export function TransactionsList({
     setSelectAllMatching(false)
   }, [])
 
-  React.useEffect(() => {
-    if (!hasSelection) return
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') {
-        clearSelection()
-      }
-    }
-    document.addEventListener('keydown', handleKeyDown)
-    return () => document.removeEventListener('keydown', handleKeyDown)
-  }, [hasSelection, clearSelection])
-
   const getSelectedIds = React.useCallback((): Array<string> => {
     if (selectAllMatching) {
       return table.getFilteredRowModel().rows.map((r) => r.original._id)
@@ -443,32 +437,79 @@ export function TransactionsList({
     [getSelectedIds, batchUpdateLabels, labelMap],
   )
 
-  // Register a single "Change or add labels" command with inline view
+  const handleBulkCategoryChange = React.useCallback(
+    async (categoryKey: string) => {
+      const ids = getSelectedIds()
+      if (ids.length === 0) return
+
+      try {
+        if (!workspacePublicKey) throw new Error('Vault not unlocked')
+        const pubKey = await importPublicKey(workspacePublicKey)
+
+        const updates = await Promise.all(
+          ids.map(async (transactionId) => {
+            const encryptedCategories = await encryptData(
+              {
+                category: categoryKey,
+                categoryParent: undefined,
+                userCategoryKey: categoryKey,
+              },
+              pubKey,
+              transactionId,
+              'encryptedCategories',
+            )
+            return {
+              transactionId: transactionId as Id<'transactions'>,
+              encryptedCategories,
+            }
+          }),
+        )
+
+        await batchUpdateCategory({ updates })
+        const cat = getCategory(categoryKey)
+        toast.success(
+          `Changing category to "${cat.label}" for ${ids.length} transactions...`,
+        )
+      } catch {
+        toast.error('Failed to update category')
+      }
+    },
+    [getSelectedIds, batchUpdateCategory, workspacePublicKey, getCategory],
+  )
+
   const selectedRows = React.useMemo(() => getSelectedRows(), [getSelectedRows])
-  const selectionCommands = React.useMemo<Array<CommandEntry>>(() => {
-    if (!hasSelection) return []
 
-    return [
-      {
-        id: 'bulk-change-labels',
-        label: 'Change or add labels',
-        group: SELECTION_COMMAND_GROUP,
-        icon: Tags,
-        onSelect: () => {},
-        view: ({ onBack }) => (
-          <BulkLabelView
-            labels={labels}
-            selectedRows={selectedRows}
-            workspaceId={workspaceId}
-            onToggle={handleBulkLabelToggle}
-            onBack={onBack}
-          />
-        ),
-      },
-    ]
-  }, [hasSelection, labels, selectedRows, workspaceId, handleBulkLabelToggle])
+  useCommand('selection.change-labels', {
+    handler: () => {},
+    disabled: !hasSelection,
+    view: ({ onBack }) => (
+      <BulkLabelView
+        labels={labels}
+        selectedRows={selectedRows}
+        workspaceId={workspaceId}
+        onToggle={handleBulkLabelToggle}
+        onBack={onBack}
+      />
+    ),
+  })
 
-  useRegisterCommands(selectionCommands, [selectionCommands])
+  useCommand('selection.change-category', {
+    handler: () => {},
+    disabled: !hasSelection,
+    view: ({ onBack }) => (
+      <BulkCategoryView
+        categories={categories}
+        selectedRows={selectedRows}
+        onSelect={handleBulkCategoryChange}
+        onBack={onBack}
+      />
+    ),
+  })
+
+  useCommand('selection.clear', {
+    handler: clearSelection,
+    disabled: !hasSelection,
+  })
 
   return (
     <div className="space-y-4">
@@ -767,6 +808,122 @@ function BulkLabelView({
             <Plus className="size-3" />
             Create &ldquo;{search.trim()}&rdquo;
           </button>
+        )}
+      </div>
+    </>
+  )
+}
+
+function BulkCategoryView({
+  categories,
+  selectedRows,
+  onSelect,
+  onBack,
+}: {
+  categories: Array<CategoryInfo>
+  selectedRows: Array<TransactionRow>
+  onSelect: (categoryKey: string) => void
+  onBack: () => void
+}) {
+  const [search, setSearch] = React.useState('')
+
+  // Determine current category state across selected rows
+  const currentCategoryKey = React.useMemo(() => {
+    if (selectedRows.length === 0) return null
+    const first = resolveTransactionCategoryKey(selectedRows[0])
+    const allSame = selectedRows.every(
+      (r) => resolveTransactionCategoryKey(r) === first,
+    )
+    return allSame ? first : null
+  }, [selectedRows])
+
+  const builtInCategories = categories.filter((c) => c.builtIn)
+  const customCategories = categories.filter((c) => !c.builtIn)
+
+  const query = search.trim().toLowerCase()
+  const filterCats = (cats: Array<CategoryInfo>) =>
+    query ? cats.filter((c) => c.label.toLowerCase().includes(query)) : cats
+  const filteredBuiltIn = filterCats(builtInCategories)
+  const filteredCustom = filterCats(customCategories)
+
+  const handleSelect = (categoryKey: string) => {
+    onSelect(categoryKey)
+    onBack()
+  }
+
+  return (
+    <>
+      <div className="flex h-12 items-center gap-2 border-b px-3">
+        <button
+          onClick={onBack}
+          className="flex size-6 shrink-0 items-center justify-center rounded-md text-muted-foreground hover:bg-accent hover:text-foreground"
+        >
+          <ChevronLeft className="size-4" />
+        </button>
+        <input
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+          placeholder="Search categories..."
+          className="flex h-10 w-full bg-transparent text-sm outline-none placeholder:text-muted-foreground"
+        />
+      </div>
+      <div className="min-h-[300px] max-h-[300px] overflow-y-auto overflow-x-hidden scroll-py-1 px-2 py-1">
+        {filteredBuiltIn.length === 0 && filteredCustom.length === 0 && (
+          <p className="py-6 text-center text-sm text-muted-foreground">
+            No categories found.
+          </p>
+        )}
+        {filteredBuiltIn.length > 0 && (
+          <div className="py-1">
+            {filteredBuiltIn.map((cat) => (
+              <button
+                key={cat.key}
+                onClick={() => handleSelect(cat.key)}
+                className="flex w-full items-center gap-2 rounded-sm px-2 py-2 text-sm hover:bg-accent"
+              >
+                <span
+                  className="size-2.5 shrink-0 rounded-full"
+                  style={{ backgroundColor: cat.color }}
+                />
+                <span>{cat.label}</span>
+                {currentCategoryKey === cat.key && (
+                  <span className="ml-auto text-xs text-muted-foreground">
+                    Current
+                  </span>
+                )}
+              </button>
+            ))}
+          </div>
+        )}
+        {filteredCustom.length > 0 && (
+          <>
+            <div className="px-2 py-1.5 text-xs font-medium text-muted-foreground">
+              Custom
+            </div>
+            <div className="py-1">
+              {filteredCustom.map((cat) => (
+                <button
+                  key={cat.key}
+                  onClick={() => handleSelect(cat.key)}
+                  className={cn(
+                    'flex w-full items-center gap-2 rounded-sm px-2 py-2 text-sm hover:bg-accent',
+                    cat.parentKey && 'pl-6',
+                  )}
+                >
+                  <span
+                    className="size-2.5 shrink-0 rounded-full"
+                    style={{ backgroundColor: cat.color }}
+                  />
+                  <span>{cat.label}</span>
+                  {currentCategoryKey === cat.key && (
+                    <span className="ml-auto text-xs text-muted-foreground">
+                      Current
+                    </span>
+                  )}
+                </button>
+              ))}
+            </div>
+          </>
         )}
       </div>
     </>

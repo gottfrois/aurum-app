@@ -2,6 +2,7 @@ import { createFileRoute } from '@tanstack/react-router'
 import { useAction, useMutation, useQuery } from 'convex/react'
 import { Ellipsis, Mail, UserX, X } from 'lucide-react'
 import { useCallback, useEffect, useState } from 'react'
+import { useHotkeys } from 'react-hotkeys-hook'
 import { toast } from 'sonner'
 import { ConfirmDialog } from '~/components/confirm-dialog'
 import {
@@ -36,6 +37,7 @@ import {
   DropdownMenuTrigger,
 } from '~/components/ui/dropdown-menu'
 import { Input } from '~/components/ui/input'
+import { Kbd } from '~/components/ui/kbd'
 import { Label } from '~/components/ui/label'
 import { Skeleton } from '~/components/ui/skeleton'
 import { useEncryption } from '~/contexts/encryption-context'
@@ -640,17 +642,57 @@ function InviteDialog({
             </div>
           )}
         </div>
-        <DialogFooter>
-          <Button
-            onClick={handleSend}
-            disabled={emails.length === 0 || sending}
-          >
-            {sending
-              ? 'Sending...'
-              : `Send ${emails.length === 0 ? '' : emails.length} invitation${emails.length !== 1 ? 's' : ''}`}
-          </Button>
-        </DialogFooter>
+        <InviteFooter
+          onCancel={() => setOpen(false)}
+          onConfirm={handleSend}
+          disabled={emails.length === 0 || sending}
+          sending={sending}
+          count={emails.length}
+        />
       </DialogContent>
     </Dialog>
+  )
+}
+
+function InviteFooter({
+  onCancel,
+  onConfirm,
+  disabled,
+  sending,
+  count,
+}: {
+  onCancel: () => void
+  onConfirm: () => void
+  disabled: boolean
+  sending: boolean
+  count: number
+}) {
+  const handleConfirm = useCallback(() => {
+    if (!disabled) onConfirm()
+  }, [disabled, onConfirm])
+
+  useHotkeys('escape', onCancel, {
+    enableOnFormTags: true,
+    preventDefault: true,
+  })
+
+  useHotkeys('mod+enter', handleConfirm, {
+    enabled: !disabled,
+    enableOnFormTags: true,
+    preventDefault: true,
+  })
+
+  return (
+    <DialogFooter>
+      <Button variant="outline" onClick={onCancel}>
+        Cancel <Kbd>Esc</Kbd>
+      </Button>
+      <Button onClick={handleConfirm} disabled={disabled}>
+        {sending
+          ? 'Sending...'
+          : `Send ${count === 0 ? '' : count} invitation${count !== 1 ? 's' : ''}`}{' '}
+        <Kbd>↵</Kbd>
+      </Button>
+    </DialogFooter>
   )
 }

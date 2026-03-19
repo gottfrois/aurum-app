@@ -43,3 +43,11 @@ Bunkr is a self-hosted personal finance app (Finary clone). It aggregates bankin
 - Use TailwindCSS utility classes — avoid custom CSS unless absolutely necessary
 - Backend logic belongs in `convex/` — keep `src/` focused on UI and routing
 - Use `@convex-dev/react-query` for data fetching in components
+
+## Commands & Hotkeys
+
+The app uses a centralized command system (`src/lib/commands.ts`, `src/hooks/use-command.ts`) with `react-hotkeys-hook` for keyboard shortcuts.
+
+- **Register commands via `useCommand()`** when an action should be discoverable in the command palette (Cmd+K). Define the command in `COMMAND_DEFINITIONS` in `src/lib/commands.ts` with its metadata (label, group, icon, hotkey), then call `useCommand('command.id', { handler })` in the component that owns the action.
+- **Buttons in dialogs should show hotkey hints** using the `<Kbd>` component from shadcn (e.g. `<Button>Cancel <Kbd>Esc</Kbd></Button>`). Bind the hotkey with `useHotkeys()` from `react-hotkeys-hook`. Common pattern: `Esc` for cancel, `↵` (Enter) for the primary action.
+- **Dropdown menu items should not have icons** — keep them text-only for visual consistency.

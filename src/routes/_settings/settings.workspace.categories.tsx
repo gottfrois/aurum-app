@@ -1,7 +1,8 @@
 import { createFileRoute } from '@tanstack/react-router'
 import { useMutation, useQuery } from 'convex/react'
-import { Lock, MoreHorizontal, Plus, Trash2 } from 'lucide-react'
+import { Lock, MoreHorizontal, Plus } from 'lucide-react'
 import * as React from 'react'
+import { useHotkeys } from 'react-hotkeys-hook'
 import { toast } from 'sonner'
 import { CreateRuleDialog } from '~/components/create-rule-dialog'
 import {
@@ -34,6 +35,7 @@ import {
   DropdownMenuTrigger,
 } from '~/components/ui/dropdown-menu'
 import { Input } from '~/components/ui/input'
+import { Kbd } from '~/components/ui/kbd'
 import { Label } from '~/components/ui/label'
 import { Skeleton } from '~/components/ui/skeleton'
 import { api } from '../../../convex/_generated/api'
@@ -159,7 +161,6 @@ function CategoriesList() {
                     className="text-destructive"
                     onClick={() => handleDelete(cat._id)}
                   >
-                    <Trash2 className="size-4" />
                     Delete
                   </DropdownMenuItem>
                 </DropdownMenuContent>
@@ -206,17 +207,12 @@ function CategoriesList() {
               </div>
             </div>
           </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setCreateOpen(false)}>
-              Cancel
-            </Button>
-            <Button
-              onClick={handleCreate}
-              disabled={saving || !newLabel.trim()}
-            >
-              {saving ? 'Creating...' : 'Create'}
-            </Button>
-          </DialogFooter>
+          <CreateCategoryFooter
+            onCancel={() => setCreateOpen(false)}
+            onConfirm={handleCreate}
+            disabled={saving || !newLabel.trim()}
+            saving={saving}
+          />
         </DialogContent>
       </Dialog>
     </ItemCard>
@@ -298,7 +294,6 @@ function RulesList() {
                         className="text-destructive"
                         onClick={() => handleDelete(rule._id)}
                       >
-                        <Trash2 className="size-4" />
                         Delete
                       </DropdownMenuItem>
                     </DropdownMenuContent>
@@ -312,5 +307,43 @@ function RulesList() {
 
       <CreateRuleDialog open={createOpen} onOpenChange={setCreateOpen} />
     </ItemCard>
+  )
+}
+
+function CreateCategoryFooter({
+  onCancel,
+  onConfirm,
+  disabled,
+  saving,
+}: {
+  onCancel: () => void
+  onConfirm: () => void
+  disabled: boolean
+  saving: boolean
+}) {
+  const handleConfirm = React.useCallback(() => {
+    if (!disabled) onConfirm()
+  }, [disabled, onConfirm])
+
+  useHotkeys('escape', onCancel, {
+    enableOnFormTags: true,
+    preventDefault: true,
+  })
+
+  useHotkeys('enter', handleConfirm, {
+    enabled: !disabled,
+    enableOnFormTags: true,
+    preventDefault: true,
+  })
+
+  return (
+    <DialogFooter>
+      <Button variant="outline" onClick={onCancel}>
+        Cancel <Kbd>Esc</Kbd>
+      </Button>
+      <Button onClick={handleConfirm} disabled={disabled}>
+        {saving ? 'Creating...' : 'Create'} <Kbd>↵</Kbd>
+      </Button>
+    </DialogFooter>
   )
 }

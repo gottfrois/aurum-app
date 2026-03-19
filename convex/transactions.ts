@@ -316,3 +316,69 @@ export const updateTransactionCategory = mutation({
     })
   },
 })
+
+export const batchUpdateTransactionCategory = mutation({
+  args: {
+    updates: v.array(
+      v.object({
+        transactionId: v.id('transactions'),
+        encryptedCategories: v.string(),
+      }),
+    ),
+  },
+  handler: async (ctx, args) => {
+    const userId = await requireAuthUserId(ctx)
+
+    const member = await ctx.db
+      .query('workspaceMembers')
+      .withIndex('by_userId', (q) => q.eq('userId', userId))
+      .first()
+    if (!member) throw new Error('Not authorized')
+
+    await ctx.scheduler.runAfter(
+      0,
+      internal.transactions.batchUpdateCategoryAsync,
+      { updates: args.updates },
+    )
+  },
+})
+
+export const batchUpdateCategoryAsync = internalAction({
+  args: {
+    updates: v.array(
+      v.object({
+        transactionId: v.id('transactions'),
+        encryptedCategories: v.string(),
+      }),
+    ),
+  },
+  handler: async (ctx, args) => {
+    for (let i = 0; i < args.updates.length; i += BATCH_CHUNK_SIZE) {
+      const chunk = args.updates.slice(i, i + BATCH_CHUNK_SIZE)
+      await ctx.runMutation(internal.transactions.batchUpdateCategoryChunk, {
+        updates: chunk,
+      })
+    }
+  },
+})
+
+export const batchUpdateCategoryChunk = internalMutation({
+  args: {
+    updates: v.array(
+      v.object({
+        transactionId: v.id('transactions'),
+        encryptedCategories: v.string(),
+      }),
+    ),
+  },
+  handler: async (ctx, args) => {
+    for (const update of args.updates) {
+      const transaction = await ctx.db.get('transactions', update.transactionId)
+      if (!transaction) continue
+
+      await ctx.db.patch('transactions', update.transactionId, {
+        encryptedCategories: update.encryptedCategories,
+      })
+    }
+  },
+})
