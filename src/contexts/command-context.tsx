@@ -21,14 +21,18 @@ interface CommandDispatch {
   register: (commands: Array<CommandEntry>) => () => void
   openPalette: (opts?: { group?: string }) => void
   setPaletteState: React.Dispatch<
-    React.SetStateAction<{ open: boolean; filterGroup?: string }>
+    React.SetStateAction<{
+      open: boolean
+      filterGroup?: string
+      aiMode?: boolean
+    }>
   >
 }
 
 /** Reactive state — changes when commands or palette state update */
 interface CommandState {
   commands: Array<CommandEntry>
-  paletteState: { open: boolean; filterGroup?: string }
+  paletteState: { open: boolean; filterGroup?: string; aiMode?: boolean }
 }
 
 const DispatchContext = React.createContext<CommandDispatch | null>(null)
@@ -39,6 +43,7 @@ export function CommandProvider({ children }: { children: React.ReactNode }) {
   const [paletteState, setPaletteState] = React.useState<{
     open: boolean
     filterGroup?: string
+    aiMode?: boolean
   }>({ open: false })
 
   const register = React.useCallback((entries: Array<CommandEntry>) => {

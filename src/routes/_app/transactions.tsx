@@ -23,8 +23,10 @@ import {
   EmptyTitle,
 } from '~/components/ui/empty'
 import { Skeleton } from '~/components/ui/skeleton'
+import { useCommandDispatch } from '~/contexts/command-context'
 import { usePortfolio } from '~/contexts/portfolio-context'
 import { useCachedDecryptRecords } from '~/hooks/use-cached-decrypt'
+import { useCommand } from '~/hooks/use-command'
 import { useDateRange } from '~/hooks/use-date-range'
 import { useFilters } from '~/hooks/use-filters'
 import { resolveTransactionCategoryKey, useCategories } from '~/lib/categories'
@@ -317,6 +319,11 @@ function TransactionsContent() {
   )
 
   useAIFilterListener(loadConditions)
+
+  const { setPaletteState } = useCommandDispatch()
+  useCommand('ai.filter', {
+    handler: () => setPaletteState({ open: true, aiMode: true }),
+  })
 
   const currency = 'EUR'
 

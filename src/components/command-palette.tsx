@@ -41,7 +41,6 @@ export function useAIFilterListener(
 
 export function CommandPalette() {
   const { commands, paletteState, setPaletteState } = useCommandRegistry()
-  const [aiMode, setAIMode] = React.useState(false)
   const [aiQuery, setAIQuery] = React.useState('')
   const [loading, setLoading] = React.useState(false)
   const [activeCommandId, setActiveCommandId] = React.useState<string | null>(
@@ -51,15 +50,19 @@ export function CommandPalette() {
 
   const open = paletteState.open
   const filterGroup = paletteState.filterGroup
+  const aiMode = paletteState.aiMode ?? false
 
   const activeCommand = activeCommandId
     ? commands.find((c) => c.id === activeCommandId)
     : null
 
+  const setAIMode = (value: boolean) => {
+    setPaletteState((prev) => ({ ...prev, aiMode: value }))
+  }
+
   const handleOpenChange = (value: boolean) => {
     setPaletteState({ open: value })
     if (!value) {
-      setAIMode(false)
       setAIQuery('')
       setLoading(false)
       setActiveCommandId(null)
@@ -201,15 +204,6 @@ export function CommandPalette() {
                 {!filterGroup && <CommandSeparator />}
               </React.Fragment>
             ))}
-
-            {!filterGroup && (
-              <CommandGroup heading="AI">
-                <CommandItem onSelect={() => setAIMode(true)}>
-                  <Sparkles />
-                  <span>Ask AI to filter...</span>
-                </CommandItem>
-              </CommandGroup>
-            )}
           </CommandList>
         </>
       )}
