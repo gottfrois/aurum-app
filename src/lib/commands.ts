@@ -38,7 +38,7 @@ export const COMMAND_DEFINITIONS: Record<string, CommandDefinition> = {
     label: 'Toggle sidebar',
     group: 'General',
     icon: PanelLeft,
-    hotkey: { keys: 'mod+b', scope: 'system' },
+    hotkey: { keys: 'mod+b', scope: 'global' },
     hidden: true,
   },
   'nav.dashboard': {

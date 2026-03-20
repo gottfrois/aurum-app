@@ -50,6 +50,13 @@ export function useCommand(
 
   const hotkey = definition?.hotkey
   const scope = hotkey?.scope ?? 'global'
+  // Use event.key matching for symbol keys (e.g. "?") that don't map to
+  // a predictable event.code. Modifier combos (mod+k) and named keys
+  // (escape) work correctly with the default code-based matching.
+  const hasModifier = hotkey?.keys
+    ? /\b(mod|ctrl|alt|meta|shift)\b/i.test(hotkey.keys)
+    : false
+  const needsUseKey = !!hotkey && !hasModifier
 
   useHotkeys(
     hotkey?.keys ?? '',
@@ -63,8 +70,8 @@ export function useCommand(
       enableOnFormTags: scope === 'system',
       enableOnContentEditable: scope === 'system',
       preventDefault: true,
-      useKey: true,
+      useKey: needsUseKey,
     },
-    [options.disabled],
+    [options.disabled, needsUseKey],
   )
 }
