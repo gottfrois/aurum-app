@@ -94,6 +94,13 @@ export const COMMAND_DEFINITIONS: Record<string, CommandDefinition> = {
     hotkey: { keys: 'escape', scope: 'global' },
     hidden: true,
   },
+  'connection.add': {
+    id: 'connection.add',
+    label: 'Add Connection',
+    group: 'General',
+    icon: Landmark,
+    hotkey: { keys: 'c', scope: 'global' },
+  },
   'ai.filter': {
     id: 'ai.filter',
     label: 'Ask AI to filter...',

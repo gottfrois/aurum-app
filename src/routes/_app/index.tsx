@@ -2,7 +2,6 @@ import { createFileRoute } from '@tanstack/react-router'
 import { useQuery } from 'convex/react'
 import { Landmark } from 'lucide-react'
 import * as React from 'react'
-import { AddConnectionDialog } from '~/components/add-connection-dialog'
 import { AllocationChart, CATEGORY_COLORS } from '~/components/allocation-chart'
 import { BalanceChart } from '~/components/balance-chart'
 import { SiteHeader } from '~/components/site-header'
@@ -17,8 +16,10 @@ import {
   EmptyMedia,
   EmptyTitle,
 } from '~/components/ui/empty'
+import { Kbd } from '~/components/ui/kbd'
 import { Skeleton } from '~/components/ui/skeleton'
 import { WinnersLosers } from '~/components/winners-losers'
+import { useCommandRegistry } from '~/contexts/command-context'
 import { usePortfolio } from '~/contexts/portfolio-context'
 import { useFormatCurrency } from '~/contexts/privacy-context'
 import { useCachedDecryptRecords } from '~/hooks/use-cached-decrypt'
@@ -147,7 +148,8 @@ function BankAccountsSection() {
     | undefined
 
   const formatCurrency = useFormatCurrency()
-  const [dialogOpen, setDialogOpen] = React.useState(false)
+  const { commands } = useCommandRegistry()
+  const addConnectionCommand = commands.find((c) => c.id === 'connection.add')
 
   const activeAccounts = React.useMemo(
     () => bankAccounts?.filter((a) => !a.deleted && !a.disabled) ?? [],
@@ -227,15 +229,12 @@ function BankAccountsSection() {
           </EmptyHeader>
           {!isTeamView && (
             <EmptyContent>
-              <Button onClick={() => setDialogOpen(true)}>
-                Add Connection
+              <Button onClick={() => addConnectionCommand?.handler()}>
+                Add Connection <Kbd>C</Kbd>
               </Button>
             </EmptyContent>
           )}
         </Empty>
-        {!isTeamView && (
-          <AddConnectionDialog open={dialogOpen} onOpenChange={setDialogOpen} />
-        )}
       </>
     )
   }

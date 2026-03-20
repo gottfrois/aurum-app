@@ -3,12 +3,12 @@ import { useQuery } from 'convex/react'
 import type { LucideIcon } from 'lucide-react'
 import { ChevronRight, CirclePlus } from 'lucide-react'
 import * as React from 'react'
-import { AddConnectionDialog } from '~/components/add-connection-dialog'
 import {
   Collapsible,
   CollapsibleContent,
   CollapsibleTrigger,
 } from '~/components/ui/collapsible'
+import { Kbd } from '~/components/ui/kbd'
 import {
   SidebarGroup,
   SidebarGroupContent,
@@ -21,6 +21,7 @@ import {
   SidebarMenuSubButton,
   SidebarMenuSubItem,
 } from '~/components/ui/sidebar'
+import { useCommandRegistry } from '~/contexts/command-context'
 import { usePortfolio } from '~/contexts/portfolio-context'
 import { ACCOUNT_CATEGORIES, getCategoryKey } from '~/lib/account-categories'
 import { api } from '../../convex/_generated/api'
@@ -42,7 +43,8 @@ export function NavMain({
     icon?: LucideIcon
   }>
 }) {
-  const [dialogOpen, setDialogOpen] = React.useState(false)
+  const { commands } = useCommandRegistry()
+  const addConnectionCommand = commands.find((c) => c.id === 'connection.add')
   const { isAllPortfolios, isTeamView, allPortfolioIds, singlePortfolioId } =
     usePortfolio()
   const bankAccountsSingle = useQuery(
@@ -98,10 +100,11 @@ export function NavMain({
               <SidebarMenuButton
                 tooltip="Add Connection"
                 className="min-w-8 bg-primary text-primary-foreground duration-200 ease-linear hover:bg-primary/90 hover:text-primary-foreground active:bg-primary/90 active:text-primary-foreground"
-                onClick={() => setDialogOpen(true)}
+                onClick={() => addConnectionCommand?.handler()}
               >
                 <CirclePlus />
                 <span>Add Connection</span>
+                <Kbd className="ml-auto">C</Kbd>
               </SidebarMenuButton>
             </SidebarMenuItem>
           </SidebarMenu>
@@ -160,7 +163,6 @@ export function NavMain({
           )}
         </SidebarMenu>
       </SidebarGroupContent>
-      <AddConnectionDialog open={dialogOpen} onOpenChange={setDialogOpen} />
     </SidebarGroup>
   )
 }

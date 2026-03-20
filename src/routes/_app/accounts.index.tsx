@@ -2,7 +2,6 @@ import { createFileRoute, Link } from '@tanstack/react-router'
 import { useQuery } from 'convex/react'
 import { Landmark } from 'lucide-react'
 import * as React from 'react'
-import { AddConnectionDialog } from '~/components/add-connection-dialog'
 import { AllocationChart } from '~/components/allocation-chart'
 import { BalanceChart } from '~/components/balance-chart'
 import { SiteHeader } from '~/components/site-header'
@@ -26,7 +25,9 @@ import {
   ItemSeparator,
   ItemTitle,
 } from '~/components/ui/item'
+import { Kbd } from '~/components/ui/kbd'
 import { Skeleton } from '~/components/ui/skeleton'
+import { useCommandRegistry } from '~/contexts/command-context'
 import { usePortfolio } from '~/contexts/portfolio-context'
 import { useFormatCurrency } from '~/contexts/privacy-context'
 import { useCachedDecryptRecords } from '~/hooks/use-cached-decrypt'
@@ -142,7 +143,8 @@ function BankAccountsList({ categoryFilter }: { categoryFilter?: string }) {
       ? categoryBalanceAll
       : categoryBalanceSingle
   const formatCurrency = useFormatCurrency()
-  const [dialogOpen, setDialogOpen] = React.useState(false)
+  const { commands } = useCommandRegistry()
+  const addConnectionCommand = commands.find((c) => c.id === 'connection.add')
 
   const bankAccounts = React.useMemo(() => {
     if (!allBankAccounts) return undefined
@@ -325,15 +327,12 @@ function BankAccountsList({ categoryFilter }: { categoryFilter?: string }) {
           </EmptyHeader>
           {!isTeamView && (
             <EmptyContent>
-              <Button onClick={() => setDialogOpen(true)}>
-                Add Connection
+              <Button onClick={() => addConnectionCommand?.handler()}>
+                Add Connection <Kbd>C</Kbd>
               </Button>
             </EmptyContent>
           )}
         </Empty>
-        {!isTeamView && (
-          <AddConnectionDialog open={dialogOpen} onOpenChange={setDialogOpen} />
-        )}
       </>
     )
   }

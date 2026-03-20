@@ -3,7 +3,6 @@ import { useAction, useQuery } from 'convex/react'
 import { ChevronDown, Link2, Loader2 } from 'lucide-react'
 import * as React from 'react'
 import { toast } from 'sonner'
-import { AddConnectionDialog } from '~/components/add-connection-dialog'
 import { ConfirmDialog } from '~/components/confirm-dialog'
 import {
   ItemCard,
@@ -33,6 +32,7 @@ import {
   EmptyTitle,
 } from '~/components/ui/empty'
 import { Skeleton } from '~/components/ui/skeleton'
+import { useCommandRegistry } from '~/contexts/command-context'
 import { usePortfolio } from '~/contexts/portfolio-context'
 import { useCachedDecryptRecords } from '~/hooks/use-cached-decrypt'
 import { api } from '../../../convex/_generated/api'
@@ -121,7 +121,8 @@ function ConnectionsList() {
       : 'skip',
   )
   const bankAccounts = isAllPortfolios ? bankAccountsAll : bankAccountsSingle
-  const [dialogOpen, setDialogOpen] = React.useState(false)
+  const { commands } = useCommandRegistry()
+  const addConnectionCommand = commands.find((c) => c.id === 'connection.add')
 
   if (portfolioLoading || connections === undefined) {
     return <Skeleton className="h-48 w-full rounded-lg" />
@@ -142,10 +143,11 @@ function ConnectionsList() {
             </EmptyDescription>
           </EmptyHeader>
           <EmptyContent>
-            <Button onClick={() => setDialogOpen(true)}>Add Connection</Button>
+            <Button onClick={() => addConnectionCommand?.handler()}>
+              Add Connection
+            </Button>
           </EmptyContent>
         </Empty>
-        <AddConnectionDialog open={dialogOpen} onOpenChange={setDialogOpen} />
       </>
     )
   }
@@ -169,7 +171,7 @@ function ConnectionsList() {
               {connections.length === 1 ? 'connection' : 'connections'}
             </ItemCardHeaderTitle>
           </ItemCardHeaderContent>
-          <Button onClick={() => setDialogOpen(true)} size="sm">
+          <Button onClick={() => addConnectionCommand?.handler()} size="sm">
             Add Connection
           </Button>
         </ItemCardHeader>
@@ -192,7 +194,6 @@ function ConnectionsList() {
           })}
         </ItemCardItems>
       </ItemCard>
-      <AddConnectionDialog open={dialogOpen} onOpenChange={setDialogOpen} />
     </>
   )
 }

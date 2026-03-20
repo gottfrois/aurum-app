@@ -1,6 +1,7 @@
 import { createFileRoute, Outlet, useNavigate } from '@tanstack/react-router'
 import { useQuery } from 'convex/react'
 import * as React from 'react'
+import { AddConnectionDialog } from '~/components/add-connection-dialog'
 import { AppSidebar } from '~/components/app-sidebar'
 import { CommandPalette } from '~/components/command-palette'
 import { ConnectionAlertBanner } from '~/components/connection-alert-banner'
@@ -24,6 +25,7 @@ function AppCommands() {
   const { setPaletteState } = useCommandDispatch()
   const { toggleSidebar } = useSidebar()
   const [shortcutsOpen, setShortcutsOpen] = React.useState(false)
+  const [connectionDialogOpen, setConnectionDialogOpen] = React.useState(false)
 
   useCommand('palette.toggle', {
     handler: () => setPaletteState((prev) => ({ open: !prev.open })),
@@ -37,10 +39,20 @@ function AppCommands() {
     handler: () => setShortcutsOpen((prev) => !prev),
   })
 
+  useCommand('connection.add', {
+    handler: () => setConnectionDialogOpen(true),
+  })
+
   useNavigationCommands()
 
   return (
-    <ShortcutsDrawer open={shortcutsOpen} onOpenChange={setShortcutsOpen} />
+    <>
+      <ShortcutsDrawer open={shortcutsOpen} onOpenChange={setShortcutsOpen} />
+      <AddConnectionDialog
+        open={connectionDialogOpen}
+        onOpenChange={setConnectionDialogOpen}
+      />
+    </>
   )
 }
 
