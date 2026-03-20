@@ -25,13 +25,20 @@ import { Route as SettingsSettingsWorkspaceIndexRouteImport } from './routes/_se
 import { Route as SettingsSettingsAccountIndexRouteImport } from './routes/_settings/settings.account.index'
 import { Route as SettingsSettingsWorkspaceTeamRouteImport } from './routes/_settings/settings.workspace.team'
 import { Route as SettingsSettingsWorkspaceMembersRouteImport } from './routes/_settings/settings.workspace.members'
+import { Route as SettingsSettingsWorkspaceLabelsRouteImport } from './routes/_settings/settings.workspace.labels'
 import { Route as SettingsSettingsWorkspaceCategoriesRouteImport } from './routes/_settings/settings.workspace.categories'
 import { Route as SettingsSettingsWorkspaceBillingRouteImport } from './routes/_settings/settings.workspace.billing'
+import { Route as SettingsSettingsPortfoliosIdRouteImport } from './routes/_settings/settings.portfolios.$id'
 import { Route as SettingsSettingsAccountSecurityRouteImport } from './routes/_settings/settings.account.security'
 import { Route as SettingsSettingsAccountProfileRouteImport } from './routes/_settings/settings.account.profile'
 import { Route as SettingsSettingsAccountNotificationsRouteImport } from './routes/_settings/settings.account.notifications'
 import { Route as SettingsSettingsAccountEncryptionRouteImport } from './routes/_settings/settings.account.encryption'
 import { Route as SettingsSettingsAccountConnectionsRouteImport } from './routes/_settings/settings.account.connections'
+import { Route as SettingsSettingsPortfoliosIdIndexRouteImport } from './routes/_settings/settings.portfolios.$id.index'
+import { Route as SettingsSettingsPortfoliosIdLabelsRouteImport } from './routes/_settings/settings.portfolios.$id.labels'
+import { Route as SettingsSettingsPortfoliosIdGeneralRouteImport } from './routes/_settings/settings.portfolios.$id.general'
+import { Route as SettingsSettingsPortfoliosIdConnectionsRouteImport } from './routes/_settings/settings.portfolios.$id.connections'
+import { Route as SettingsSettingsPortfoliosIdCategoriesRouteImport } from './routes/_settings/settings.portfolios.$id.categories'
 
 const OnboardingRoute = OnboardingRouteImport.update({
   id: '/onboarding',
@@ -115,6 +122,12 @@ const SettingsSettingsWorkspaceMembersRoute =
     path: '/settings/workspace/members',
     getParentRoute: () => SettingsRoute,
   } as any)
+const SettingsSettingsWorkspaceLabelsRoute =
+  SettingsSettingsWorkspaceLabelsRouteImport.update({
+    id: '/settings/workspace/labels',
+    path: '/settings/workspace/labels',
+    getParentRoute: () => SettingsRoute,
+  } as any)
 const SettingsSettingsWorkspaceCategoriesRoute =
   SettingsSettingsWorkspaceCategoriesRouteImport.update({
     id: '/settings/workspace/categories',
@@ -125,6 +138,12 @@ const SettingsSettingsWorkspaceBillingRoute =
   SettingsSettingsWorkspaceBillingRouteImport.update({
     id: '/settings/workspace/billing',
     path: '/settings/workspace/billing',
+    getParentRoute: () => SettingsRoute,
+  } as any)
+const SettingsSettingsPortfoliosIdRoute =
+  SettingsSettingsPortfoliosIdRouteImport.update({
+    id: '/settings/portfolios/$id',
+    path: '/settings/portfolios/$id',
     getParentRoute: () => SettingsRoute,
   } as any)
 const SettingsSettingsAccountSecurityRoute =
@@ -157,6 +176,36 @@ const SettingsSettingsAccountConnectionsRoute =
     path: '/settings/account/connections',
     getParentRoute: () => SettingsRoute,
   } as any)
+const SettingsSettingsPortfoliosIdIndexRoute =
+  SettingsSettingsPortfoliosIdIndexRouteImport.update({
+    id: '/',
+    path: '/',
+    getParentRoute: () => SettingsSettingsPortfoliosIdRoute,
+  } as any)
+const SettingsSettingsPortfoliosIdLabelsRoute =
+  SettingsSettingsPortfoliosIdLabelsRouteImport.update({
+    id: '/labels',
+    path: '/labels',
+    getParentRoute: () => SettingsSettingsPortfoliosIdRoute,
+  } as any)
+const SettingsSettingsPortfoliosIdGeneralRoute =
+  SettingsSettingsPortfoliosIdGeneralRouteImport.update({
+    id: '/general',
+    path: '/general',
+    getParentRoute: () => SettingsSettingsPortfoliosIdRoute,
+  } as any)
+const SettingsSettingsPortfoliosIdConnectionsRoute =
+  SettingsSettingsPortfoliosIdConnectionsRouteImport.update({
+    id: '/connections',
+    path: '/connections',
+    getParentRoute: () => SettingsSettingsPortfoliosIdRoute,
+  } as any)
+const SettingsSettingsPortfoliosIdCategoriesRoute =
+  SettingsSettingsPortfoliosIdCategoriesRouteImport.update({
+    id: '/categories',
+    path: '/categories',
+    getParentRoute: () => SettingsSettingsPortfoliosIdRoute,
+  } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof AppIndexRoute
@@ -174,12 +223,19 @@ export interface FileRoutesByFullPath {
   '/settings/account/notifications': typeof SettingsSettingsAccountNotificationsRoute
   '/settings/account/profile': typeof SettingsSettingsAccountProfileRoute
   '/settings/account/security': typeof SettingsSettingsAccountSecurityRoute
+  '/settings/portfolios/$id': typeof SettingsSettingsPortfoliosIdRouteWithChildren
   '/settings/workspace/billing': typeof SettingsSettingsWorkspaceBillingRoute
   '/settings/workspace/categories': typeof SettingsSettingsWorkspaceCategoriesRoute
+  '/settings/workspace/labels': typeof SettingsSettingsWorkspaceLabelsRoute
   '/settings/workspace/members': typeof SettingsSettingsWorkspaceMembersRoute
   '/settings/workspace/team': typeof SettingsSettingsWorkspaceTeamRoute
   '/settings/account/': typeof SettingsSettingsAccountIndexRoute
   '/settings/workspace/': typeof SettingsSettingsWorkspaceIndexRoute
+  '/settings/portfolios/$id/categories': typeof SettingsSettingsPortfoliosIdCategoriesRoute
+  '/settings/portfolios/$id/connections': typeof SettingsSettingsPortfoliosIdConnectionsRoute
+  '/settings/portfolios/$id/general': typeof SettingsSettingsPortfoliosIdGeneralRoute
+  '/settings/portfolios/$id/labels': typeof SettingsSettingsPortfoliosIdLabelsRoute
+  '/settings/portfolios/$id/': typeof SettingsSettingsPortfoliosIdIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof AppIndexRoute
@@ -199,10 +255,16 @@ export interface FileRoutesByTo {
   '/settings/account/security': typeof SettingsSettingsAccountSecurityRoute
   '/settings/workspace/billing': typeof SettingsSettingsWorkspaceBillingRoute
   '/settings/workspace/categories': typeof SettingsSettingsWorkspaceCategoriesRoute
+  '/settings/workspace/labels': typeof SettingsSettingsWorkspaceLabelsRoute
   '/settings/workspace/members': typeof SettingsSettingsWorkspaceMembersRoute
   '/settings/workspace/team': typeof SettingsSettingsWorkspaceTeamRoute
   '/settings/account': typeof SettingsSettingsAccountIndexRoute
   '/settings/workspace': typeof SettingsSettingsWorkspaceIndexRoute
+  '/settings/portfolios/$id/categories': typeof SettingsSettingsPortfoliosIdCategoriesRoute
+  '/settings/portfolios/$id/connections': typeof SettingsSettingsPortfoliosIdConnectionsRoute
+  '/settings/portfolios/$id/general': typeof SettingsSettingsPortfoliosIdGeneralRoute
+  '/settings/portfolios/$id/labels': typeof SettingsSettingsPortfoliosIdLabelsRoute
+  '/settings/portfolios/$id': typeof SettingsSettingsPortfoliosIdIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -223,12 +285,19 @@ export interface FileRoutesById {
   '/_settings/settings/account/notifications': typeof SettingsSettingsAccountNotificationsRoute
   '/_settings/settings/account/profile': typeof SettingsSettingsAccountProfileRoute
   '/_settings/settings/account/security': typeof SettingsSettingsAccountSecurityRoute
+  '/_settings/settings/portfolios/$id': typeof SettingsSettingsPortfoliosIdRouteWithChildren
   '/_settings/settings/workspace/billing': typeof SettingsSettingsWorkspaceBillingRoute
   '/_settings/settings/workspace/categories': typeof SettingsSettingsWorkspaceCategoriesRoute
+  '/_settings/settings/workspace/labels': typeof SettingsSettingsWorkspaceLabelsRoute
   '/_settings/settings/workspace/members': typeof SettingsSettingsWorkspaceMembersRoute
   '/_settings/settings/workspace/team': typeof SettingsSettingsWorkspaceTeamRoute
   '/_settings/settings/account/': typeof SettingsSettingsAccountIndexRoute
   '/_settings/settings/workspace/': typeof SettingsSettingsWorkspaceIndexRoute
+  '/_settings/settings/portfolios/$id/categories': typeof SettingsSettingsPortfoliosIdCategoriesRoute
+  '/_settings/settings/portfolios/$id/connections': typeof SettingsSettingsPortfoliosIdConnectionsRoute
+  '/_settings/settings/portfolios/$id/general': typeof SettingsSettingsPortfoliosIdGeneralRoute
+  '/_settings/settings/portfolios/$id/labels': typeof SettingsSettingsPortfoliosIdLabelsRoute
+  '/_settings/settings/portfolios/$id/': typeof SettingsSettingsPortfoliosIdIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -248,12 +317,19 @@ export interface FileRouteTypes {
     | '/settings/account/notifications'
     | '/settings/account/profile'
     | '/settings/account/security'
+    | '/settings/portfolios/$id'
     | '/settings/workspace/billing'
     | '/settings/workspace/categories'
+    | '/settings/workspace/labels'
     | '/settings/workspace/members'
     | '/settings/workspace/team'
     | '/settings/account/'
     | '/settings/workspace/'
+    | '/settings/portfolios/$id/categories'
+    | '/settings/portfolios/$id/connections'
+    | '/settings/portfolios/$id/general'
+    | '/settings/portfolios/$id/labels'
+    | '/settings/portfolios/$id/'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -273,10 +349,16 @@ export interface FileRouteTypes {
     | '/settings/account/security'
     | '/settings/workspace/billing'
     | '/settings/workspace/categories'
+    | '/settings/workspace/labels'
     | '/settings/workspace/members'
     | '/settings/workspace/team'
     | '/settings/account'
     | '/settings/workspace'
+    | '/settings/portfolios/$id/categories'
+    | '/settings/portfolios/$id/connections'
+    | '/settings/portfolios/$id/general'
+    | '/settings/portfolios/$id/labels'
+    | '/settings/portfolios/$id'
   id:
     | '__root__'
     | '/_app'
@@ -296,12 +378,19 @@ export interface FileRouteTypes {
     | '/_settings/settings/account/notifications'
     | '/_settings/settings/account/profile'
     | '/_settings/settings/account/security'
+    | '/_settings/settings/portfolios/$id'
     | '/_settings/settings/workspace/billing'
     | '/_settings/settings/workspace/categories'
+    | '/_settings/settings/workspace/labels'
     | '/_settings/settings/workspace/members'
     | '/_settings/settings/workspace/team'
     | '/_settings/settings/account/'
     | '/_settings/settings/workspace/'
+    | '/_settings/settings/portfolios/$id/categories'
+    | '/_settings/settings/portfolios/$id/connections'
+    | '/_settings/settings/portfolios/$id/general'
+    | '/_settings/settings/portfolios/$id/labels'
+    | '/_settings/settings/portfolios/$id/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -427,6 +516,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof SettingsSettingsWorkspaceMembersRouteImport
       parentRoute: typeof SettingsRoute
     }
+    '/_settings/settings/workspace/labels': {
+      id: '/_settings/settings/workspace/labels'
+      path: '/settings/workspace/labels'
+      fullPath: '/settings/workspace/labels'
+      preLoaderRoute: typeof SettingsSettingsWorkspaceLabelsRouteImport
+      parentRoute: typeof SettingsRoute
+    }
     '/_settings/settings/workspace/categories': {
       id: '/_settings/settings/workspace/categories'
       path: '/settings/workspace/categories'
@@ -439,6 +535,13 @@ declare module '@tanstack/react-router' {
       path: '/settings/workspace/billing'
       fullPath: '/settings/workspace/billing'
       preLoaderRoute: typeof SettingsSettingsWorkspaceBillingRouteImport
+      parentRoute: typeof SettingsRoute
+    }
+    '/_settings/settings/portfolios/$id': {
+      id: '/_settings/settings/portfolios/$id'
+      path: '/settings/portfolios/$id'
+      fullPath: '/settings/portfolios/$id'
+      preLoaderRoute: typeof SettingsSettingsPortfoliosIdRouteImport
       parentRoute: typeof SettingsRoute
     }
     '/_settings/settings/account/security': {
@@ -476,6 +579,41 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof SettingsSettingsAccountConnectionsRouteImport
       parentRoute: typeof SettingsRoute
     }
+    '/_settings/settings/portfolios/$id/': {
+      id: '/_settings/settings/portfolios/$id/'
+      path: '/'
+      fullPath: '/settings/portfolios/$id/'
+      preLoaderRoute: typeof SettingsSettingsPortfoliosIdIndexRouteImport
+      parentRoute: typeof SettingsSettingsPortfoliosIdRoute
+    }
+    '/_settings/settings/portfolios/$id/labels': {
+      id: '/_settings/settings/portfolios/$id/labels'
+      path: '/labels'
+      fullPath: '/settings/portfolios/$id/labels'
+      preLoaderRoute: typeof SettingsSettingsPortfoliosIdLabelsRouteImport
+      parentRoute: typeof SettingsSettingsPortfoliosIdRoute
+    }
+    '/_settings/settings/portfolios/$id/general': {
+      id: '/_settings/settings/portfolios/$id/general'
+      path: '/general'
+      fullPath: '/settings/portfolios/$id/general'
+      preLoaderRoute: typeof SettingsSettingsPortfoliosIdGeneralRouteImport
+      parentRoute: typeof SettingsSettingsPortfoliosIdRoute
+    }
+    '/_settings/settings/portfolios/$id/connections': {
+      id: '/_settings/settings/portfolios/$id/connections'
+      path: '/connections'
+      fullPath: '/settings/portfolios/$id/connections'
+      preLoaderRoute: typeof SettingsSettingsPortfoliosIdConnectionsRouteImport
+      parentRoute: typeof SettingsSettingsPortfoliosIdRoute
+    }
+    '/_settings/settings/portfolios/$id/categories': {
+      id: '/_settings/settings/portfolios/$id/categories'
+      path: '/categories'
+      fullPath: '/settings/portfolios/$id/categories'
+      preLoaderRoute: typeof SettingsSettingsPortfoliosIdCategoriesRouteImport
+      parentRoute: typeof SettingsSettingsPortfoliosIdRoute
+    }
   }
 }
 
@@ -497,6 +635,33 @@ const AppRouteChildren: AppRouteChildren = {
 
 const AppRouteWithChildren = AppRoute._addFileChildren(AppRouteChildren)
 
+interface SettingsSettingsPortfoliosIdRouteChildren {
+  SettingsSettingsPortfoliosIdCategoriesRoute: typeof SettingsSettingsPortfoliosIdCategoriesRoute
+  SettingsSettingsPortfoliosIdConnectionsRoute: typeof SettingsSettingsPortfoliosIdConnectionsRoute
+  SettingsSettingsPortfoliosIdGeneralRoute: typeof SettingsSettingsPortfoliosIdGeneralRoute
+  SettingsSettingsPortfoliosIdLabelsRoute: typeof SettingsSettingsPortfoliosIdLabelsRoute
+  SettingsSettingsPortfoliosIdIndexRoute: typeof SettingsSettingsPortfoliosIdIndexRoute
+}
+
+const SettingsSettingsPortfoliosIdRouteChildren: SettingsSettingsPortfoliosIdRouteChildren =
+  {
+    SettingsSettingsPortfoliosIdCategoriesRoute:
+      SettingsSettingsPortfoliosIdCategoriesRoute,
+    SettingsSettingsPortfoliosIdConnectionsRoute:
+      SettingsSettingsPortfoliosIdConnectionsRoute,
+    SettingsSettingsPortfoliosIdGeneralRoute:
+      SettingsSettingsPortfoliosIdGeneralRoute,
+    SettingsSettingsPortfoliosIdLabelsRoute:
+      SettingsSettingsPortfoliosIdLabelsRoute,
+    SettingsSettingsPortfoliosIdIndexRoute:
+      SettingsSettingsPortfoliosIdIndexRoute,
+  }
+
+const SettingsSettingsPortfoliosIdRouteWithChildren =
+  SettingsSettingsPortfoliosIdRoute._addFileChildren(
+    SettingsSettingsPortfoliosIdRouteChildren,
+  )
+
 interface SettingsRouteChildren {
   SettingsSettingsIndexRoute: typeof SettingsSettingsIndexRoute
   SettingsSettingsAccountConnectionsRoute: typeof SettingsSettingsAccountConnectionsRoute
@@ -504,8 +669,10 @@ interface SettingsRouteChildren {
   SettingsSettingsAccountNotificationsRoute: typeof SettingsSettingsAccountNotificationsRoute
   SettingsSettingsAccountProfileRoute: typeof SettingsSettingsAccountProfileRoute
   SettingsSettingsAccountSecurityRoute: typeof SettingsSettingsAccountSecurityRoute
+  SettingsSettingsPortfoliosIdRoute: typeof SettingsSettingsPortfoliosIdRouteWithChildren
   SettingsSettingsWorkspaceBillingRoute: typeof SettingsSettingsWorkspaceBillingRoute
   SettingsSettingsWorkspaceCategoriesRoute: typeof SettingsSettingsWorkspaceCategoriesRoute
+  SettingsSettingsWorkspaceLabelsRoute: typeof SettingsSettingsWorkspaceLabelsRoute
   SettingsSettingsWorkspaceMembersRoute: typeof SettingsSettingsWorkspaceMembersRoute
   SettingsSettingsWorkspaceTeamRoute: typeof SettingsSettingsWorkspaceTeamRoute
   SettingsSettingsAccountIndexRoute: typeof SettingsSettingsAccountIndexRoute
@@ -522,9 +689,12 @@ const SettingsRouteChildren: SettingsRouteChildren = {
     SettingsSettingsAccountNotificationsRoute,
   SettingsSettingsAccountProfileRoute: SettingsSettingsAccountProfileRoute,
   SettingsSettingsAccountSecurityRoute: SettingsSettingsAccountSecurityRoute,
+  SettingsSettingsPortfoliosIdRoute:
+    SettingsSettingsPortfoliosIdRouteWithChildren,
   SettingsSettingsWorkspaceBillingRoute: SettingsSettingsWorkspaceBillingRoute,
   SettingsSettingsWorkspaceCategoriesRoute:
     SettingsSettingsWorkspaceCategoriesRoute,
+  SettingsSettingsWorkspaceLabelsRoute: SettingsSettingsWorkspaceLabelsRoute,
   SettingsSettingsWorkspaceMembersRoute: SettingsSettingsWorkspaceMembersRoute,
   SettingsSettingsWorkspaceTeamRoute: SettingsSettingsWorkspaceTeamRoute,
   SettingsSettingsAccountIndexRoute: SettingsSettingsAccountIndexRoute,

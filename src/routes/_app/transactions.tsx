@@ -204,7 +204,7 @@ function TransactionsContent() {
   ) as DecryptedBankAccount[] | undefined
 
   const labelsData = useQuery(
-    api.labels.listLabels,
+    api.transactionLabels.listLabels,
     workspaceId ? { workspaceId } : 'skip',
   )
   const labels = labelsData ?? []

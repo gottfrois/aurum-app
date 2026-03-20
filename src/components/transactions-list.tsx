@@ -197,7 +197,7 @@ export function TransactionsList({
       try {
         await updateTransactionLabels({
           transactionId: transactionId as Id<'transactions'>,
-          labelIds: labelIds as Array<Id<'labels'>>,
+          labelIds: labelIds as Array<Id<'transactionLabels'>>,
         })
       } catch {
         toast.error('Failed to update labels')
@@ -448,7 +448,7 @@ export function TransactionsList({
         if (checked) {
           await batchUpdateLabels({
             transactionIds: ids as Array<Id<'transactions'>>,
-            addLabelIds: [labelId as Id<'labels'>],
+            addLabelIds: [labelId as Id<'transactionLabels'>],
           })
           toast.success(
             `Adding "${label?.name}" to ${ids.length} transactions...`,
@@ -456,7 +456,7 @@ export function TransactionsList({
         } else {
           await batchUpdateLabels({
             transactionIds: ids as Array<Id<'transactions'>>,
-            removeLabelIds: [labelId as Id<'labels'>],
+            removeLabelIds: [labelId as Id<'transactionLabels'>],
           })
           toast.success(
             `Removing "${label?.name}" from ${ids.length} transactions...`,
@@ -778,7 +778,7 @@ function BulkLabelView({
   const [optimistic, setOptimistic] = React.useState<Map<string, boolean>>(
     new Map(),
   )
-  const createLabelMutation = useMutation(api.labels.createLabel)
+  const createLabelMutation = useMutation(api.transactionLabels.createLabel)
 
   const handleToggle = (labelId: string, checked: boolean) => {
     setOptimistic((prev) => new Map(prev).set(labelId, checked))

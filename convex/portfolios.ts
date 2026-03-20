@@ -87,6 +87,8 @@ export const deletePortfolio = mutation({
       investments,
       dailyNetWorth,
       dailyCategoryBalance,
+      portfolioLabels,
+      portfolioCategories,
     ] = await Promise.all([
       ctx.db
         .query('connections')
@@ -124,6 +126,18 @@ export const deletePortfolio = mutation({
           q.eq('portfolioId', args.portfolioId),
         )
         .collect(),
+      ctx.db
+        .query('transactionLabels')
+        .withIndex('by_portfolioId', (q) =>
+          q.eq('portfolioId', args.portfolioId),
+        )
+        .collect(),
+      ctx.db
+        .query('transactionCategories')
+        .withIndex('by_portfolioId', (q) =>
+          q.eq('portfolioId', args.portfolioId),
+        )
+        .collect(),
     ])
     await Promise.all([
       ...snapshots.map((s) => ctx.db.delete('balanceSnapshots', s._id)),
@@ -133,6 +147,10 @@ export const deletePortfolio = mutation({
       ...dailyNetWorth.map((d) => ctx.db.delete('dailyNetWorth', d._id)),
       ...dailyCategoryBalance.map((d) =>
         ctx.db.delete('dailyCategoryBalance', d._id),
+      ),
+      ...portfolioLabels.map((l) => ctx.db.delete('transactionLabels', l._id)),
+      ...portfolioCategories.map((c) =>
+        ctx.db.delete('transactionCategories', c._id),
       ),
     ])
 

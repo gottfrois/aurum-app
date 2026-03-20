@@ -165,10 +165,10 @@ export const deleteWorkspaceData = internalMutation({
     for (const r of rules) await ctx.db.delete(r._id)
 
     const labels = await ctx.db
-      .query('labels')
+      .query('transactionLabels')
       .withIndex('by_workspaceId', (q) => q.eq('workspaceId', workspaceId))
       .collect()
-    for (const l of labels) await ctx.db.delete('labels', l._id)
+    for (const l of labels) await ctx.db.delete('transactionLabels', l._id)
 
     const filterViews = await ctx.db
       .query('filterViews')

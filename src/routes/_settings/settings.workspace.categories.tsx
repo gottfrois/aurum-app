@@ -64,7 +64,7 @@ function CategoriesPage() {
 }
 
 function CategoriesList() {
-  const categories = useQuery(api.categories.listCategories)
+  const categories = useQuery(api.categories.listCategories, {})
   const createCategory = useMutation(api.categories.createCategory)
   const deleteCategory = useMutation(api.categories.deleteCategory)
   const [createOpen, setCreateOpen] = React.useState(false)
@@ -221,7 +221,7 @@ function CategoriesList() {
 
 function RulesList() {
   const rules = useQuery(api.transactionRules.listRules)
-  const categories = useQuery(api.categories.listCategories)
+  const categories = useQuery(api.categories.listCategories, {})
   const deleteRule = useMutation(api.transactionRules.deleteRule)
   const [createOpen, setCreateOpen] = React.useState(false)
 

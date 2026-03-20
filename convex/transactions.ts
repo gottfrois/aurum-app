@@ -84,7 +84,7 @@ export const listAllTransactionsByPortfolios = query({
 export const updateTransactionLabels = mutation({
   args: {
     transactionId: v.id('transactions'),
-    labelIds: v.array(v.id('labels')),
+    labelIds: v.array(v.id('transactionLabels')),
   },
   handler: async (ctx, args) => {
     const userId = await requireAuthUserId(ctx)
@@ -112,8 +112,8 @@ export const updateTransactionLabels = mutation({
 export const batchUpdateTransactionLabels = mutation({
   args: {
     transactionIds: v.array(v.id('transactions')),
-    addLabelIds: v.optional(v.array(v.id('labels'))),
-    removeLabelIds: v.optional(v.array(v.id('labels'))),
+    addLabelIds: v.optional(v.array(v.id('transactionLabels'))),
+    removeLabelIds: v.optional(v.array(v.id('transactionLabels'))),
   },
   handler: async (ctx, args) => {
     const userId = await requireAuthUserId(ctx)
@@ -141,8 +141,8 @@ const BATCH_CHUNK_SIZE = 100
 export const batchUpdateLabelsAsync = internalAction({
   args: {
     transactionIds: v.array(v.id('transactions')),
-    addLabelIds: v.optional(v.array(v.id('labels'))),
-    removeLabelIds: v.optional(v.array(v.id('labels'))),
+    addLabelIds: v.optional(v.array(v.id('transactionLabels'))),
+    removeLabelIds: v.optional(v.array(v.id('transactionLabels'))),
   },
   handler: async (ctx, args) => {
     for (let i = 0; i < args.transactionIds.length; i += BATCH_CHUNK_SIZE) {
@@ -159,8 +159,8 @@ export const batchUpdateLabelsAsync = internalAction({
 export const batchUpdateLabelsChunk = internalMutation({
   args: {
     transactionIds: v.array(v.id('transactions')),
-    addLabelIds: v.optional(v.array(v.id('labels'))),
-    removeLabelIds: v.optional(v.array(v.id('labels'))),
+    addLabelIds: v.optional(v.array(v.id('transactionLabels'))),
+    removeLabelIds: v.optional(v.array(v.id('transactionLabels'))),
   },
   handler: async (ctx, args) => {
     for (const transactionId of args.transactionIds) {

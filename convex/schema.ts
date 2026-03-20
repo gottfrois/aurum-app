@@ -166,7 +166,7 @@ export default defineSchema({
     coming: v.boolean(),
     active: v.boolean(),
     deleted: v.boolean(),
-    labelIds: v.optional(v.array(v.id('labels'))),
+    labelIds: v.optional(v.array(v.id('transactionLabels'))),
     excludedFromBudget: v.optional(v.boolean()),
     encryptedDetails: v.string(),
     encryptedFinancials: v.string(),
@@ -179,6 +179,7 @@ export default defineSchema({
 
   transactionCategories: defineTable({
     workspaceId: v.id('workspaces'),
+    portfolioId: v.optional(v.id('portfolios')),
     key: v.string(),
     label: v.string(),
     color: v.string(),
@@ -188,7 +189,8 @@ export default defineSchema({
     sortOrder: v.optional(v.number()),
   })
     .index('by_workspaceId', ['workspaceId'])
-    .index('by_workspaceId_key', ['workspaceId', 'key']),
+    .index('by_workspaceId_key', ['workspaceId', 'key'])
+    .index('by_portfolioId', ['portfolioId']),
 
   transactionRules: defineTable({
     workspaceId: v.id('workspaces'),
@@ -209,12 +211,15 @@ export default defineSchema({
     createdAt: v.number(),
   }).index('by_workspaceId_entityType', ['workspaceId', 'entityType']),
 
-  labels: defineTable({
+  transactionLabels: defineTable({
     workspaceId: v.id('workspaces'),
+    portfolioId: v.optional(v.id('portfolios')),
     name: v.string(),
     color: v.string(),
     createdAt: v.number(),
-  }).index('by_workspaceId', ['workspaceId']),
+  })
+    .index('by_workspaceId', ['workspaceId'])
+    .index('by_portfolioId', ['portfolioId']),
 
   dailyCategoryBalance: defineTable({
     portfolioId: v.id('portfolios'),

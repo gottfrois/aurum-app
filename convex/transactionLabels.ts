@@ -1,0 +1,186 @@
+import { v } from 'convex/values'
+import { mutation, query } from './_generated/server'
+import { getAuthUserId, requireAuthUserId } from './lib/auth'
+
+export const listLabels = query({
+  args: {
+    workspaceId: v.id('workspaces'),
+    portfolioId: v.optional(v.id('portfolios')),
+  },
+  handler: async (ctx, args) => {
+    const userId = await getAuthUserId(ctx)
+    if (!userId) return []
+
+    const workspaceLabels = await ctx.db
+      .query('transactionLabels')
+      .withIndex('by_workspaceId', (q) => q.eq('workspaceId', args.workspaceId))
+      .collect()
+
+    if (!args.portfolioId) {
+      return workspaceLabels.filter((l) => !l.portfolioId)
+    }
+
+    const portfolioLabels = workspaceLabels.filter(
+      (l) => l.portfolioId === args.portfolioId,
+    )
+    const inherited = workspaceLabels.filter((l) => !l.portfolioId)
+    return [...inherited, ...portfolioLabels]
+  },
+})
+
+export const listWorkspaceLabels = query({
+  args: {
+    workspaceId: v.id('workspaces'),
+  },
+  handler: async (ctx, args) => {
+    const userId = await getAuthUserId(ctx)
+    if (!userId) return []
+
+    const all = await ctx.db
+      .query('transactionLabels')
+      .withIndex('by_workspaceId', (q) => q.eq('workspaceId', args.workspaceId))
+      .collect()
+
+    return all.filter((l) => !l.portfolioId)
+  },
+})
+
+export const createLabel = mutation({
+  args: {
+    workspaceId: v.id('workspaces'),
+    portfolioId: v.optional(v.id('portfolios')),
+    name: v.string(),
+    color: v.string(),
+  },
+  handler: async (ctx, args) => {
+    const userId = await requireAuthUserId(ctx)
+
+    const member = await ctx.db
+      .query('workspaceMembers')
+      .withIndex('by_userId', (q) => q.eq('userId', userId))
+      .first()
+
+    if (args.portfolioId) {
+      const portfolio = await ctx.db.get('portfolios', args.portfolioId)
+      if (
+        !portfolio ||
+        portfolio.workspaceId !== args.workspaceId ||
+        !member ||
+        member.workspaceId !== args.workspaceId
+      ) {
+        throw new Error('Not authorized')
+      }
+    } else {
+      if (
+        !member ||
+        member.workspaceId !== args.workspaceId ||
+        member.role !== 'owner'
+      ) {
+        throw new Error('Only workspace owners can create workspace labels')
+      }
+    }
+
+    return ctx.db.insert('transactionLabels', {
+      workspaceId: args.workspaceId,
+      portfolioId: args.portfolioId,
+      name: args.name,
+      color: args.color,
+      createdAt: Date.now(),
+    })
+  },
+})
+
+export const updateLabel = mutation({
+  args: {
+    labelId: v.id('transactionLabels'),
+    name: v.optional(v.string()),
+    color: v.optional(v.string()),
+  },
+  handler: async (ctx, args) => {
+    const userId = await requireAuthUserId(ctx)
+
+    const label = await ctx.db.get('transactionLabels', args.labelId)
+    if (!label) throw new Error('Label not found')
+
+    const member = await ctx.db
+      .query('workspaceMembers')
+      .withIndex('by_userId', (q) => q.eq('userId', userId))
+      .first()
+
+    if (label.portfolioId) {
+      if (!member || member.workspaceId !== label.workspaceId) {
+        throw new Error('Not authorized')
+      }
+    } else {
+      if (
+        !member ||
+        member.workspaceId !== label.workspaceId ||
+        member.role !== 'owner'
+      ) {
+        throw new Error('Only workspace owners can update workspace labels')
+      }
+    }
+
+    const patch: Record<string, string> = {}
+    if (args.name !== undefined) patch.name = args.name
+    if (args.color !== undefined) patch.color = args.color
+
+    await ctx.db.patch('transactionLabels', args.labelId, patch)
+  },
+})
+
+export const deleteLabel = mutation({
+  args: {
+    labelId: v.id('transactionLabels'),
+  },
+  handler: async (ctx, args) => {
+    const userId = await requireAuthUserId(ctx)
+
+    const label = await ctx.db.get('transactionLabels', args.labelId)
+    if (!label) throw new Error('Label not found')
+
+    const member = await ctx.db
+      .query('workspaceMembers')
+      .withIndex('by_userId', (q) => q.eq('userId', userId))
+      .first()
+
+    if (label.portfolioId) {
+      if (!member || member.workspaceId !== label.workspaceId) {
+        throw new Error('Not authorized')
+      }
+    } else {
+      if (
+        !member ||
+        member.workspaceId !== label.workspaceId ||
+        member.role !== 'owner'
+      ) {
+        throw new Error('Only workspace owners can delete workspace labels')
+      }
+    }
+
+    // Remove this label from all transactions that reference it
+    const portfolios = await ctx.db
+      .query('portfolios')
+      .withIndex('by_workspaceId', (q) =>
+        q.eq('workspaceId', label.workspaceId),
+      )
+      .collect()
+
+    for (const portfolio of portfolios) {
+      const transactions = await ctx.db
+        .query('transactions')
+        .withIndex('by_portfolioId', (q) => q.eq('portfolioId', portfolio._id))
+        .collect()
+
+      for (const txn of transactions) {
+        if (txn.labelIds?.includes(args.labelId)) {
+          await ctx.db.patch('transactions', txn._id, {
+            labelIds: txn.labelIds.filter((id) => id !== args.labelId),
+          })
+        }
+      }
+    }
+
+    await ctx.db.delete('transactionLabels', args.labelId)
+  },
+})

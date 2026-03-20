@@ -1,4 +1,5 @@
 import { Link } from '@tanstack/react-router'
+import { useQuery } from 'convex/react'
 import {
   ArrowLeft,
   Bell,
@@ -9,10 +10,12 @@ import {
   Palette,
   Settings,
   Shield,
+  Sticker,
   Tag,
   User,
   Users,
 } from 'lucide-react'
+import { PortfolioAvatar } from '~/components/portfolio-avatar'
 import {
   Sidebar,
   SidebarContent,
@@ -27,6 +30,7 @@ import {
 } from '~/components/ui/sidebar'
 import { useEncryption } from '~/contexts/encryption-context'
 import { useConnectionsNeedingAttention } from '~/hooks/use-connections-needing-attention'
+import { api } from '../../convex/_generated/api'
 
 export function SettingsSidebar({
   ...props
@@ -34,6 +38,7 @@ export function SettingsSidebar({
   const { count: connectionIssueCount } = useConnectionsNeedingAttention()
   const { role } = useEncryption()
   const isOwner = role === 'owner'
+  const portfolios = useQuery(api.portfolios.listPortfolios)
 
   return (
     <Sidebar collapsible="offcanvas" {...props}>
@@ -133,6 +138,14 @@ export function SettingsSidebar({
                 </SidebarMenuItem>
                 <SidebarMenuItem>
                   <SidebarMenuButton asChild>
+                    <Link to="/settings/workspace/labels">
+                      <Sticker />
+                      <span>Labels</span>
+                    </Link>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
+                <SidebarMenuItem>
+                  <SidebarMenuButton asChild>
                     <Link to="/settings/workspace/members">
                       <Users />
                       <span>Members</span>
@@ -155,6 +168,31 @@ export function SettingsSidebar({
                     </Link>
                   </SidebarMenuButton>
                 </SidebarMenuItem>
+              </SidebarMenu>
+            </SidebarGroupContent>
+          </SidebarGroup>
+        )}
+        {portfolios && portfolios.length > 0 && (
+          <SidebarGroup>
+            <SidebarGroupLabel>Your portfolios</SidebarGroupLabel>
+            <SidebarGroupContent>
+              <SidebarMenu>
+                {portfolios.map((portfolio) => (
+                  <SidebarMenuItem key={portfolio._id}>
+                    <SidebarMenuButton asChild>
+                      <Link
+                        to="/settings/portfolios/$id"
+                        params={{ id: portfolio._id }}
+                      >
+                        <PortfolioAvatar
+                          name={portfolio.name}
+                          className="size-5"
+                        />
+                        <span>{portfolio.name}</span>
+                      </Link>
+                    </SidebarMenuButton>
+                  </SidebarMenuItem>
+                ))}
               </SidebarMenu>
             </SidebarGroupContent>
           </SidebarGroup>

@@ -97,6 +97,39 @@ const DEFAULT_CATEGORIES = [
 ] as const
 
 export const listCategories = query({
+  args: {
+    portfolioId: v.optional(v.id('portfolios')),
+  },
+  handler: async (ctx, args) => {
+    const userId = await getAuthUserId(ctx)
+    if (!userId) return []
+
+    const member = await ctx.db
+      .query('workspaceMembers')
+      .withIndex('by_userId', (q) => q.eq('userId', userId))
+      .first()
+    if (!member) return []
+
+    const all = await ctx.db
+      .query('transactionCategories')
+      .withIndex('by_workspaceId', (q) =>
+        q.eq('workspaceId', member.workspaceId),
+      )
+      .collect()
+
+    if (!args.portfolioId) {
+      return all.filter((c) => !c.portfolioId)
+    }
+
+    const inherited = all.filter((c) => !c.portfolioId)
+    const portfolioSpecific = all.filter(
+      (c) => c.portfolioId === args.portfolioId,
+    )
+    return [...inherited, ...portfolioSpecific]
+  },
+})
+
+export const listWorkspaceCategories = query({
   args: {},
   handler: async (ctx) => {
     const userId = await getAuthUserId(ctx)
@@ -108,12 +141,14 @@ export const listCategories = query({
       .first()
     if (!member) return []
 
-    return await ctx.db
+    const all = await ctx.db
       .query('transactionCategories')
       .withIndex('by_workspaceId', (q) =>
         q.eq('workspaceId', member.workspaceId),
       )
       .collect()
+
+    return all.filter((c) => !c.portfolioId)
   },
 })
 
@@ -142,6 +177,7 @@ export const seedDefaultCategories = internalMutation({
 
 export const createCategory = mutation({
   args: {
+    portfolioId: v.optional(v.id('portfolios')),
     label: v.string(),
     color: v.string(),
     icon: v.optional(v.string()),
@@ -153,9 +189,23 @@ export const createCategory = mutation({
       .query('workspaceMembers')
       .withIndex('by_userId', (q) => q.eq('userId', userId))
       .first()
-    if (!member || member.role !== 'owner') {
-      throw new Error('Only workspace owners can create categories')
+
+    if (args.portfolioId) {
+      const portfolio = await ctx.db.get('portfolios', args.portfolioId)
+      if (
+        !portfolio ||
+        !member ||
+        member.workspaceId !== portfolio.workspaceId
+      ) {
+        throw new Error('Not authorized')
+      }
+    } else {
+      if (!member || member.role !== 'owner') {
+        throw new Error('Only workspace owners can create workspace categories')
+      }
     }
+
+    if (!member) throw new Error('Not authorized')
 
     const key = args.label
       .toLowerCase()
@@ -172,6 +222,7 @@ export const createCategory = mutation({
 
     return await ctx.db.insert('transactionCategories', {
       workspaceId: member.workspaceId,
+      portfolioId: args.portfolioId,
       key,
       label: args.label,
       color: args.color,
@@ -196,13 +247,22 @@ export const updateCategory = mutation({
       .query('workspaceMembers')
       .withIndex('by_userId', (q) => q.eq('userId', userId))
       .first()
-    if (!member || member.role !== 'owner') {
-      throw new Error('Only workspace owners can update categories')
-    }
 
     const category = await ctx.db.get('transactionCategories', args.categoryId)
-    if (!category || category.workspaceId !== member.workspaceId) {
-      throw new Error('Category not found')
+    if (!category) throw new Error('Category not found')
+
+    if (category.portfolioId) {
+      if (!member || member.workspaceId !== category.workspaceId) {
+        throw new Error('Not authorized')
+      }
+    } else {
+      if (
+        !member ||
+        member.workspaceId !== category.workspaceId ||
+        member.role !== 'owner'
+      ) {
+        throw new Error('Only workspace owners can update workspace categories')
+      }
     }
 
     const patch: Record<string, string | undefined> = {}
@@ -223,14 +283,24 @@ export const deleteCategory = mutation({
       .query('workspaceMembers')
       .withIndex('by_userId', (q) => q.eq('userId', userId))
       .first()
-    if (!member || member.role !== 'owner') {
-      throw new Error('Only workspace owners can delete categories')
-    }
 
     const category = await ctx.db.get('transactionCategories', args.categoryId)
-    if (!category || category.workspaceId !== member.workspaceId) {
-      throw new Error('Category not found')
+    if (!category) throw new Error('Category not found')
+
+    if (category.portfolioId) {
+      if (!member || member.workspaceId !== category.workspaceId) {
+        throw new Error('Not authorized')
+      }
+    } else {
+      if (
+        !member ||
+        member.workspaceId !== category.workspaceId ||
+        member.role !== 'owner'
+      ) {
+        throw new Error('Only workspace owners can delete workspace categories')
+      }
     }
+
     if (category.builtIn) {
       throw new Error('Cannot delete built-in categories')
     }

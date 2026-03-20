@@ -32,7 +32,7 @@ export function useCategories(): {
   getCategory: (key: string) => CategoryInfo
   isLoading: boolean
 } {
-  const dbCategories = useQuery(api.categories.listCategories)
+  const dbCategories = useQuery(api.categories.listCategories, {})
   const isLoading = dbCategories === undefined
 
   const categories = React.useMemo<Array<CategoryInfo>>(

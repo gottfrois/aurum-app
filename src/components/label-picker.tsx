@@ -57,7 +57,7 @@ export function LabelPicker({
   const [optimistic, setOptimistic] = React.useState<Map<string, boolean>>(
     new Map(),
   )
-  const createLabel = useMutation(api.labels.createLabel)
+  const createLabel = useMutation(api.transactionLabels.createLabel)
 
   // Sync: clear optimistic overrides once server state catches up
   React.useEffect(() => {
