@@ -83,7 +83,7 @@ Take inspiration from best-in-class web apps like **Linear** as a general rule. 
 - Use Lucide for icons (`lucide-react`)
 - Use TailwindCSS utility classes — avoid custom CSS unless absolutely necessary
 - Backend logic belongs in `convex/` — keep `src/` focused on UI and routing
-- Use `@convex-dev/react-query` for data fetching in components
+- Use `useQuery`/`useMutation`/`useAction` from `convex/react` for data fetching in components (`@convex-dev/react-query` is only used as plumbing in `src/router.tsx` for TanStack Router SSR/preloading)
 
 ## Commands & Hotkeys
 
