@@ -132,30 +132,6 @@ export function SettingsSidebar({
                 </SidebarMenuItem>
                 <SidebarMenuItem>
                   <SidebarMenuButton asChild>
-                    <Link to="/settings/workspace/categories">
-                      <Tag />
-                      <span>Categories</span>
-                    </Link>
-                  </SidebarMenuButton>
-                </SidebarMenuItem>
-                <SidebarMenuItem>
-                  <SidebarMenuButton asChild>
-                    <Link to="/settings/workspace/labels">
-                      <Sticker />
-                      <span>Labels</span>
-                    </Link>
-                  </SidebarMenuButton>
-                </SidebarMenuItem>
-                <SidebarMenuItem>
-                  <SidebarMenuButton asChild>
-                    <Link to="/settings/workspace/rules">
-                      <Workflow />
-                      <span>Rules</span>
-                    </Link>
-                  </SidebarMenuButton>
-                </SidebarMenuItem>
-                <SidebarMenuItem>
-                  <SidebarMenuButton asChild>
                     <Link to="/settings/workspace/members">
                       <Users />
                       <span>Members</span>
@@ -175,6 +151,30 @@ export function SettingsSidebar({
                     <Link to="/settings/workspace/billing">
                       <CreditCard />
                       <span>Billing</span>
+                    </Link>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
+                <SidebarMenuItem>
+                  <SidebarMenuButton asChild>
+                    <Link to="/settings/workspace/categories">
+                      <Tag />
+                      <span>Categories</span>
+                    </Link>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
+                <SidebarMenuItem>
+                  <SidebarMenuButton asChild>
+                    <Link to="/settings/workspace/labels">
+                      <Sticker />
+                      <span>Labels</span>
+                    </Link>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
+                <SidebarMenuItem>
+                  <SidebarMenuButton asChild>
+                    <Link to="/settings/workspace/rules">
+                      <Workflow />
+                      <span>Rules</span>
                     </Link>
                   </SidebarMenuButton>
                 </SidebarMenuItem>
