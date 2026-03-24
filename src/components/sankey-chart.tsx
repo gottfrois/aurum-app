@@ -5,6 +5,7 @@ import { usePrivacy } from '~/contexts/privacy-context'
 interface SankeyNode {
   name: string
   color?: string
+  categoryKey?: string
 }
 
 interface SankeyLink {
@@ -18,6 +19,7 @@ interface SankeyChartProps {
   nodes: Array<SankeyNode>
   links: Array<SankeyLink>
   currency: string
+  onLabelClick?: (categoryKey: string) => void
 }
 
 function formatCurrencyValue(value: number, currency: string) {
@@ -37,6 +39,7 @@ function SankeyNodeComponent({
   containerWidth,
   currency,
   isPrivate,
+  onLabelClick,
 }: {
   x: number
   y: number
@@ -46,6 +49,7 @@ function SankeyNodeComponent({
   containerWidth: number
   currency: string
   isPrivate: boolean
+  onLabelClick?: (categoryKey: string) => void
 }) {
   const isLeft = x < containerWidth / 2
   const formattedValue =
@@ -54,6 +58,7 @@ function SankeyNodeComponent({
         ? '••••••'
         : formatCurrencyValue(payload.value, currency)
       : ''
+  const clickable = onLabelClick && payload.categoryKey
 
   return (
     <Layer>
@@ -66,12 +71,29 @@ function SankeyNodeComponent({
         fillOpacity={0.9}
         radius={2}
       />
+      {/* biome-ignore lint/a11y/noStaticElementInteractions: role is conditionally set at runtime */}
       <text
         x={isLeft ? x - 6 : x + width + 6}
         y={y + height / 2 - 7}
         textAnchor={isLeft ? 'end' : 'start'}
         dominantBaseline="middle"
-        className="fill-foreground text-xs font-medium"
+        role={clickable ? 'button' : undefined}
+        tabIndex={clickable ? 0 : undefined}
+        className={`text-xs font-medium ${clickable ? 'cursor-pointer fill-foreground hover:underline' : 'fill-foreground'}`}
+        onClick={
+          clickable
+            ? () => onLabelClick(payload.categoryKey as string)
+            : undefined
+        }
+        onKeyDown={
+          clickable
+            ? (e) => {
+                if (e.key === 'Enter' || e.key === ' ') {
+                  onLabelClick(payload.categoryKey as string)
+                }
+              }
+            : undefined
+        }
       >
         {payload.name}
       </text>
@@ -127,7 +149,12 @@ function SankeyTooltipContent({
   )
 }
 
-export function SankeyChart({ nodes, links, currency }: SankeyChartProps) {
+export function SankeyChart({
+  nodes,
+  links,
+  currency,
+  onLabelClick,
+}: SankeyChartProps) {
   const { isPrivate } = usePrivacy()
 
   if (nodes.length === 0 || links.length === 0) {
@@ -163,6 +190,7 @@ export function SankeyChart({ nodes, links, currency }: SankeyChartProps) {
                   containerWidth={900}
                   currency={currency}
                   isPrivate={isPrivate}
+                  onLabelClick={onLabelClick}
                 />
               }
               link={{ fill: 'none', strokeOpacity: 0.3 }}

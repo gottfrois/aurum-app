@@ -417,6 +417,7 @@ function TransactionsContent() {
           return {
             name: cat.label,
             color: cat.color,
+            categoryKey: key,
           }
         }),
     ]
@@ -624,6 +625,14 @@ function TransactionsContent() {
             nodes={sankeyData.nodes}
             links={sankeyData.links}
             currency={currency}
+            onLabelClick={(categoryKey) => {
+              addCondition({
+                id: crypto.randomUUID(),
+                field: 'category',
+                operator: 'is_any_of',
+                value: [categoryKey],
+              })
+            }}
           />
         )}
 
