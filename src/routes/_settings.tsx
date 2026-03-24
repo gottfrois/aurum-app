@@ -10,9 +10,9 @@ export const Route = createFileRoute('/_settings')({
 function SettingsLayout() {
   return (
     <CommandProvider>
-      <SidebarProvider>
+      <SidebarProvider className="!h-svh !min-h-0">
         <SettingsSidebar variant="inset" />
-        <SidebarInset>
+        <SidebarInset className="overflow-hidden">
           <Outlet />
         </SidebarInset>
       </SidebarProvider>

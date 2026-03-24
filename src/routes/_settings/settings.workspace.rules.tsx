@@ -26,11 +26,11 @@ export const Route = createFileRoute('/_settings/settings/workspace/rules')({
 function RulesPage() {
   return (
     <RequireOwner>
-      <div className="flex w-full flex-1 flex-col px-10 py-16">
-        <header>
+      <div className="flex h-full flex-col overflow-hidden px-10 pt-16">
+        <header className="shrink-0">
           <h1 className="text-3xl font-semibold">Automation Rules</h1>
         </header>
-        <div className="mt-8">
+        <div className="mt-8 flex min-h-0 flex-1 flex-col">
           <RulesList />
         </div>
       </div>

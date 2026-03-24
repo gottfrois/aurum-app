@@ -3,18 +3,17 @@ import type { ColumnDef } from '@tanstack/react-table'
 import { useMutation, useQuery } from 'convex/react'
 import { MoreHorizontal, Plus } from 'lucide-react'
 import * as React from 'react'
-import { useHotkeys } from 'react-hotkeys-hook'
 import { toast } from 'sonner'
 import { ConfirmDialog } from '~/components/confirm-dialog'
 import { DataTable } from '~/components/data-table'
+import { DialogFormFooter } from '~/components/dialog-form-footer'
+import { LabelFormFields } from '~/components/label-form-fields'
 import { RequireOwner } from '~/components/require-owner'
 import { Button } from '~/components/ui/button'
-import { ColorPicker } from '~/components/ui/color-picker'
 import {
   Dialog,
   DialogContent,
   DialogDescription,
-  DialogFooter,
   DialogHeader,
   DialogTitle,
 } from '~/components/ui/dialog'
@@ -24,11 +23,8 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '~/components/ui/dropdown-menu'
-import { Input } from '~/components/ui/input'
-import { HotkeyDisplay, Kbd } from '~/components/ui/kbd'
-import { Label } from '~/components/ui/label'
 import { Skeleton } from '~/components/ui/skeleton'
-import { Textarea } from '~/components/ui/textarea'
+import { formatShortDate } from '~/lib/utils'
 import { api } from '../../../convex/_generated/api'
 import type { Id } from '../../../convex/_generated/dataModel'
 
@@ -44,21 +40,14 @@ type LabelRow = {
   createdAt: number
 }
 
-function formatShortDate(timestamp: number) {
-  return new Date(timestamp).toLocaleDateString('en-US', {
-    month: 'short',
-    day: 'numeric',
-  })
-}
-
 function LabelsPage() {
   return (
     <RequireOwner>
-      <div className="flex w-full flex-1 flex-col px-10 py-16">
-        <header>
+      <div className="flex h-full flex-col overflow-hidden px-10 pt-16">
+        <header className="shrink-0">
           <h1 className="text-3xl font-semibold">Labels</h1>
         </header>
-        <div className="mt-8">
+        <div className="mt-8 flex min-h-0 flex-1 flex-col">
           <LabelsList />
         </div>
       </div>
@@ -264,7 +253,7 @@ function LabelsList() {
             onDescriptionChange={setNewDescription}
             onColorChange={setNewColor}
           />
-          <LabelFormFooter
+          <DialogFormFooter
             onCancel={() => setCreateOpen(false)}
             onConfirm={handleCreate}
             disabled={saving || !newName.trim()}
@@ -295,7 +284,7 @@ function LabelsList() {
             onDescriptionChange={setNewDescription}
             onColorChange={setNewColor}
           />
-          <LabelFormFooter
+          <DialogFormFooter
             onCancel={() => setEditingLabel(null)}
             onConfirm={handleUpdate}
             disabled={saving || !newName.trim()}
@@ -316,95 +305,5 @@ function LabelsList() {
         onConfirm={handleDelete}
       />
     </>
-  )
-}
-
-function LabelFormFields({
-  name,
-  description,
-  color,
-  onNameChange,
-  onDescriptionChange,
-  onColorChange,
-}: {
-  name: string
-  description: string
-  color: string
-  onNameChange: (value: string) => void
-  onDescriptionChange: (value: string) => void
-  onColorChange: (value: string) => void
-}) {
-  return (
-    <div className="space-y-4">
-      <div className="space-y-2">
-        <Label htmlFor="label-name" className="flex items-center">
-          Name
-          <span className="ml-auto font-normal text-muted-foreground">
-            Required
-          </span>
-        </Label>
-        <Input
-          id="label-name"
-          value={name}
-          onChange={(e) => onNameChange(e.target.value)}
-          placeholder="e.g. Urgent"
-          required
-        />
-      </div>
-      <div className="space-y-2">
-        <Label htmlFor="label-description">Description</Label>
-        <Textarea
-          id="label-description"
-          value={description}
-          onChange={(e) => onDescriptionChange(e.target.value)}
-          placeholder="e.g. Mark transactions that need attention"
-          rows={2}
-        />
-      </div>
-      <div className="space-y-2">
-        <Label>Color</Label>
-        <ColorPicker color={color} onChange={onColorChange} />
-      </div>
-    </div>
-  )
-}
-
-function LabelFormFooter({
-  onCancel,
-  onConfirm,
-  disabled,
-  saving,
-  confirmLabel,
-}: {
-  onCancel: () => void
-  onConfirm: () => void
-  disabled: boolean
-  saving: boolean
-  confirmLabel: string
-}) {
-  const handleConfirm = React.useCallback(() => {
-    if (!disabled) onConfirm()
-  }, [disabled, onConfirm])
-
-  useHotkeys('escape', onCancel, {
-    enableOnFormTags: true,
-    preventDefault: true,
-  })
-
-  useHotkeys('mod+enter', handleConfirm, {
-    enabled: !disabled,
-    enableOnFormTags: true,
-    preventDefault: true,
-  })
-
-  return (
-    <DialogFooter>
-      <Button variant="outline" onClick={onCancel}>
-        Cancel <Kbd>Esc</Kbd>
-      </Button>
-      <Button onClick={handleConfirm} disabled={disabled} loading={saving}>
-        {confirmLabel} <HotkeyDisplay hotkey={{ keys: 'mod+enter' }} />
-      </Button>
-    </DialogFooter>
   )
 }

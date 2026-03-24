@@ -1,19 +1,16 @@
 import { useMutation, useQuery } from 'convex/react'
 import * as React from 'react'
-import { useHotkeys } from 'react-hotkeys-hook'
 import { toast } from 'sonner'
-import { Button } from '~/components/ui/button'
+import { DialogFormFooter } from '~/components/dialog-form-footer'
 import { Checkbox } from '~/components/ui/checkbox'
 import {
   Dialog,
   DialogContent,
   DialogDescription,
-  DialogFooter,
   DialogHeader,
   DialogTitle,
 } from '~/components/ui/dialog'
 import { Input } from '~/components/ui/input'
-import { HotkeyDisplay, Kbd } from '~/components/ui/kbd'
 import { Label } from '~/components/ui/label'
 import {
   Select,
@@ -266,55 +263,14 @@ export function RuleDialog({
             </div>
           )}
         </div>
-        <RuleDialogFooter
+        <DialogFormFooter
           onCancel={() => onOpenChange(false)}
           onConfirm={handleSave}
           disabled={saving || !pattern.trim() || !hasAction}
           saving={saving}
-          isEdit={isEdit}
+          confirmLabel={isEdit ? 'Save rule' : 'Create rule'}
         />
       </DialogContent>
     </Dialog>
-  )
-}
-
-function RuleDialogFooter({
-  onCancel,
-  onConfirm,
-  disabled,
-  saving,
-  isEdit,
-}: {
-  onCancel: () => void
-  onConfirm: () => void
-  disabled: boolean
-  saving: boolean
-  isEdit: boolean
-}) {
-  const handleConfirm = React.useCallback(() => {
-    if (!disabled) onConfirm()
-  }, [disabled, onConfirm])
-
-  useHotkeys('escape', onCancel, {
-    enableOnFormTags: true,
-    preventDefault: true,
-  })
-
-  useHotkeys('mod+enter', handleConfirm, {
-    enabled: !disabled,
-    enableOnFormTags: true,
-    preventDefault: true,
-  })
-
-  return (
-    <DialogFooter>
-      <Button variant="outline" onClick={onCancel}>
-        Cancel <Kbd>Esc</Kbd>
-      </Button>
-      <Button onClick={handleConfirm} disabled={disabled} loading={saving}>
-        {isEdit ? 'Save rule' : 'Create rule'}{' '}
-        <HotkeyDisplay hotkey={{ keys: 'mod+enter' }} />
-      </Button>
-    </DialogFooter>
   )
 }

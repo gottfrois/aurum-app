@@ -3,18 +3,17 @@ import type { ColumnDef } from '@tanstack/react-table'
 import { useMutation, useQuery } from 'convex/react'
 import { Lock, MoreHorizontal, Plus } from 'lucide-react'
 import * as React from 'react'
-import { useHotkeys } from 'react-hotkeys-hook'
 import { toast } from 'sonner'
+import { CategoryFormFields } from '~/components/category-form-fields'
 import { ConfirmDialog } from '~/components/confirm-dialog'
 import { DataTable } from '~/components/data-table'
+import { DialogFormFooter } from '~/components/dialog-form-footer'
 import { RequireOwner } from '~/components/require-owner'
 import { Button } from '~/components/ui/button'
-import { ColorPicker } from '~/components/ui/color-picker'
 import {
   Dialog,
   DialogContent,
   DialogDescription,
-  DialogFooter,
   DialogHeader,
   DialogTitle,
 } from '~/components/ui/dialog'
@@ -24,11 +23,8 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '~/components/ui/dropdown-menu'
-import { Input } from '~/components/ui/input'
-import { HotkeyDisplay, Kbd } from '~/components/ui/kbd'
-import { Label } from '~/components/ui/label'
 import { Skeleton } from '~/components/ui/skeleton'
-import { Textarea } from '~/components/ui/textarea'
+import { formatShortDate } from '~/lib/utils'
 import { api } from '../../../convex/_generated/api'
 import type { Id } from '../../../convex/_generated/dataModel'
 
@@ -48,21 +44,14 @@ type CategoryRow = {
   createdAt?: number
 }
 
-function formatShortDate(timestamp: number) {
-  return new Date(timestamp).toLocaleDateString('en-US', {
-    month: 'short',
-    day: 'numeric',
-  })
-}
-
 function CategoriesPage() {
   return (
     <RequireOwner>
-      <div className="flex w-full flex-1 flex-col px-10 py-16">
-        <header>
+      <div className="flex h-full flex-col overflow-hidden px-10 pt-16">
+        <header className="shrink-0">
           <h1 className="text-3xl font-semibold">Categories</h1>
         </header>
-        <div className="mt-8">
+        <div className="mt-8 flex min-h-0 flex-1 flex-col">
           <CategoriesList />
         </div>
       </div>
@@ -235,42 +224,20 @@ function CategoriesList() {
               Create a custom transaction category.
             </DialogDescription>
           </DialogHeader>
-          <div className="space-y-4">
-            <div className="space-y-2">
-              <Label htmlFor="cat-label" className="flex items-center">
-                Name
-                <span className="ml-auto font-normal text-muted-foreground">
-                  Required
-                </span>
-              </Label>
-              <Input
-                id="cat-label"
-                value={newLabel}
-                onChange={(e) => setNewLabel(e.target.value)}
-                placeholder="e.g. Coffee Shops"
-                required
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="cat-description">Description</Label>
-              <Textarea
-                id="cat-description"
-                value={newDescription}
-                onChange={(e) => setNewDescription(e.target.value)}
-                placeholder="e.g. Daily coffee expenses"
-                rows={2}
-              />
-            </div>
-            <div className="space-y-2">
-              <Label>Color</Label>
-              <ColorPicker color={newColor} onChange={setNewColor} />
-            </div>
-          </div>
-          <CreateCategoryFooter
+          <CategoryFormFields
+            label={newLabel}
+            description={newDescription}
+            color={newColor}
+            onLabelChange={setNewLabel}
+            onDescriptionChange={setNewDescription}
+            onColorChange={setNewColor}
+          />
+          <DialogFormFooter
             onCancel={() => setCreateOpen(false)}
             onConfirm={handleCreate}
             disabled={saving || !newLabel.trim()}
             saving={saving}
+            confirmLabel="Create"
           />
         </DialogContent>
       </Dialog>
@@ -286,43 +253,5 @@ function CategoriesList() {
         onConfirm={handleDelete}
       />
     </>
-  )
-}
-
-function CreateCategoryFooter({
-  onCancel,
-  onConfirm,
-  disabled,
-  saving,
-}: {
-  onCancel: () => void
-  onConfirm: () => void
-  disabled: boolean
-  saving: boolean
-}) {
-  const handleConfirm = React.useCallback(() => {
-    if (!disabled) onConfirm()
-  }, [disabled, onConfirm])
-
-  useHotkeys('escape', onCancel, {
-    enableOnFormTags: true,
-    preventDefault: true,
-  })
-
-  useHotkeys('mod+enter', handleConfirm, {
-    enabled: !disabled,
-    enableOnFormTags: true,
-    preventDefault: true,
-  })
-
-  return (
-    <DialogFooter>
-      <Button variant="outline" onClick={onCancel}>
-        Cancel <Kbd>Esc</Kbd>
-      </Button>
-      <Button onClick={handleConfirm} disabled={disabled} loading={saving}>
-        Create <HotkeyDisplay hotkey={{ keys: 'mod+enter' }} />
-      </Button>
-    </DialogFooter>
   )
 }

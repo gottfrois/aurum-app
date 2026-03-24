@@ -13,6 +13,7 @@ import { ConfirmDialog } from '~/components/confirm-dialog'
 import { Button } from '~/components/ui/button'
 import { Checkbox } from '~/components/ui/checkbox'
 import { Input } from '~/components/ui/input'
+import { ScrollArea } from '~/components/ui/scroll-area'
 import {
   Table,
   TableBody,
@@ -109,8 +110,8 @@ export function DataTable<TData, TValue>({
   }
 
   return (
-    <div>
-      <div className="flex items-center gap-2 pb-6">
+    <div className="flex min-h-0 flex-1 flex-col">
+      <div className="flex shrink-0 items-center gap-2 pb-6">
         {filterColumn && (
           <Input
             placeholder={filterPlaceholder}
@@ -125,7 +126,7 @@ export function DataTable<TData, TValue>({
         )}
         <div className="ml-auto flex items-center gap-2">{actions}</div>
       </div>
-      <Table>
+      <Table className="shrink-0">
         <TableHeader>
           {table.getHeaderGroups().map((headerGroup) => (
             <TableRow key={headerGroup.id} className="border-b-0">
@@ -150,40 +151,47 @@ export function DataTable<TData, TValue>({
             </TableRow>
           ))}
         </TableHeader>
-        <TableBody>
-          {table.getRowModel().rows.length ? (
-            table.getRowModel().rows.map((row) => (
-              <TableRow
-                key={row.id}
-                data-state={row.getIsSelected() && 'selected'}
-                className="h-12 border-b border-border/50"
-              >
-                {row.getVisibleCells().map((cell) => (
-                  <TableCell
-                    key={cell.id}
-                    style={
-                      cell.column.columnDef.size
-                        ? { width: cell.column.columnDef.size }
-                        : undefined
-                    }
-                  >
-                    {flexRender(cell.column.columnDef.cell, cell.getContext())}
-                  </TableCell>
-                ))}
-              </TableRow>
-            ))
-          ) : (
-            <TableRow>
-              <TableCell
-                colSpan={allColumns.length}
-                className="h-24 text-center"
-              >
-                No results.
-              </TableCell>
-            </TableRow>
-          )}
-        </TableBody>
       </Table>
+      <ScrollArea className="min-h-0 flex-1">
+        <Table>
+          <TableBody>
+            {table.getRowModel().rows.length ? (
+              table.getRowModel().rows.map((row) => (
+                <TableRow
+                  key={row.id}
+                  data-state={row.getIsSelected() && 'selected'}
+                  className="h-12 border-b border-border/50"
+                >
+                  {row.getVisibleCells().map((cell) => (
+                    <TableCell
+                      key={cell.id}
+                      style={
+                        cell.column.columnDef.size
+                          ? { width: cell.column.columnDef.size }
+                          : undefined
+                      }
+                    >
+                      {flexRender(
+                        cell.column.columnDef.cell,
+                        cell.getContext(),
+                      )}
+                    </TableCell>
+                  ))}
+                </TableRow>
+              ))
+            ) : (
+              <TableRow>
+                <TableCell
+                  colSpan={allColumns.length}
+                  className="h-24 text-center"
+                >
+                  No results.
+                </TableCell>
+              </TableRow>
+            )}
+          </TableBody>
+        </Table>
+      </ScrollArea>
       {onBatchDelete && selectedCount > 0 && (
         <div className="fixed bottom-8 left-1/2 z-50 -translate-x-1/2 animate-in fade-in slide-in-from-bottom-2">
           <div className="flex items-center gap-2 rounded-full border bg-background px-2 py-2 shadow-xl">
