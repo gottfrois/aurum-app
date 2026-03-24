@@ -22,6 +22,16 @@ import {
   TableHeader,
   TableRow,
 } from '~/components/ui/table'
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from '~/components/ui/tooltip'
+
+export interface DataTableGroup<TData> {
+  label: string
+  filter: (row: TData) => boolean
+}
 
 interface DataTableProps<TData, TValue> {
   columns: ColumnDef<TData, TValue>[]
@@ -33,6 +43,8 @@ interface DataTableProps<TData, TValue> {
   batchDeleteConfirmDescription?: string
   getRowId?: (row: TData) => string
   enableRowSelection?: (row: TData) => boolean
+  disabledRowTooltip?: string
+  groups?: DataTableGroup<TData>[]
 }
 
 export function DataTable<TData, TValue>({
@@ -45,6 +57,8 @@ export function DataTable<TData, TValue>({
   batchDeleteConfirmDescription = 'This action cannot be undone. The selected items will be permanently deleted.',
   getRowId,
   enableRowSelection,
+  disabledRowTooltip,
+  groups,
 }: DataTableProps<TData, TValue>) {
   const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>(
     [],
@@ -67,20 +81,34 @@ export function DataTable<TData, TValue>({
           aria-label="Select all"
         />
       ),
-      cell: ({ row }) => (
-        <Checkbox
-          checked={row.getIsSelected()}
-          disabled={!row.getCanSelect()}
-          onCheckedChange={(value) => row.toggleSelected(!!value)}
-          aria-label="Select row"
-        />
-      ),
+      cell: ({ row }) => {
+        const disabled = !row.getCanSelect()
+        const checkbox = (
+          <Checkbox
+            checked={row.getIsSelected()}
+            disabled={disabled}
+            onCheckedChange={(value) => row.toggleSelected(!!value)}
+            aria-label="Select row"
+          />
+        )
+        if (disabled && disabledRowTooltip) {
+          return (
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <span className="inline-flex">{checkbox}</span>
+              </TooltipTrigger>
+              <TooltipContent>{disabledRowTooltip}</TooltipContent>
+            </Tooltip>
+          )
+        }
+        return checkbox
+      },
       size: 40,
       enableSorting: false,
       enableHiding: false,
     }
     return [selectColumn, ...columns]
-  }, [columns, onBatchDelete])
+  }, [columns, onBatchDelete, disabledRowTooltip])
 
   const table = useReactTable({
     data,
@@ -156,29 +184,78 @@ export function DataTable<TData, TValue>({
         <Table>
           <TableBody>
             {table.getRowModel().rows.length ? (
-              table.getRowModel().rows.map((row) => (
-                <TableRow
-                  key={row.id}
-                  data-state={row.getIsSelected() && 'selected'}
-                  className="h-12 border-b border-border/50"
-                >
-                  {row.getVisibleCells().map((cell) => (
-                    <TableCell
-                      key={cell.id}
-                      style={
-                        cell.column.columnDef.size
-                          ? { width: cell.column.columnDef.size }
-                          : undefined
-                      }
-                    >
-                      {flexRender(
-                        cell.column.columnDef.cell,
-                        cell.getContext(),
-                      )}
-                    </TableCell>
-                  ))}
-                </TableRow>
-              ))
+              groups ? (
+                groups.map((group) => {
+                  const groupRows = table
+                    .getRowModel()
+                    .rows.filter((row) => group.filter(row.original))
+                  if (groupRows.length === 0) return null
+                  return (
+                    <React.Fragment key={group.label}>
+                      <TableRow className="border-b-0 bg-muted/50 hover:bg-muted/50">
+                        <TableCell
+                          colSpan={allColumns.length}
+                          className="py-1.5"
+                        >
+                          <span className="font-medium text-muted-foreground">
+                            {group.label}
+                          </span>
+                          <span className="ml-1.5 text-muted-foreground/60">
+                            {groupRows.length}
+                          </span>
+                        </TableCell>
+                      </TableRow>
+                      {groupRows.map((row) => (
+                        <TableRow
+                          key={row.id}
+                          data-state={row.getIsSelected() && 'selected'}
+                          className="h-12 border-b border-border/50"
+                        >
+                          {row.getVisibleCells().map((cell) => (
+                            <TableCell
+                              key={cell.id}
+                              style={
+                                cell.column.columnDef.size
+                                  ? { width: cell.column.columnDef.size }
+                                  : undefined
+                              }
+                            >
+                              {flexRender(
+                                cell.column.columnDef.cell,
+                                cell.getContext(),
+                              )}
+                            </TableCell>
+                          ))}
+                        </TableRow>
+                      ))}
+                    </React.Fragment>
+                  )
+                })
+              ) : (
+                table.getRowModel().rows.map((row) => (
+                  <TableRow
+                    key={row.id}
+                    data-state={row.getIsSelected() && 'selected'}
+                    className="h-12 border-b border-border/50"
+                  >
+                    {row.getVisibleCells().map((cell) => (
+                      <TableCell
+                        key={cell.id}
+                        style={
+                          cell.column.columnDef.size
+                            ? { width: cell.column.columnDef.size }
+                            : undefined
+                        }
+                      >
+                        {flexRender(
+                          cell.column.columnDef.cell,
+                          cell.getContext(),
+                        )}
+                      </TableCell>
+                    ))}
+                  </TableRow>
+                ))
+              )
             ) : (
               <TableRow>
                 <TableCell

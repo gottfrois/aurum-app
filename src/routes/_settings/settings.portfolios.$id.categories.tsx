@@ -1,12 +1,12 @@
 import { createFileRoute } from '@tanstack/react-router'
 import type { ColumnDef } from '@tanstack/react-table'
 import { useMutation, useQuery } from 'convex/react'
-import { Lock, MoreHorizontal, Plus } from 'lucide-react'
+import { MoreHorizontal, Plus } from 'lucide-react'
 import * as React from 'react'
 import { toast } from 'sonner'
 import { CategoryFormFields } from '~/components/category-form-fields'
 import { ConfirmDialog } from '~/components/confirm-dialog'
-import { DataTable } from '~/components/data-table'
+import { DataTable, type DataTableGroup } from '~/components/data-table'
 import { DialogFormFooter } from '~/components/dialog-form-footer'
 import { Button } from '~/components/ui/button'
 import {
@@ -164,9 +164,6 @@ function CategoriesTable({
             style={{ backgroundColor: row.original.color }}
           />
           <span className="font-medium">{row.original.label}</span>
-          {(row.original.builtIn || !isPortfolioLevel(row.original)) && (
-            <Lock className="size-3 text-muted-foreground" />
-          )}
         </div>
       ),
     },
@@ -223,6 +220,14 @@ function CategoriesTable({
     },
   ]
 
+  const categoryGroups: DataTableGroup<CategoryRow>[] = [
+    { label: 'Portfolio', filter: (row) => isPortfolioLevel(row) },
+    {
+      label: 'Inherited from workspace',
+      filter: (row) => !isPortfolioLevel(row),
+    },
+  ]
+
   return (
     <>
       <DataTable
@@ -233,6 +238,8 @@ function CategoriesTable({
         getRowId={(row) => row._id}
         onBatchDelete={handleBatchDelete}
         enableRowSelection={(row) => canSelect(row)}
+        disabledRowTooltip="Inherited from workspace — manage in workspace settings"
+        groups={categoryGroups}
         actions={
           <Button size="sm" onClick={() => setCreateOpen(true)}>
             <Plus className="size-4" />
