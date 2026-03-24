@@ -608,6 +608,14 @@ function TransactionsContent() {
             data={categoryData}
             currency={currency}
             total={totalExpenses}
+            onCategoryClick={(categoryKey) => {
+              addCondition({
+                id: crypto.randomUUID(),
+                field: 'category',
+                operator: 'is_any_of',
+                value: [categoryKey],
+              })
+            }}
           />
         </div>
 

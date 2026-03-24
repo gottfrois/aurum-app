@@ -16,6 +16,7 @@ interface CategoryPieChartProps {
   data: Array<CategoryEntry>
   currency: string
   total: number
+  onCategoryClick?: (categoryKey: string) => void
 }
 
 function formatCurrencyValue(value: number, currency: string) {
@@ -72,6 +73,7 @@ export function CategoryPieChart({
   data,
   currency,
   total,
+  onCategoryClick,
 }: CategoryPieChartProps) {
   const { isPrivate } = usePrivacy()
 
@@ -176,7 +178,28 @@ export function CategoryPieChart({
             {data.map((entry) => {
               const percentage =
                 total > 0 ? ((entry.value / total) * 100).toFixed(1) : '0'
-              return (
+              return onCategoryClick ? (
+                <button
+                  key={entry.key}
+                  type="button"
+                  className="-mx-1 flex w-full items-center gap-3 rounded-md px-1 py-0.5 hover:bg-accent"
+                  onClick={() => onCategoryClick(entry.key)}
+                >
+                  <div
+                    className="size-3 shrink-0 rounded-sm"
+                    style={{ backgroundColor: entry.color }}
+                  />
+                  <span className="flex-1 text-left font-medium">
+                    {entry.label}
+                  </span>
+                  <span className="font-mono tabular-nums text-muted-foreground">
+                    {percentage}%
+                  </span>
+                  <span className="font-mono font-medium tabular-nums">
+                    {formatCurrency(entry.value, currency)}
+                  </span>
+                </button>
+              ) : (
                 <div key={entry.key} className="flex items-center gap-3">
                   <div
                     className="size-3 shrink-0 rounded-sm"
