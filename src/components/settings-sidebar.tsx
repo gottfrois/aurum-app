@@ -5,12 +5,12 @@ import {
   Bell,
   ChevronRight,
   CreditCard,
-  Home,
   Link2,
   Lock,
   Palette,
   Settings,
   Shield,
+  SquareUserRound,
   Sticker,
   Tag,
   User,
@@ -141,7 +141,7 @@ export function SettingsSidebar({
                 <SidebarMenuItem>
                   <SidebarMenuButton asChild>
                     <Link to="/settings/workspace/team">
-                      <Home />
+                      <SquareUserRound />
                       <span>Team</span>
                     </Link>
                   </SidebarMenuButton>

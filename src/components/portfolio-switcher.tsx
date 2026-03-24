@@ -1,6 +1,6 @@
 import { Link } from '@tanstack/react-router'
 import { useQuery } from 'convex/react'
-import { ChevronsUpDown, Home, Plus, Settings, Users } from 'lucide-react'
+import { ChevronsUpDown, Layers, Plus, Settings, Users } from 'lucide-react'
 import * as React from 'react'
 import { CreatePortfolioDialog } from '~/components/create-portfolio-dialog'
 import { PortfolioAvatar } from '~/components/portfolio-avatar'
@@ -96,11 +96,11 @@ export function PortfolioSwitcher() {
                   />
                 ) : isTeamView ? (
                   <div className="flex aspect-square size-8 items-center justify-center rounded-lg bg-sidebar-primary text-sidebar-primary-foreground">
-                    <Home className="size-4" />
+                    <Users className="size-4" />
                   </div>
                 ) : (
                   <div className="flex aspect-square size-8 items-center justify-center rounded-lg bg-sidebar-primary text-sidebar-primary-foreground">
-                    <Users className="size-4" />
+                    <Layers className="size-4" />
                   </div>
                 )}
                 <div className="grid flex-1 text-left text-sm leading-tight">
@@ -124,7 +124,7 @@ export function PortfolioSwitcher() {
                   className="gap-2 p-2"
                 >
                   <div className="flex size-6 items-center justify-center rounded-sm border">
-                    <Home className="size-4 shrink-0" />
+                    <Users className="size-4 shrink-0" />
                   </div>
                   Team
                 </DropdownMenuItem>
@@ -134,7 +134,7 @@ export function PortfolioSwitcher() {
                 className="gap-2 p-2"
               >
                 <div className="flex size-6 items-center justify-center rounded-sm border">
-                  <Users className="size-4 shrink-0" />
+                  <Layers className="size-4 shrink-0" />
                 </div>
                 All my portfolios
               </DropdownMenuItem>
