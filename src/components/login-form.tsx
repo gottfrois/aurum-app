@@ -32,6 +32,7 @@ export function LoginForm({
   const [code, setCode] = useState('')
   const [error, setError] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
+  const [googleLoading, setGoogleLoading] = useState(false)
   const [cooldown, setCooldown] = useState(0)
   const cooldownRef = useRef<ReturnType<typeof setInterval> | null>(null)
 
@@ -219,6 +220,7 @@ export function LoginForm({
 
   function handleSocialLogin(provider: string) {
     if (signIn) {
+      setGoogleLoading(true)
       void signIn.authenticateWithRedirect({
         strategy: `oauth_${provider}` as Parameters<
           typeof signIn.authenticateWithRedirect
@@ -329,6 +331,7 @@ export function LoginForm({
               type="button"
               variant="outline"
               onClick={() => handleSocialLogin('google')}
+              loading={googleLoading}
             >
               <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
                 <path
