@@ -34,3 +34,6 @@ app.config.timestamp_*.js
 
 # claude code
 .claude/
+
+*storybook.log
+storybook-static
