@@ -30,6 +30,7 @@ export function ConnectionAlertBanner() {
           Review connections
         </Link>
         <button
+          type="button"
           onClick={() => setDismissed(true)}
           className="shrink-0 rounded-sm p-0.5 opacity-70 hover:opacity-100"
           aria-label="Dismiss"

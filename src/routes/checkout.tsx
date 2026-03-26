@@ -86,6 +86,7 @@ function CheckoutPage() {
 
       <div className="mb-8 flex items-center gap-3">
         <button
+          type="button"
           onClick={() => setIsYearly(false)}
           className={`rounded-md px-3 py-1.5 text-sm font-medium transition-colors ${
             !isYearly
@@ -96,6 +97,7 @@ function CheckoutPage() {
           Monthly
         </button>
         <button
+          type="button"
           onClick={() => setIsYearly(true)}
           className={`rounded-md px-3 py-1.5 text-sm font-medium transition-colors ${
             isYearly

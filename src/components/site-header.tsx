@@ -113,6 +113,7 @@ function EncryptionStatusButton({ onLock }: { onLock: () => void }) {
         <Tooltip>
           <TooltipTrigger asChild>
             <button
+              type="button"
               onClick={onLock}
               className="inline-flex items-center rounded-r-md px-2 py-1.5 text-foreground transition-colors hover:bg-accent"
               aria-label="Lock vault"

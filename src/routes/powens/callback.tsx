@@ -113,6 +113,7 @@ function PowensCallback() {
             <h2 className="text-lg font-semibold">Connection failed</h2>
             <p className="text-sm text-destructive">{error}</p>
             <button
+              type="button"
               className="mt-2 text-sm text-primary underline"
               onClick={() => navigate({ to: '/' })}
             >

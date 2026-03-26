@@ -99,6 +99,7 @@ function BillingPage() {
           <h1 className="text-3xl font-semibold">Billing</h1>
           {subscription.isActive && (
             <button
+              type="button"
               onClick={handleManageSubscription}
               disabled={portalLoading}
               className="inline-flex items-center gap-1.5 text-sm text-muted-foreground transition-colors hover:text-foreground"
@@ -219,6 +220,7 @@ function BillingPage() {
               </ItemCardItems>
               <ItemCardFooter>
                 <button
+                  type="button"
                   onClick={handleManageSubscription}
                   disabled={portalLoading}
                   className="inline-flex items-center gap-1.5 text-sm text-muted-foreground transition-colors hover:text-foreground"

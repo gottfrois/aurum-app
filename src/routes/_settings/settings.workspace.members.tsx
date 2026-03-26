@@ -651,6 +651,7 @@ function InviteDialog({
                 <Badge key={email} variant="secondary" className="gap-1 pr-1">
                   {email}
                   <button
+                    type="button"
                     onClick={() => removeEmail(email)}
                     className="rounded-sm hover:bg-muted"
                   >

@@ -215,27 +215,25 @@ function BankAccountsSection() {
 
   if (bankAccounts.length === 0) {
     return (
-      <>
-        <Empty className="border">
-          <EmptyHeader>
-            <EmptyMedia variant="icon">
-              <Landmark />
-            </EmptyMedia>
-            <EmptyTitle>No Accounts Yet</EmptyTitle>
-            <EmptyDescription>
-              You haven&apos;t connected any financial accounts yet. Get started
-              by adding your first connection.
-            </EmptyDescription>
-          </EmptyHeader>
-          {!isTeamView && (
-            <EmptyContent>
-              <Button onClick={() => addConnectionCommand?.handler()}>
-                Add Connection <Kbd>C</Kbd>
-              </Button>
-            </EmptyContent>
-          )}
-        </Empty>
-      </>
+      <Empty className="border">
+        <EmptyHeader>
+          <EmptyMedia variant="icon">
+            <Landmark />
+          </EmptyMedia>
+          <EmptyTitle>No Accounts Yet</EmptyTitle>
+          <EmptyDescription>
+            You haven&apos;t connected any financial accounts yet. Get started
+            by adding your first connection.
+          </EmptyDescription>
+        </EmptyHeader>
+        {!isTeamView && (
+          <EmptyContent>
+            <Button onClick={() => addConnectionCommand?.handler()}>
+              Add Connection <Kbd>C</Kbd>
+            </Button>
+          </EmptyContent>
+        )}
+      </Empty>
     )
   }
 

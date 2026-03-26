@@ -270,6 +270,7 @@ export function TransactionsList({
         accessorKey: 'date',
         header: ({ column }) => (
           <button
+            type="button"
             className="flex items-center gap-1"
             onClick={() => column.toggleSorting()}
           >
@@ -384,6 +385,7 @@ export function TransactionsList({
         accessorKey: 'value',
         header: ({ column }) => (
           <button
+            type="button"
             className="flex items-center gap-1"
             onClick={() => column.toggleSorting()}
           >
@@ -968,6 +970,7 @@ function BulkLabelView({
     <>
       <div className="flex h-12 items-center gap-2 border-b px-3">
         <button
+          type="button"
           onClick={onBack}
           className="flex size-6 shrink-0 items-center justify-center rounded-md text-muted-foreground hover:bg-accent hover:text-foreground"
         >
@@ -995,6 +998,7 @@ function BulkLabelView({
               const indeterminate = state === 'some'
               return (
                 <button
+                  type="button"
                   key={label._id}
                   onClick={() =>
                     handleToggle(label._id, !checked && !indeterminate)
@@ -1018,6 +1022,7 @@ function BulkLabelView({
         )}
         {search.trim() && !exactMatch && (
           <button
+            type="button"
             onClick={handleCreate}
             className="flex w-full items-center gap-2 rounded-sm px-2 py-2 text-sm hover:bg-accent"
           >
@@ -1399,6 +1404,7 @@ function BulkExclusionView({
     <>
       <div className="flex h-12 items-center gap-2 border-b px-3">
         <button
+          type="button"
           onClick={onBack}
           className="flex size-6 shrink-0 items-center justify-center rounded-md text-muted-foreground hover:bg-accent hover:text-foreground"
         >
@@ -1409,6 +1415,7 @@ function BulkExclusionView({
       <div className="min-h-[300px] max-h-[300px] overflow-y-auto overflow-x-hidden scroll-py-1 px-2 py-1">
         {options.map((option) => (
           <button
+            type="button"
             key={String(option.value)}
             onClick={() => {
               onSelect(option.value)

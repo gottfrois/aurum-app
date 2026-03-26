@@ -150,36 +150,33 @@ function ConnectionsList() {
   }
 
   return (
-    <>
-      <ItemCard>
-        <ItemCardHeader>
-          <ItemCardHeaderContent>
-            <ItemCardHeaderTitle>
-              {connections.length}{' '}
-              {connections.length === 1 ? 'connection' : 'connections'}
-            </ItemCardHeaderTitle>
-          </ItemCardHeaderContent>
-        </ItemCardHeader>
-        <ItemCardItems>
-          {connections.map((connection) => {
-            const numAccounts =
-              accountCountByConnection.get(connection._id) ?? 0
-            const lastSync = connection.lastSync
-              ? formatRelativeDate(connection.lastSync)
-              : null
+    <ItemCard>
+      <ItemCardHeader>
+        <ItemCardHeaderContent>
+          <ItemCardHeaderTitle>
+            {connections.length}{' '}
+            {connections.length === 1 ? 'connection' : 'connections'}
+          </ItemCardHeaderTitle>
+        </ItemCardHeaderContent>
+      </ItemCardHeader>
+      <ItemCardItems>
+        {connections.map((connection) => {
+          const numAccounts = accountCountByConnection.get(connection._id) ?? 0
+          const lastSync = connection.lastSync
+            ? formatRelativeDate(connection.lastSync)
+            : null
 
-            return (
-              <ConnectionItem
-                key={connection._id}
-                connection={connection}
-                numAccounts={numAccounts}
-                lastSync={lastSync}
-              />
-            )
-          })}
-        </ItemCardItems>
-      </ItemCard>
-    </>
+          return (
+            <ConnectionItem
+              key={connection._id}
+              connection={connection}
+              numAccounts={numAccounts}
+              lastSync={lastSync}
+            />
+          )
+        })}
+      </ItemCardItems>
+    </ItemCard>
   )
 }
 
