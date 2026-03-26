@@ -1,14 +1,15 @@
 import { v } from 'convex/values'
+import type { MutationCtx, QueryCtx } from './_generated/server'
 import { mutation, query } from './_generated/server'
 import { getAuthUserId } from './lib/auth'
 import { requireTeamPlan } from './lib/billing'
 
-async function getCurrentMember(ctx: { db: any; auth: any }) {
-  const userId = await getAuthUserId(ctx as any)
+async function getCurrentMember(ctx: QueryCtx | MutationCtx) {
+  const userId = await getAuthUserId(ctx)
   if (!userId) return null
   return await ctx.db
     .query('workspaceMembers')
-    .withIndex('by_userId', (q: any) => q.eq('userId', userId))
+    .withIndex('by_userId', (q) => q.eq('userId', userId))
     .first()
 }
 

@@ -10,6 +10,7 @@ import {
   ItemCardItems,
   ItemCardItemTitle,
 } from '~/components/item-card'
+import { PageHeader } from '~/components/ui/page-header'
 import { Skeleton } from '~/components/ui/skeleton'
 import { Switch } from '~/components/ui/switch'
 import { api } from '../../../convex/_generated/api'
@@ -47,9 +48,10 @@ function NotificationsPage() {
 
   return (
     <div className="mx-auto flex w-full max-w-3xl flex-1 flex-col px-10 py-16">
-      <header>
-        <h1 className="text-3xl font-semibold">Notifications</h1>
-      </header>
+      <PageHeader
+        title="Notifications"
+        description="Choose what updates you want to receive."
+      />
       <div className="mt-8 space-y-6">
         <div>
           <h2 className="text-lg font-medium">Updates from Bunkr</h2>

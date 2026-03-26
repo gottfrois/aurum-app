@@ -23,6 +23,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '~/components/ui/dropdown-menu'
+import { PageHeader } from '~/components/ui/page-header'
 import { Skeleton } from '~/components/ui/skeleton'
 import { formatShortDate } from '~/lib/utils'
 import { api } from '../../../convex/_generated/api'
@@ -48,9 +49,12 @@ function CategoriesPage() {
   return (
     <RequireOwner>
       <div className="flex h-full flex-col overflow-hidden px-10 pt-16">
-        <header className="shrink-0">
-          <h1 className="text-3xl font-semibold">Categories</h1>
-        </header>
+        <div className="shrink-0">
+          <PageHeader
+            title="Categories"
+            description="Define transaction categories shared across all portfolios."
+          />
+        </div>
         <div className="mt-8 flex min-h-0 flex-1 flex-col">
           <CategoriesList />
         </div>
@@ -208,6 +212,10 @@ function CategoriesList() {
         getRowId={(row) => row._id}
         onBatchDelete={handleBatchDelete}
         enableRowSelection={(row) => !row.builtIn}
+        groups={[
+          { label: 'Custom', filter: (row) => !row.builtIn },
+          { label: 'Default', filter: (row) => row.builtIn },
+        ]}
         actions={
           <Button size="sm" onClick={() => setCreateOpen(true)}>
             <Plus className="size-4" />

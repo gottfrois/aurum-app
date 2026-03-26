@@ -222,12 +222,15 @@ function BankAccountsList({ categoryFilter }: { categoryFilter?: string }) {
   }, [filteredCategoryBalances, activeCategoryKeys])
 
   // Category series config for the stacked chart
-  const categoryColors: Record<string, string> = {
-    checking: 'var(--color-chart-1)',
-    savings: 'var(--color-chart-2)',
-    investments: 'var(--color-chart-3)',
-    insurance: 'var(--color-chart-4)',
-  }
+  const categoryColors = React.useMemo<Record<string, string>>(
+    () => ({
+      checking: 'var(--color-chart-1)',
+      savings: 'var(--color-chart-2)',
+      investments: 'var(--color-chart-3)',
+      insurance: 'var(--color-chart-4)',
+    }),
+    [],
+  )
 
   const activeCategorySeries = React.useMemo(() => {
     return Object.entries(ACCOUNT_CATEGORIES)
@@ -313,27 +316,25 @@ function BankAccountsList({ categoryFilter }: { categoryFilter?: string }) {
 
   if (bankAccounts.length === 0) {
     return (
-      <>
-        <Empty className="border">
-          <EmptyHeader>
-            <EmptyMedia variant="icon">
-              <Landmark />
-            </EmptyMedia>
-            <EmptyTitle>No Accounts Yet</EmptyTitle>
-            <EmptyDescription>
-              You haven&apos;t connected any financial accounts yet. Get started
-              by adding a connection.
-            </EmptyDescription>
-          </EmptyHeader>
-          {!isTeamView && (
-            <EmptyContent>
-              <Button onClick={() => addConnectionCommand?.handler()}>
-                Add Connection <Kbd>C</Kbd>
-              </Button>
-            </EmptyContent>
-          )}
-        </Empty>
-      </>
+      <Empty className="border">
+        <EmptyHeader>
+          <EmptyMedia variant="icon">
+            <Landmark />
+          </EmptyMedia>
+          <EmptyTitle>No Accounts Yet</EmptyTitle>
+          <EmptyDescription>
+            You haven&apos;t connected any financial accounts yet. Get started
+            by adding a connection.
+          </EmptyDescription>
+        </EmptyHeader>
+        {!isTeamView && (
+          <EmptyContent>
+            <Button onClick={() => addConnectionCommand?.handler()}>
+              Add Connection <Kbd>C</Kbd>
+            </Button>
+          </EmptyContent>
+        )}
+      </Empty>
     )
   }
 

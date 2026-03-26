@@ -39,6 +39,7 @@ import {
 import { Input } from '~/components/ui/input'
 import { HotkeyDisplay, Kbd } from '~/components/ui/kbd'
 import { Label } from '~/components/ui/label'
+import { PageHeader } from '~/components/ui/page-header'
 import { Skeleton } from '~/components/ui/skeleton'
 import { useEncryption } from '~/contexts/encryption-context'
 import { encryptString, importPublicKey } from '~/lib/crypto'
@@ -62,7 +63,7 @@ function MembersPage() {
   const [users, setUsers] = useState<Record<string, ResolvedUser>>({})
   const [usersLoading, setUsersLoading] = useState(true)
 
-  const { isEncryptionEnabled, isUnlocked, role } = useEncryption()
+  const { isEncryptionEnabled, role } = useEncryption()
   const membersStatus = useQuery(
     api.encryptionKeys.listMembersEncryptionStatus,
     isEncryptionEnabled ? {} : 'skip',
@@ -111,9 +112,10 @@ function MembersPage() {
   return (
     <RequireOwner>
       <div className="mx-auto flex w-full max-w-3xl flex-1 flex-col px-10 py-16">
-        <header>
-          <h1 className="text-3xl font-semibold">Members</h1>
-        </header>
+        <PageHeader
+          title="Members"
+          description="Invite and manage who has access to this workspace."
+        />
         <div className="mt-8 space-y-6">
           <ItemCard>
             <ItemCardHeader>
@@ -210,7 +212,6 @@ function MembersPage() {
                             <MemberActionBadge
                               encStatus={encStatus}
                               isOwner={isOwner}
-                              isUnlocked={isUnlocked}
                               isEncryptionEnabled={isEncryptionEnabled}
                             />
                             {isOwner &&
@@ -297,7 +298,6 @@ function RemoveMemberMenu({
 function MemberActionBadge({
   encStatus,
   isOwner,
-  isUnlocked,
   isEncryptionEnabled,
 }: {
   encStatus:
@@ -309,7 +309,6 @@ function MemberActionBadge({
       }
     | undefined
   isOwner: boolean
-  isUnlocked: boolean
   isEncryptionEnabled: boolean
 }) {
   if (!isEncryptionEnabled || !encStatus) {
@@ -323,11 +322,10 @@ function MemberActionBadge({
 
   return (
     <div className="flex items-center gap-2">
-      {status === 'pending' && isOwner && (
+      {status === 'pending' && isOwner && encStatus.publicKey && (
         <GrantAccessButton
           targetUserId={encStatus.userId}
-          targetPublicKey={encStatus.publicKey!}
-          isUnlocked={isUnlocked}
+          targetPublicKey={encStatus.publicKey}
         />
       )}
       {status === 'pending' && !isOwner && (
@@ -349,7 +347,6 @@ function GrantAccessButton({
 }: {
   targetUserId: string
   targetPublicKey: string
-  isUnlocked: boolean
 }) {
   const { workspacePrivateKeyJwk, unlock } = useEncryption()
   const grantAccess = useMutation(api.encryptionKeys.grantMemberAccess)
@@ -651,6 +648,7 @@ function InviteDialog({
                 <Badge key={email} variant="secondary" className="gap-1 pr-1">
                   {email}
                   <button
+                    type="button"
                     onClick={() => removeEmail(email)}
                     className="rounded-sm hover:bg-muted"
                   >

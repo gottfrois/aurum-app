@@ -16,6 +16,7 @@ import {
 import { Avatar, AvatarFallback, AvatarImage } from '~/components/ui/avatar'
 import { Button } from '~/components/ui/button'
 import { Input } from '~/components/ui/input'
+import { PageHeader } from '~/components/ui/page-header'
 import { Skeleton } from '~/components/ui/skeleton'
 import { useEncryption } from '~/contexts/encryption-context'
 import { api } from '../../../convex/_generated/api'
@@ -44,9 +45,10 @@ function ProfilePage() {
 
   return (
     <div className="mx-auto flex w-full max-w-3xl flex-1 flex-col px-10 py-16">
-      <header>
-        <h1 className="text-3xl font-semibold">Profile</h1>
-      </header>
+      <PageHeader
+        title="Profile"
+        description="Your personal information and display settings."
+      />
       <div className="mt-8 space-y-6">
         <ItemCard>
           <ItemCardItems>

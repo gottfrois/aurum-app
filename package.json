@@ -19,7 +19,9 @@
     "typecheck": "tsc --noEmit",
     "test": "vitest run --passWithNoTests",
     "test:watch": "vitest",
-    "prepare": "husky"
+    "prepare": "husky",
+    "storybook": "storybook dev -p 6006",
+    "build-storybook": "storybook build"
   },
   "dependencies": {
     "@ai-sdk/google": "^3.0.43",
@@ -82,7 +84,17 @@
     "vite": "^7.3.1",
     "vite-tsconfig-paths": "^6.0.5",
     "vitest": "^4.0.18",
-    "wrangler": "^4.71.0"
+    "wrangler": "^4.71.0",
+    "storybook": "^10.3.3",
+    "@storybook/react-vite": "^10.3.3",
+    "@chromatic-com/storybook": "^5.1.1",
+    "@storybook/addon-vitest": "^10.3.3",
+    "@storybook/addon-a11y": "^10.3.3",
+    "@storybook/addon-docs": "^10.3.3",
+    "@storybook/addon-onboarding": "^10.3.3",
+    "playwright": "^1.58.2",
+    "@vitest/browser-playwright": "^4.0.18",
+    "@vitest/coverage-v8": "^4.0.18"
   },
   "lint-staged": {
     "*.{js,ts,cjs,mjs,jsx,tsx,json,jsonc,css}": [

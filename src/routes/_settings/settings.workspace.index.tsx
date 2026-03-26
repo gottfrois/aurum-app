@@ -15,6 +15,7 @@ import {
 import { RequireOwner } from '~/components/require-owner'
 import { Button } from '~/components/ui/button'
 import { Input } from '~/components/ui/input'
+import { PageHeader } from '~/components/ui/page-header'
 import { Skeleton } from '~/components/ui/skeleton'
 import { api } from '../../../convex/_generated/api'
 
@@ -43,9 +44,10 @@ function GeneralPage() {
   return (
     <RequireOwner>
       <div className="mx-auto flex w-full max-w-3xl flex-1 flex-col px-10 py-16">
-        <header>
-          <h1 className="text-3xl font-semibold">General</h1>
-        </header>
+        <PageHeader
+          title="General"
+          description="Manage your workspace name and settings."
+        />
         <div className="mt-8 space-y-6">
           <WorkspaceNameCard name={workspace.name} />
           <DeleteWorkspaceCard workspaceName={workspace.name} />

@@ -14,6 +14,7 @@ import {
   ItemCardItemTitle,
 } from '~/components/item-card'
 import { Button } from '~/components/ui/button'
+import { PageHeader } from '~/components/ui/page-header'
 import { Skeleton } from '~/components/ui/skeleton'
 
 type SessionWithActivitiesResource = Awaited<
@@ -81,9 +82,10 @@ function SecurityPage() {
 
   return (
     <div className="mx-auto flex w-full max-w-3xl flex-1 flex-col px-10 py-16">
-      <header>
-        <h1 className="text-3xl font-semibold">Security & access</h1>
-      </header>
+      <PageHeader
+        title="Security & access"
+        description="Manage your sessions and security settings."
+      />
       <div className="mt-8 space-y-6">
         <div>
           <h2 className="text-lg font-medium">Sessions</h2>

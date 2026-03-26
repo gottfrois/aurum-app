@@ -40,7 +40,10 @@ function HotkeyDisplay({
   return (
     <KbdGroup className={className}>
       {formatted.keys.map((combination, i) => (
-        <span key={i} className="inline-flex items-center gap-0.5">
+        <span
+          key={combination.join('+')}
+          className="inline-flex items-center gap-0.5"
+        >
           {i > 0 && (
             <span className="mx-0.5 text-xs text-muted-foreground">then</span>
           )}

@@ -171,9 +171,8 @@ function EnumInput({
                 keywords={[opt.label]}
                 onSelect={() => selectOnly(opt.value)}
               >
-                <div
-                  role="checkbox"
-                  aria-checked={selected}
+                <span
+                  aria-hidden="true"
                   onClick={(e) => {
                     e.stopPropagation()
                     toggle(opt.value)
@@ -186,7 +185,7 @@ function EnumInput({
                   )}
                 >
                   {selected && <Check className="size-3" />}
-                </div>
+                </span>
                 {opt.color && (
                   <span
                     className="size-2.5 shrink-0 rounded-full"

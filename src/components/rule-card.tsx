@@ -14,6 +14,7 @@ import {
   PopoverTrigger,
 } from '~/components/ui/popover'
 import { SortableItemHandle } from '~/components/ui/sortable'
+import { Switch } from '~/components/ui/switch'
 import type { Doc, Id } from '../../convex/_generated/dataModel'
 
 interface RuleCardProps {
@@ -24,6 +25,7 @@ interface RuleCardProps {
   dragDisabled: boolean
   onEdit: () => void
   onDelete: () => void
+  onToggle: (enabled: boolean) => void
 }
 
 export function RuleCard({
@@ -34,6 +36,7 @@ export function RuleCard({
   dragDisabled,
   onEdit,
   onDelete,
+  onToggle,
 }: RuleCardProps) {
   const category = rule.categoryKey
     ? categoryMap.get(rule.categoryKey)
@@ -46,7 +49,13 @@ export function RuleCard({
   const patternDisplay = isRegex ? `/${rule.pattern}/` : `"${rule.pattern}"`
   const matchVerb = isRegex ? 'matches' : 'contains'
 
-  const actions = buildActions(category, ruleLabels, rule.excludeFromBudget)
+  const actions = buildActions(
+    category,
+    ruleLabels,
+    rule.excludeFromBudget,
+    rule.customDescription,
+  )
+  const isEnabled = rule.enabled !== false
 
   return (
     <div className="flex gap-3 rounded-lg border bg-card p-3">
@@ -60,7 +69,7 @@ export function RuleCard({
         {index + 1}
       </span>
 
-      <div className="min-w-0 flex-1">
+      <div className={`min-w-0 flex-1 ${!isEnabled ? 'opacity-50' : ''}`}>
         <div className="flex flex-wrap items-center gap-1.5">
           <span className="text-muted-foreground">When transaction</span>
           <Badge variant="outline" className="rounded-md text-xs">
@@ -89,6 +98,12 @@ export function RuleCard({
           </div>
         )}
       </div>
+
+      <Switch
+        checked={isEnabled}
+        onCheckedChange={onToggle}
+        className="shrink-0 self-center"
+      />
 
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
@@ -121,6 +136,7 @@ function buildActions(
   category: Doc<'transactionCategories'> | undefined,
   labels: Doc<'transactionLabels'>[],
   excludeFromBudget: boolean | undefined,
+  customDescription: string | undefined,
 ): RuleAction[] {
   const actions: RuleAction[] = []
 
@@ -175,6 +191,18 @@ function buildActions(
       element: (
         <Badge variant="outline" className="rounded-md">
           Budget
+        </Badge>
+      ),
+    })
+  }
+
+  if (customDescription) {
+    actions.push({
+      key: 'description',
+      connector: 'change description to',
+      element: (
+        <Badge variant="outline" className="rounded-md">
+          {customDescription}
         </Badge>
       ),
     })

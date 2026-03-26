@@ -1,4 +1,4 @@
-import { createFileRoute, Outlet, useNavigate } from '@tanstack/react-router'
+import { createFileRoute, Outlet } from '@tanstack/react-router'
 import { useQuery } from 'convex/react'
 import * as React from 'react'
 import { AddConnectionDialog } from '~/components/add-connection-dialog'
@@ -58,7 +58,6 @@ function AppCommands() {
 
 function AppLayout() {
   const subscription = useQuery(api.billing.getSubscriptionStatus)
-  const navigate = useNavigate()
 
   React.useEffect(() => {
     // subscription is undefined while loading — do nothing
@@ -69,7 +68,7 @@ function AppLayout() {
     // if (!subscription.isActive) {
     //   void navigate({ to: '/checkout' })
     // }
-  }, [subscription, navigate])
+  }, [subscription])
 
   return (
     <CommandProvider>

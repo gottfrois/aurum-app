@@ -1,17 +1,15 @@
 import { createFileRoute } from '@tanstack/react-router'
 import { useQuery } from 'convex/react'
-import { format, subMonths } from 'date-fns'
 import { ArrowLeftRight } from 'lucide-react'
 import * as React from 'react'
 import type { CashFlowData } from '~/components/cash-flow-chart'
 import { CashFlowChart } from '~/components/cash-flow-chart'
 import { CategoryPieChart } from '~/components/category-pie-chart'
 import { useAIFilterListener } from '~/components/command-palette'
-import { DateRangePickerDropdown } from '~/components/date-range-picker-dropdown'
 import { ActiveFilters, FilterActions } from '~/components/filters/filter-bar'
+import { PeriodNavigator } from '~/components/period-navigator'
 import { SankeyChart } from '~/components/sankey-chart'
 import { SiteHeader } from '~/components/site-header'
-import { TimelineBrush } from '~/components/timeline-brush'
 import type { TransactionRow } from '~/components/transactions-list'
 import { TransactionsList } from '~/components/transactions-list'
 import { Card, CardContent, CardHeader } from '~/components/ui/card'
@@ -71,6 +69,7 @@ interface TransactionRecord {
   counterparty?: string
   card?: string
   comment?: string
+  customDescription?: string
   encryptedData?: string
 }
 
@@ -104,40 +103,18 @@ function TransactionsContent() {
 
   const workspaceId = portfolios?.[0]?.workspaceId ?? null
 
-  const { start, end, range, setRange } = useDateRange()
+  const {
+    start,
+    end,
+    range,
+    activePeriod,
+    canGoNext,
+    selectPeriod,
+    setCustomRange,
+    goPrev,
+    goNext,
+  } = useDateRange()
   const { categories, getCategory } = useCategories()
-
-  // Volume data for the brush background (12-month viewport)
-  const volumeViewportStart = React.useMemo(
-    () => format(subMonths(new Date(), 12), 'yyyy-MM-dd'),
-    [],
-  )
-  const volumeViewportEnd = React.useMemo(
-    () => format(new Date(), 'yyyy-MM-dd'),
-    [],
-  )
-
-  const volumeSingle = useQuery(
-    api.transactions.getTransactionVolume,
-    singlePortfolioId
-      ? {
-          portfolioId: singlePortfolioId,
-          startDate: volumeViewportStart,
-          endDate: volumeViewportEnd,
-        }
-      : 'skip',
-  )
-  const volumeAll = useQuery(
-    api.transactions.getTransactionVolumeAllPortfolios,
-    isAllPortfolios && allPortfolioIds.length > 0
-      ? {
-          portfolioIds: allPortfolioIds,
-          startDate: volumeViewportStart,
-          endDate: volumeViewportEnd,
-        }
-      : 'skip',
-  )
-  const volumeData = isAllPortfolios ? volumeAll : volumeSingle
 
   const transactionsSingle = useQuery(
     api.transactions.listTransactionsByPortfolio,
@@ -463,6 +440,7 @@ function TransactionsContent() {
       counterparty: t.counterparty,
       card: t.card,
       comment: t.comment,
+      customDescription: t.customDescription,
       accountName: accountNameMap.get(t.bankAccountId),
       accountNumber: accountNumberMap.get(t.bankAccountId),
     }))
@@ -473,11 +451,8 @@ function TransactionsContent() {
       <>
         <div className="flex flex-col border-b">
           <div className="flex flex-wrap items-center gap-3 px-4 py-3 lg:px-6">
-            <Skeleton className="h-9 w-56" />
-            <Skeleton className="h-9 w-24" />
-          </div>
-          <div className="px-4 pb-3 lg:px-6">
-            <Skeleton className="h-10 w-full" />
+            <Skeleton className="h-8 w-72" />
+            <Skeleton className="h-8 w-24" />
           </div>
         </div>
         <div className="flex flex-col gap-4 p-4 md:gap-6 md:p-6">
@@ -520,18 +495,15 @@ function TransactionsContent() {
       <>
         <div className="flex flex-col border-b">
           <div className="flex flex-wrap items-center gap-3 px-4 py-3 lg:px-6">
-            <DateRangePickerDropdown
+            <PeriodNavigator
               start={start}
               end={end}
-              onRangeChange={setRange}
-            />
-          </div>
-          <div className="px-4 pb-3 lg:px-6">
-            <TimelineBrush
-              start={start}
-              end={end}
-              onRangeChange={setRange}
-              volumeData={volumeData ?? undefined}
+              activePeriod={activePeriod}
+              canGoNext={canGoNext}
+              onSelectPeriod={selectPeriod}
+              onCustomRange={setCustomRange}
+              onPrev={goPrev}
+              onNext={goNext}
             />
           </div>
         </div>
@@ -557,10 +529,15 @@ function TransactionsContent() {
     <>
       <div className="flex flex-col border-b">
         <div className="flex flex-wrap items-center gap-3 px-4 py-3 lg:px-6">
-          <DateRangePickerDropdown
+          <PeriodNavigator
             start={start}
             end={end}
-            onRangeChange={setRange}
+            activePeriod={activePeriod}
+            canGoNext={canGoNext}
+            onSelectPeriod={selectPeriod}
+            onCustomRange={setCustomRange}
+            onPrev={goPrev}
+            onNext={goNext}
           />
           <FilterActions
             config={transactionConfig}
@@ -570,14 +547,6 @@ function TransactionsContent() {
             onRemove={removeCondition}
             onLoadConditions={loadConditions}
             entityType="transactions"
-          />
-        </div>
-        <div className="px-4 pb-3 lg:px-6">
-          <TimelineBrush
-            start={start}
-            end={end}
-            onRangeChange={setRange}
-            volumeData={volumeData ?? undefined}
           />
         </div>
       </div>

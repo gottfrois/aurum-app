@@ -15,6 +15,7 @@ import {
 import { RequireOwner } from '~/components/require-owner'
 import { Badge } from '~/components/ui/badge'
 import { Button } from '~/components/ui/button'
+import { PageHeader } from '~/components/ui/page-header'
 import { Skeleton } from '~/components/ui/skeleton'
 import { api } from '../../../convex/_generated/api'
 import { PLANS } from '../../../convex/stripe'
@@ -95,22 +96,23 @@ function BillingPage() {
   return (
     <RequireOwner>
       <div className="mx-auto flex w-full max-w-3xl flex-1 flex-col px-10 py-16">
-        <header className="flex items-center justify-between">
-          <h1 className="text-3xl font-semibold">Billing</h1>
-          {subscription.isActive && (
-            <button
-              onClick={handleManageSubscription}
-              disabled={portalLoading}
-              className="inline-flex items-center gap-1.5 text-sm text-muted-foreground transition-colors hover:text-foreground"
-            >
-              {portalLoading ? 'Loading...' : 'Manage subscription'}
-              <ExternalLink className="size-3.5" />
-            </button>
-          )}
-        </header>
-        <p className="mt-1 text-sm text-muted-foreground">
-          Manage your plan and billing
-        </p>
+        <PageHeader
+          title="Billing"
+          description="Manage your plan and billing"
+          action={
+            subscription.isActive && (
+              <button
+                type="button"
+                onClick={handleManageSubscription}
+                disabled={portalLoading}
+                className="inline-flex items-center gap-1.5 text-sm text-muted-foreground transition-colors hover:text-foreground"
+              >
+                {portalLoading ? 'Loading...' : 'Manage subscription'}
+                <ExternalLink className="size-3.5" />
+              </button>
+            )
+          }
+        />
 
         <div className="mt-8 space-y-6">
           {subscription.isActive ? (
@@ -219,6 +221,7 @@ function BillingPage() {
               </ItemCardItems>
               <ItemCardFooter>
                 <button
+                  type="button"
                   onClick={handleManageSubscription}
                   disabled={portalLoading}
                   className="inline-flex items-center gap-1.5 text-sm text-muted-foreground transition-colors hover:text-foreground"

@@ -9,6 +9,7 @@ import {
   ItemCardItems,
   ItemCardItemTitle,
 } from '~/components/item-card'
+import { PageHeader } from '~/components/ui/page-header'
 import {
   Select,
   SelectContent,
@@ -32,9 +33,10 @@ function PreferencesPage() {
 
   return (
     <div className="max-w-3xl flex-1 w-full mx-auto px-10 py-16 flex flex-col">
-      <header>
-        <h1 className="text-3xl font-semibold">Preferences</h1>
-      </header>
+      <PageHeader
+        title="Preferences"
+        description="Customize how Bunkr looks and feels."
+      />
       <div className="space-y-6 mt-8">
         <ItemCard>
           <ItemCardItems>

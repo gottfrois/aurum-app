@@ -372,6 +372,66 @@ export const batchUpdateTransactionCategories = mutation({
   },
 })
 
+export const updateTransactionDetails = mutation({
+  args: {
+    transactionId: v.id('transactions'),
+    encryptedDetails: v.string(),
+  },
+  handler: async (ctx, args) => {
+    const userId = await requireAuthUserId(ctx)
+
+    const transaction = await ctx.db.get('transactions', args.transactionId)
+    if (!transaction) throw new Error('Transaction not found')
+
+    const portfolio = await ctx.db.get('portfolios', transaction.portfolioId)
+    if (!portfolio) throw new Error('Portfolio not found')
+
+    const member = await ctx.db
+      .query('workspaceMembers')
+      .withIndex('by_userId', (q) => q.eq('userId', userId))
+      .first()
+    if (!member || member.workspaceId !== portfolio.workspaceId) {
+      throw new Error('Not authorized')
+    }
+
+    await ctx.db.patch('transactions', args.transactionId, {
+      encryptedDetails: args.encryptedDetails,
+    })
+  },
+})
+
+export const batchUpdateTransactionDetails = mutation({
+  args: {
+    items: v.array(
+      v.object({
+        transactionId: v.id('transactions'),
+        encryptedDetails: v.string(),
+      }),
+    ),
+  },
+  handler: async (ctx, args) => {
+    const userId = await requireAuthUserId(ctx)
+
+    const member = await ctx.db
+      .query('workspaceMembers')
+      .withIndex('by_userId', (q) => q.eq('userId', userId))
+      .first()
+    if (!member) throw new Error('Not authorized')
+
+    for (const item of args.items) {
+      const transaction = await ctx.db.get('transactions', item.transactionId)
+      if (!transaction) continue
+
+      const portfolio = await ctx.db.get('portfolios', transaction.portfolioId)
+      if (!portfolio || portfolio.workspaceId !== member.workspaceId) continue
+
+      await ctx.db.patch('transactions', item.transactionId, {
+        encryptedDetails: item.encryptedDetails,
+      })
+    }
+  },
+})
+
 export const updateTransactionCategory = mutation({
   args: {
     transactionId: v.id('transactions'),

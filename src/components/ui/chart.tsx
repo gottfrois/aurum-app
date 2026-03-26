@@ -78,6 +78,7 @@ const ChartStyle = ({ id, config }: { id: string; config: ChartConfig }) => {
 
   return (
     <style
+      // biome-ignore lint/security/noDangerouslySetInnerHtml: shadcn chart component injects dynamic CSS variables for theme colors
       dangerouslySetInnerHTML={{
         __html: Object.entries(THEMES)
           .map(

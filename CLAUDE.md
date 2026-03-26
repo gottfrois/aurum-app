@@ -92,6 +92,10 @@ The app uses a centralized command system (`src/lib/commands.ts`, `src/hooks/use
 - **Register commands via `useCommand()`** when an action should be discoverable in the command palette (Cmd+K). Define the command in `COMMAND_DEFINITIONS` in `src/lib/commands.ts` with its metadata (label, group, icon, hotkey), then call `useCommand('command.id', { handler })` in the component that owns the action.
 - **Dropdown menu items should not have icons** — keep them text-only for visual consistency.
 
+## Storybook
+
+When creating or modifying reusable components in `src/components/`, add or update a corresponding Storybook story in `src/components/stories/`. Stories should cover the main variants and states of the component. Use the existing stories as reference for patterns (decorators, mock data, context providers). Stories are organized by category: `Data Display`, `Charts`, `Forms`, `Navigation`, `Feedback`, `Overlays`, `Elements`.
+
 ## Dialog Conventions
 
 All dialogs must follow these patterns for consistency:

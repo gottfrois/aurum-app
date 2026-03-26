@@ -59,6 +59,7 @@ export function FilterChip({
       <Popover open={operatorOpen} onOpenChange={setOperatorOpen}>
         <PopoverTrigger asChild>
           <button
+            type="button"
             className={`${segmentBase} ${segmentInteractive} text-muted-foreground`}
           >
             {operatorLabel}
@@ -123,6 +124,7 @@ export function FilterChip({
         <Popover open={valueOpen} onOpenChange={setValueOpen}>
           <PopoverTrigger asChild>
             <button
+              type="button"
               className={`${segmentBase} ${segmentInteractive} max-w-[200px] font-medium`}
             >
               {valueLabel ? (
@@ -146,6 +148,7 @@ export function FilterChip({
 
       {/* Segment 4: Remove */}
       <button
+        type="button"
         className={`${segmentBase} ${segmentInteractive} text-muted-foreground`}
         onClick={onRemove}
       >

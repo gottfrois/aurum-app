@@ -49,7 +49,7 @@ export function SiteHeader({
               {breadcrumbs.map((item, index) => {
                 const isLast = index === breadcrumbs.length - 1
                 return (
-                  <React.Fragment key={index}>
+                  <React.Fragment key={item.href ?? item.label}>
                     {index > 0 && <BreadcrumbSeparator />}
                     <BreadcrumbItemUI>
                       {isLast ? (
@@ -113,6 +113,7 @@ function EncryptionStatusButton({ onLock }: { onLock: () => void }) {
         <Tooltip>
           <TooltipTrigger asChild>
             <button
+              type="button"
               onClick={onLock}
               className="inline-flex items-center rounded-r-md px-2 py-1.5 text-foreground transition-colors hover:bg-accent"
               aria-label="Lock vault"

@@ -1,5 +1,3 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
-
 import {
   DndContext,
   type DragEndEvent,
@@ -36,7 +34,6 @@ import {
   createContext,
   type HTMLAttributes,
   isValidElement,
-  type ReactElement,
   type ReactNode,
   useCallback,
   useContext,
@@ -196,10 +193,13 @@ function Sortable<T>({
     if (!activeId) return null
     let result: ReactNode = null
     Children.forEach(children, (child) => {
-      if (isValidElement(child) && (child.props as any).value === activeId) {
-        result = cloneElement(child as ReactElement<any>, {
-          ...(child.props as any),
-          className: cn((child.props as any).className, 'z-50'),
+      if (
+        isValidElement<SortableItemProps>(child) &&
+        child.props.value === activeId
+      ) {
+        result = cloneElement(child, {
+          ...child.props,
+          className: cn(child.props.className, 'z-50'),
         })
       }
     })

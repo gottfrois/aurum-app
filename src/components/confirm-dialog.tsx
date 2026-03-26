@@ -53,17 +53,20 @@ export function ConfirmDialog({
     setTimeout(() => setCopied(false), 1500)
   }
 
-  function handleOpenChange(nextOpen: boolean) {
-    if (!nextOpen) {
-      setInputValue('')
-      setCopied(false)
-    }
-    onOpenChange(nextOpen)
-  }
+  const handleOpenChange = useCallback(
+    (nextOpen: boolean) => {
+      if (!nextOpen) {
+        setInputValue('')
+        setCopied(false)
+      }
+      onOpenChange(nextOpen)
+    },
+    [onOpenChange],
+  )
 
   const handleCancel = useCallback(() => {
     handleOpenChange(false)
-  }, [])
+  }, [handleOpenChange])
 
   const handleConfirm = useCallback(() => {
     if (!loading && isConfirmed) {
@@ -122,13 +125,13 @@ export function ConfirmDialog({
           <AlertDialogAction
             variant="destructive"
             disabled={loading || !isConfirmed}
+            loading={loading}
             onClick={(e) => {
               e.preventDefault()
               onConfirm()
             }}
           >
-            {loading ? `${confirmLabel}...` : confirmLabel}{' '}
-            <HotkeyDisplay hotkey={{ keys: 'mod+enter' }} />
+            {confirmLabel} <HotkeyDisplay hotkey={{ keys: 'mod+enter' }} />
           </AlertDialogAction>
         </AlertDialogFooter>
       </AlertDialogContent>

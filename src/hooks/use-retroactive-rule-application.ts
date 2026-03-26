@@ -27,6 +27,9 @@ export function useRetroactiveRuleApplication() {
   const batchUpdateExclusion = useMutation(
     api.transactions.batchUpdateTransactionExclusion,
   )
+  const batchUpdateDetails = useMutation(
+    api.transactions.batchUpdateTransactionDetails,
+  )
 
   const apply = useCallback(
     async (params: {
@@ -35,6 +38,7 @@ export function useRetroactiveRuleApplication() {
       categoryKey?: string
       excludeFromBudget?: boolean
       labelIds?: string[]
+      customDescription?: string
     }) => {
       if (!privateKey || !workspacePublicKey) {
         bulkOp?.setError('Encryption not unlocked')
@@ -79,6 +83,10 @@ export function useRetroactiveRuleApplication() {
         const categoryItems: Array<{
           transactionId: (typeof transactions)[number]['_id']
           encryptedCategories: string
+        }> = []
+        const detailItems: Array<{
+          transactionId: (typeof transactions)[number]['_id']
+          encryptedDetails: string
         }> = []
         const exclusionIds: Array<(typeof transactions)[number]['_id']> = []
         const labelIds: Array<(typeof transactions)[number]['_id']> = []
@@ -128,6 +136,24 @@ export function useRetroactiveRuleApplication() {
               }
             }
 
+            // Apply custom description action
+            if (params.customDescription && !details.customDescription) {
+              const newDetails = {
+                ...details,
+                customDescription: params.customDescription,
+              }
+              const encrypted = await encryptData(
+                newDetails,
+                pubKey,
+                txn._id,
+                'encryptedDetails',
+              )
+              detailItems.push({
+                transactionId: txn._id,
+                encryptedDetails: encrypted,
+              })
+            }
+
             // Apply exclusion action
             if (params.excludeFromBudget && !txn.excludedFromBudget) {
               exclusionIds.push(txn._id)
@@ -146,6 +172,16 @@ export function useRetroactiveRuleApplication() {
           try {
             await batchUpdateCategories({ items: categoryItems })
             updated += categoryItems.length
+          } catch {
+            bulkOp?.setError('Failed to save batch')
+            return
+          }
+        }
+
+        if (detailItems.length > 0) {
+          try {
+            await batchUpdateDetails({ items: detailItems })
+            updated += detailItems.length
           } catch {
             bulkOp?.setError('Failed to save batch')
             return
@@ -196,6 +232,7 @@ export function useRetroactiveRuleApplication() {
       bulkOp,
       convex,
       batchUpdateCategories,
+      batchUpdateDetails,
       batchUpdateExclusion,
       batchUpdateLabels,
     ],

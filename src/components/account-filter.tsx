@@ -48,6 +48,7 @@ export function AccountFilter({
             const isSelected = selected.has(acct.id)
             return (
               <button
+                type="button"
                 key={acct.id}
                 className="flex items-center gap-2 rounded-sm px-2 py-1.5 text-sm hover:bg-accent"
                 onClick={() => {
@@ -80,6 +81,7 @@ export function AccountFilter({
             <>
               <Separator className="my-1" />
               <button
+                type="button"
                 className="px-2 py-1.5 text-sm text-muted-foreground hover:text-foreground"
                 onClick={() => onChange(new Set())}
               >

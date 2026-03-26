@@ -287,9 +287,11 @@ export function useDecryptRecords<
     prevRef.current = { records, key: privateKey }
 
     let cancelled = false
+    const key = privateKey
+    const recs = records
     async function run() {
       const results = await Promise.all(
-        records!.map(async (r) => {
+        recs.map(async (r) => {
           let result = r
 
           // Single-blob encrypted fields (connections, balance snapshots)
@@ -297,7 +299,7 @@ export function useDecryptRecords<
             try {
               const data = useWorkers
                 ? await decryptViaWorker(r.encryptedData, r._id)
-                : await decryptData(r.encryptedData, privateKey!, r._id)
+                : await decryptData(r.encryptedData, key, r._id)
               result = { ...result, ...data }
             } catch {
               // keep original
@@ -307,11 +309,7 @@ export function useDecryptRecords<
             try {
               const data = useWorkers
                 ? await decryptViaWorker(r.connectionEncryptedData, r._id)
-                : await decryptData(
-                    r.connectionEncryptedData,
-                    privateKey!,
-                    r._id,
-                  )
+                : await decryptData(r.connectionEncryptedData, key, r._id)
               result = { ...result, ...data }
             } catch {
               // keep original
@@ -330,11 +328,7 @@ export function useDecryptRecords<
             try {
               const data = useWorkers
                 ? await decryptFieldGroupsViaWorker(fieldGroupEntries, r._id)
-                : await decryptFieldGroups(
-                    fieldGroupEntries,
-                    privateKey!,
-                    r._id,
-                  )
+                : await decryptFieldGroups(fieldGroupEntries, key, r._id)
               result = { ...result, ...data }
             } catch {
               // keep original
@@ -350,14 +344,7 @@ export function useDecryptRecords<
     return () => {
       cancelled = true
     }
-  }, [
-    records,
-    privateKey,
-    isEncryptionEnabled,
-    isLoading,
-    useWorkers,
-    workerKeyJwk,
-  ])
+  }, [records, privateKey, isEncryptionEnabled, isLoading, useWorkers])
 
   return decrypted
 }

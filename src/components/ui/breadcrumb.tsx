@@ -51,11 +51,13 @@ function BreadcrumbLink({
 
 function BreadcrumbPage({ className, ...props }: React.ComponentProps<'span'>) {
   return (
+    // biome-ignore lint/a11y/useSemanticElements: shadcn breadcrumb component uses role="link" with aria-disabled for the current page indicator per WAI-ARIA breadcrumb pattern
     <span
       data-slot="breadcrumb-page"
       role="link"
       aria-disabled="true"
       aria-current="page"
+      tabIndex={0}
       className={cn('font-normal text-foreground', className)}
       {...props}
     />

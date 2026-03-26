@@ -182,14 +182,14 @@ export function CategoryPieChart({
                 <button
                   key={entry.key}
                   type="button"
-                  className="-mx-1 flex w-full items-center gap-3 rounded-md px-1 py-0.5 hover:bg-accent"
+                  className="flex w-full cursor-pointer items-center gap-3"
                   onClick={() => onCategoryClick(entry.key)}
                 >
                   <div
                     className="size-3 shrink-0 rounded-sm"
                     style={{ backgroundColor: entry.color }}
                   />
-                  <span className="flex-1 text-left font-medium">
+                  <span className="flex-1 text-left font-medium hover:underline">
                     {entry.label}
                   </span>
                   <span className="font-mono tabular-nums text-muted-foreground">

@@ -25,6 +25,7 @@ import {
   EmptyMedia,
   EmptyTitle,
 } from '~/components/ui/empty'
+import { PageHeader } from '~/components/ui/page-header'
 import {
   Select,
   SelectContent,
@@ -81,12 +82,10 @@ function TeamSettingsPage() {
   return (
     <RequireOwner>
       <div className="mx-auto flex w-full max-w-3xl flex-1 flex-col px-10 py-16">
-        <header>
-          <h1 className="text-3xl font-semibold">Team</h1>
-          <p className="mt-1 text-sm text-muted-foreground">
-            Control what each member can see in the team dashboard.
-          </p>
-        </header>
+        <PageHeader
+          title="Team"
+          description="Control what each member can see in the team dashboard."
+        />
         <div className="mt-8 space-y-6">
           <RequireTeamPlan fallback={<UpgradePrompt />}>
             <TeamPermissions />

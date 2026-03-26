@@ -99,6 +99,7 @@ const DEFAULT_CATEGORIES = [
 export const listCategories = query({
   args: {
     portfolioId: v.optional(v.id('portfolios')),
+    includeAllPortfolios: v.optional(v.boolean()),
   },
   handler: async (ctx, args) => {
     const userId = await getAuthUserId(ctx)
@@ -116,6 +117,10 @@ export const listCategories = query({
         q.eq('workspaceId', member.workspaceId),
       )
       .collect()
+
+    if (args.includeAllPortfolios) {
+      return all
+    }
 
     if (!args.portfolioId) {
       return all.filter((c) => !c.portfolioId)

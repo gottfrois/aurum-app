@@ -37,6 +37,7 @@ import {
 import { Input } from '~/components/ui/input'
 import { HotkeyDisplay, Kbd } from '~/components/ui/kbd'
 import { Label } from '~/components/ui/label'
+import { PageHeader } from '~/components/ui/page-header'
 import {
   Select,
   SelectContent,
@@ -174,9 +175,10 @@ function PortfoliosPage() {
     <>
       <SiteHeader title="Manage Portfolios" />
       <div className="mx-auto w-full max-w-3xl flex-1 px-10 py-16">
-        <header>
-          <h1 className="text-3xl font-semibold">Your portfolios</h1>
-        </header>
+        <PageHeader
+          title="Your portfolios"
+          description="Organize your accounts into separate portfolios for tracking."
+        />
         <div className="mt-8 space-y-6">
           <ItemCard>
             <ItemCardHeader>

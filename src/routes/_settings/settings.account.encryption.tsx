@@ -26,6 +26,7 @@ import {
 } from '~/components/ui/dialog'
 import { Input } from '~/components/ui/input'
 import { HotkeyDisplay, Kbd } from '~/components/ui/kbd'
+import { PageHeader } from '~/components/ui/page-header'
 import { Skeleton } from '~/components/ui/skeleton'
 import { useEncryption } from '~/contexts/encryption-context'
 import { usePortfolio } from '~/contexts/portfolio-context'
@@ -74,9 +75,10 @@ function EncryptionPage() {
 
   return (
     <div className="mx-auto flex w-full max-w-3xl flex-1 flex-col px-10 py-16">
-      <header>
-        <h1 className="text-3xl font-semibold">Encryption</h1>
-      </header>
+      <PageHeader
+        title="Encryption"
+        description="Manage zero-knowledge encryption for your financial data."
+      />
       <div className="mt-8 space-y-6">
         <div>
           <h2 className="text-lg font-medium">Zero-knowledge encryption</h2>
@@ -283,7 +285,7 @@ function KeyRotationDialog({
       for (const conn of encryptedConnections) {
         if (isCancelled()) break
         const data = await decryptData(
-          conn.encryptedData!,
+          conn.encryptedData as string,
           privateKey,
           conn._id,
         )
@@ -333,7 +335,7 @@ function KeyRotationDialog({
         const items = await Promise.all(
           chunk.map(async (snap) => {
             const data = await decryptData(
-              snap.encryptedData!,
+              snap.encryptedData as string,
               privateKey,
               snap._id,
             )
@@ -492,10 +494,14 @@ function KeyRotationDialog({
                 </AlertDescription>
               </Alert>
               <div className="space-y-2">
-                <label className="text-sm font-medium">
+                <label
+                  htmlFor="rotation-passphrase"
+                  className="text-sm font-medium"
+                >
                   Enter your passphrase
                 </label>
                 <Input
+                  id="rotation-passphrase"
                   type="password"
                   placeholder="Your encryption passphrase"
                   value={passphrase}

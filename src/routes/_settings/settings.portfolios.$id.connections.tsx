@@ -19,6 +19,7 @@ import {
   EmptyMedia,
   EmptyTitle,
 } from '~/components/ui/empty'
+import { PageHeader } from '~/components/ui/page-header'
 import { Skeleton } from '~/components/ui/skeleton'
 import { useCachedDecryptRecords } from '~/hooks/use-cached-decrypt'
 import { api } from '../../../convex/_generated/api'
@@ -44,9 +45,10 @@ function PortfolioConnectionsPage() {
 
   return (
     <div className="mx-auto flex w-full max-w-3xl flex-1 flex-col px-10 py-16">
-      <header>
-        <h1 className="text-3xl font-semibold">Connections</h1>
-      </header>
+      <PageHeader
+        title="Connections"
+        description="Bank connections linked to this portfolio."
+      />
       <div className="mt-8 space-y-6">
         <ConnectionsList connections={connections} />
       </div>

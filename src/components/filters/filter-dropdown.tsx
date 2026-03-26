@@ -389,6 +389,7 @@ function SubPanel({
   }
 
   return (
+    // biome-ignore lint/a11y/noStaticElementInteractions: mouse enter/leave on this container is used for hover-based submenu behavior, not for interactive actions
     <div
       className={`absolute ${positionClass} z-50 w-[280px] rounded-md border bg-popover shadow-md`}
       style={{ top }}

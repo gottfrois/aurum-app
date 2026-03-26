@@ -52,12 +52,14 @@ export function SavedViews({ entityType, onLoadConditions }: SavedViewsProps) {
             {views.map((view) => (
               <div key={view._id} className="flex items-center gap-1">
                 <button
+                  type="button"
                   className="flex-1 truncate rounded-sm px-2 py-1.5 text-left text-sm hover:bg-accent"
                   onClick={() => handleLoad(view.filters)}
                 >
                   {view.name}
                 </button>
                 <button
+                  type="button"
                   className="rounded-sm p-1 text-muted-foreground hover:bg-destructive/10 hover:text-destructive"
                   onClick={() => handleDelete(view._id)}
                 >

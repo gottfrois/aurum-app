@@ -11,6 +11,7 @@ import {
   ItemCardItemTitle,
 } from '~/components/item-card'
 import { Input } from '~/components/ui/input'
+import { PageHeader } from '~/components/ui/page-header'
 import { Skeleton } from '~/components/ui/skeleton'
 import { api } from '../../../convex/_generated/api'
 import type { Id } from '../../../convex/_generated/dataModel'
@@ -42,9 +43,10 @@ function PortfolioGeneralPage() {
 
   return (
     <div className="mx-auto flex w-full max-w-3xl flex-1 flex-col px-10 py-16">
-      <header>
-        <h1 className="text-3xl font-semibold">General</h1>
-      </header>
+      <PageHeader
+        title="General"
+        description="Portfolio name and general settings."
+      />
       <div className="mt-8 space-y-6">
         <PortfolioNameCard portfolioId={portfolio._id} name={portfolio.name} />
       </div>

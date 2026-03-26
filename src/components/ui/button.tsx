@@ -53,7 +53,9 @@ function Button({
     asChild?: boolean
     loading?: boolean
   }) {
-  const Comp = asChild ? Slot.Root : 'button'
+  // When loading, always render as a plain element — Slot requires a single
+  // child and the loading overlay produces two, so asChild is incompatible.
+  const Comp = asChild && !loading ? Slot.Root : 'button'
 
   return (
     <Comp

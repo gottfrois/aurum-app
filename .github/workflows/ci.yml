@@ -25,6 +25,9 @@ jobs:
       - run: npm ci
       - run: npm rebuild
 
+      - name: Install Playwright browsers
+        run: npx playwright install --with-deps chromium
+
       - name: Typecheck
         run: npm run typecheck
 

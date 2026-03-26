@@ -77,7 +77,7 @@ function cond(
 
 describe('createTransactionFilterConfig', () => {
   it('produces correct number of fields', () => {
-    expect(config.fields).toHaveLength(10)
+    expect(config.fields).toHaveLength(11)
   })
 
   it('has all fields in fieldMap', () => {
@@ -89,28 +89,30 @@ describe('createTransactionFilterConfig', () => {
 
 describe('virtual field accessors', () => {
   it('flow: derives income/expense from value', () => {
-    const flowField = config.fieldMap.get('flow')!
+    const flowField = config.fieldMap.get('flow')
+    expect(flowField).toBeDefined()
     expect(
-      flowField.accessor(
+      flowField?.accessor(
         sampleTransactions[0] as unknown as Record<string, unknown>,
       ),
     ).toBe('expense')
     expect(
-      flowField.accessor(
+      flowField?.accessor(
         sampleTransactions[1] as unknown as Record<string, unknown>,
       ),
     ).toBe('income')
   })
 
   it('status: derives pending/completed from coming', () => {
-    const statusField = config.fieldMap.get('status')!
+    const statusField = config.fieldMap.get('status')
+    expect(statusField).toBeDefined()
     expect(
-      statusField.accessor(
+      statusField?.accessor(
         sampleTransactions[0] as unknown as Record<string, unknown>,
       ),
     ).toBe('completed')
     expect(
-      statusField.accessor(
+      statusField?.accessor(
         sampleTransactions[2] as unknown as Record<string, unknown>,
       ),
     ).toBe('pending')

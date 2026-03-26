@@ -22,6 +22,7 @@ import {
 } from '~/components/item-card'
 import { PortfolioAvatar } from '~/components/portfolio-avatar'
 import { Button } from '~/components/ui/button'
+import { PageHeader } from '~/components/ui/page-header'
 import { Skeleton } from '~/components/ui/skeleton'
 import { api } from '../../../convex/_generated/api'
 import type { Id } from '../../../convex/_generated/dataModel'
@@ -51,10 +52,10 @@ function PortfolioSettingsPage() {
 
   return (
     <div className="mx-auto flex w-full max-w-3xl flex-1 flex-col px-10 py-16">
-      <header className="flex items-center gap-3">
-        <PortfolioAvatar name={portfolio.name} className="size-9" />
-        <h1 className="text-3xl font-semibold">{portfolio.name}</h1>
-      </header>
+      <PageHeader
+        title={portfolio.name}
+        icon={<PortfolioAvatar name={portfolio.name} className="size-9" />}
+      />
       <div className="mt-8 space-y-6">
         <ItemCard>
           <ItemCardItems>
@@ -73,18 +74,18 @@ function PortfolioSettingsPage() {
               subtitle="Manage portfolio connections"
             />
             <NavItem
-              to="/settings/portfolios/$id/labels"
-              params={{ id: portfolio._id }}
-              icon={Sticker}
-              title="Labels"
-              subtitle="Labels available to this portfolio"
-            />
-            <NavItem
               to="/settings/portfolios/$id/categories"
               params={{ id: portfolio._id }}
               icon={Tag}
               title="Categories"
               subtitle="Categories available to this portfolio"
+            />
+            <NavItem
+              to="/settings/portfolios/$id/labels"
+              params={{ id: portfolio._id }}
+              icon={Sticker}
+              title="Labels"
+              subtitle="Labels available to this portfolio"
             />
           </ItemCardItems>
         </ItemCard>

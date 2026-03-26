@@ -17,6 +17,7 @@ import {
   EmptyTitle,
 } from '~/components/ui/empty'
 import { Input } from '~/components/ui/input'
+import { PageHeader } from '~/components/ui/page-header'
 import { ScrollArea } from '~/components/ui/scroll-area'
 import { Skeleton } from '~/components/ui/skeleton'
 import { Sortable, SortableItem } from '~/components/ui/sortable'
@@ -31,14 +32,12 @@ function RulesPage() {
   return (
     <RequireOwner>
       <div className="flex h-full flex-col overflow-hidden px-10 pt-16">
-        <header className="shrink-0">
-          <h1 className="text-3xl font-semibold">Automation Rules</h1>
-          <p className="mt-2 text-sm text-muted-foreground">
-            Rules are processed top-to-bottom. The first matching rule assigns
-            the category. Labels and budget exclusions are applied from all
-            matching rules.
-          </p>
-        </header>
+        <div className="shrink-0">
+          <PageHeader
+            title="Automation Rules"
+            description="Rules are processed top-to-bottom. The first matching rule assigns the category. Labels and budget exclusions are applied from all matching rules."
+          />
+        </div>
         <div className="mt-8 flex min-h-0 flex-1 flex-col">
           <RulesList />
         </div>
@@ -57,6 +56,7 @@ function RulesList() {
   )
   const deleteRule = useMutation(api.transactionRules.deleteRule)
   const reorderRules = useMutation(api.transactionRules.reorderRules)
+  const toggleRule = useMutation(api.transactionRules.toggleRule)
 
   const [createOpen, setCreateOpen] = React.useState(false)
   const [editingRule, setEditingRule] = React.useState<
@@ -66,11 +66,23 @@ function RulesList() {
     Doc<'transactionRules'> | undefined
   >(undefined)
   const [deleting, setDeleting] = React.useState(false)
+  const [pendingEditId, setPendingEditId] = React.useState<string | null>(null)
   const [filter, setFilter] = React.useState('')
   const [localRules, setLocalRules] = React.useState<
     Doc<'transactionRules'>[] | null
   >(null)
   const pendingReorder = React.useRef(false)
+
+  // Open edit dialog once a newly created rule appears in the list
+  React.useEffect(() => {
+    if (pendingEditId && rules) {
+      const created = rules.find((r) => r._id === pendingEditId)
+      if (created) {
+        setPendingEditId(null)
+        setEditingRule(created)
+      }
+    }
+  }, [pendingEditId, rules])
 
   // Sync server rules to local state when no reorder is pending
   React.useEffect(() => {
@@ -105,6 +117,22 @@ function RulesList() {
     } finally {
       setDeleting(false)
     }
+  }
+
+  const handleToggle = (rule: Doc<'transactionRules'>, enabled: boolean) => {
+    setLocalRules((prev) =>
+      (prev ?? rules ?? []).map((r) =>
+        r._id === rule._id ? { ...r, enabled } : r,
+      ),
+    )
+    toggleRule({ ruleId: rule._id, enabled }).catch(() => {
+      toast.error('Failed to toggle rule')
+      setLocalRules((prev) =>
+        (prev ?? rules ?? []).map((r) =>
+          r._id === rule._id ? { ...r, enabled: !enabled } : r,
+        ),
+      )
+    })
   }
 
   const handleReorder = (reordered: Doc<'transactionRules'>[]) => {
@@ -177,6 +205,7 @@ function RulesList() {
                   dragDisabled={isFiltering}
                   onEdit={() => setEditingRule(rule)}
                   onDelete={() => setDeletingRule(rule)}
+                  onToggle={(enabled) => handleToggle(rule, enabled)}
                 />
               </SortableItem>
             ))}
@@ -184,7 +213,11 @@ function RulesList() {
         )}
       </ScrollArea>
 
-      <RuleDialog open={createOpen} onOpenChange={setCreateOpen} />
+      <RuleDialog
+        open={createOpen}
+        onOpenChange={setCreateOpen}
+        onCreated={(ruleId) => setPendingEditId(ruleId)}
+      />
 
       <RuleDialog
         open={!!editingRule}

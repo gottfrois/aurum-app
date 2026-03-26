@@ -30,8 +30,8 @@ import {
   EmptyMedia,
   EmptyTitle,
 } from '~/components/ui/empty'
+import { PageHeader } from '~/components/ui/page-header'
 import { Skeleton } from '~/components/ui/skeleton'
-import { usePortfolio } from '~/contexts/portfolio-context'
 import { useCachedDecryptRecords } from '~/hooks/use-cached-decrypt'
 import { api } from '../../../convex/_generated/api'
 import type { Doc } from '../../../convex/_generated/dataModel'
@@ -49,9 +49,10 @@ export const Route = createFileRoute('/_settings/settings/account/connections')(
 function ConnectionsPage() {
   return (
     <div className="mx-auto flex w-full max-w-3xl flex-1 flex-col px-10 py-16">
-      <header>
-        <h1 className="text-3xl font-semibold">Connections</h1>
-      </header>
+      <PageHeader
+        title="Connections"
+        description="All bank connections across your portfolios."
+      />
       <div className="mt-8 space-y-6">
         <ConnectionsList />
       </div>
@@ -86,40 +87,26 @@ function getConnectionState(state?: string | null): {
 }
 
 function ConnectionsList() {
-  const {
-    isLoading: portfolioLoading,
-    isAllPortfolios,
-    allPortfolioIds,
-    singlePortfolioId,
-  } = usePortfolio()
+  const portfolios = useQuery(api.portfolios.listPortfolios)
+  const portfolioIds = React.useMemo(
+    () => portfolios?.map((p) => p._id) ?? [],
+    [portfolios],
+  )
 
-  const connectionsSingle = useQuery(
-    api.powens.listConnections,
-    singlePortfolioId ? { portfolioId: singlePortfolioId } : 'skip',
-  )
-  const connectionsAll = useQuery(
+  const rawConnections = useQuery(
     api.powens.listAllConnections,
-    isAllPortfolios && allPortfolioIds.length > 0
-      ? { portfolioIds: allPortfolioIds }
-      : 'skip',
+    portfolioIds.length > 0 ? { portfolioIds } : 'skip',
   )
-  const rawConnections = isAllPortfolios ? connectionsAll : connectionsSingle
   const connections = useCachedDecryptRecords('connections', rawConnections) as
     | DecryptedConnection[]
     | undefined
 
-  const bankAccountsSingle = useQuery(
-    api.powens.listBankAccounts,
-    singlePortfolioId ? { portfolioId: singlePortfolioId } : 'skip',
-  )
-  const bankAccountsAll = useQuery(
+  const bankAccounts = useQuery(
     api.powens.listAllBankAccounts,
-    isAllPortfolios && allPortfolioIds.length > 0
-      ? { portfolioIds: allPortfolioIds }
-      : 'skip',
+    portfolioIds.length > 0 ? { portfolioIds } : 'skip',
   )
-  const bankAccounts = isAllPortfolios ? bankAccountsAll : bankAccountsSingle
-  if (portfolioLoading || connections === undefined) {
+
+  if (portfolios === undefined || connections === undefined) {
     return <Skeleton className="h-48 w-full rounded-lg" />
   }
 
@@ -150,36 +137,33 @@ function ConnectionsList() {
   }
 
   return (
-    <>
-      <ItemCard>
-        <ItemCardHeader>
-          <ItemCardHeaderContent>
-            <ItemCardHeaderTitle>
-              {connections.length}{' '}
-              {connections.length === 1 ? 'connection' : 'connections'}
-            </ItemCardHeaderTitle>
-          </ItemCardHeaderContent>
-        </ItemCardHeader>
-        <ItemCardItems>
-          {connections.map((connection) => {
-            const numAccounts =
-              accountCountByConnection.get(connection._id) ?? 0
-            const lastSync = connection.lastSync
-              ? formatRelativeDate(connection.lastSync)
-              : null
+    <ItemCard>
+      <ItemCardHeader>
+        <ItemCardHeaderContent>
+          <ItemCardHeaderTitle>
+            {connections.length}{' '}
+            {connections.length === 1 ? 'connection' : 'connections'}
+          </ItemCardHeaderTitle>
+        </ItemCardHeaderContent>
+      </ItemCardHeader>
+      <ItemCardItems>
+        {connections.map((connection) => {
+          const numAccounts = accountCountByConnection.get(connection._id) ?? 0
+          const lastSync = connection.lastSync
+            ? formatRelativeDate(connection.lastSync)
+            : null
 
-            return (
-              <ConnectionItem
-                key={connection._id}
-                connection={connection}
-                numAccounts={numAccounts}
-                lastSync={lastSync}
-              />
-            )
-          })}
-        </ItemCardItems>
-      </ItemCard>
-    </>
+          return (
+            <ConnectionItem
+              key={connection._id}
+              connection={connection}
+              numAccounts={numAccounts}
+              lastSync={lastSync}
+            />
+          )
+        })}
+      </ItemCardItems>
+    </ItemCard>
   )
 }
 

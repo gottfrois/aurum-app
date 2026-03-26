@@ -955,7 +955,7 @@ export const deleteConnectionData = internalMutation({
     await Promise.all(
       [...dateDeltas.entries()].map(([, delta], i) => {
         const dnw = dnwEntries[i]
-        if (!dnw) return
+        if (!dnw) return undefined
         const newBalance = Math.round((dnw.balance - delta) * 100) / 100
         if (newBalance === 0) {
           return ctx.db.delete('dailyNetWorth', dnw._id)
@@ -986,7 +986,7 @@ export const deleteConnectionData = internalMutation({
     await Promise.all(
       dcbKeys.map((key, i) => {
         const dcb = dcbEntries[i]
-        if (!dcb) return
+        if (!dcb) return undefined
         const delta = categoryDateDeltas.get(key) ?? 0
         const newBalance = Math.round((dcb.balance - delta) * 100) / 100
         if (newBalance === 0) {
@@ -1348,6 +1348,7 @@ interface MappedTransaction {
   card: string | undefined
   comment: string | undefined
   userCategoryKey?: string
+  customDescription?: string
 }
 
 function mapPowensTransaction(raw: PowensRawTransaction): MappedTransaction {
@@ -1516,12 +1517,13 @@ export const syncTransactionsFromWebhook = internalAction({
         if (rawTransactions.length === 0) break
 
         // Apply transaction rules to incoming transactions
+        const activeRules = transactionRules.filter((r) => r.enabled !== false)
         const excludedIds: Array<number> = []
         for (const txn of rawTransactions) {
           const text = [txn.wording, txn.originalWording, txn.simplifiedWording]
             .filter(Boolean)
             .join(' ')
-          for (const rule of transactionRules) {
+          for (const rule of activeRules) {
             let matched = false
             if (rule.matchType === 'contains') {
               matched = text.toLowerCase().includes(rule.pattern.toLowerCase())
@@ -1535,6 +1537,9 @@ export const syncTransactionsFromWebhook = internalAction({
             if (matched) {
               if (rule.categoryKey && !txn.userCategoryKey) {
                 txn.userCategoryKey = rule.categoryKey
+              }
+              if (rule.customDescription && !txn.customDescription) {
+                txn.customDescription = rule.customDescription
               }
               if (rule.excludeFromBudget) {
                 excludedIds.push(txn.powensTransactionId)
@@ -1590,6 +1595,7 @@ export const syncTransactionsFromWebhook = internalAction({
                 counterparty: txn.counterparty,
                 card: txn.card,
                 comment: txn.comment,
+                customDescription: txn.customDescription,
               },
               encryptedFinancials: {
                 value: txn.value,
@@ -1719,12 +1725,13 @@ export const backfillTransactions = internalAction({
 
         if (rawTransactions.length === 0) break
 
+        const activeRules = transactionRules.filter((r) => r.enabled !== false)
         const backfillExcludedIds: Array<number> = []
         for (const txn of rawTransactions) {
           const text = [txn.wording, txn.originalWording, txn.simplifiedWording]
             .filter(Boolean)
             .join(' ')
-          for (const rule of transactionRules) {
+          for (const rule of activeRules) {
             let matched = false
             if (rule.matchType === 'contains') {
               matched = text.toLowerCase().includes(rule.pattern.toLowerCase())
@@ -1738,6 +1745,9 @@ export const backfillTransactions = internalAction({
             if (matched) {
               if (rule.categoryKey && !txn.userCategoryKey) {
                 txn.userCategoryKey = rule.categoryKey
+              }
+              if (rule.customDescription && !txn.customDescription) {
+                txn.customDescription = rule.customDescription
               }
               if (rule.excludeFromBudget) {
                 backfillExcludedIds.push(txn.powensTransactionId)
@@ -1793,6 +1803,7 @@ export const backfillTransactions = internalAction({
                 counterparty: txn.counterparty,
                 card: txn.card,
                 comment: txn.comment,
+                customDescription: txn.customDescription,
               },
               encryptedFinancials: {
                 value: txn.value,

@@ -1,10 +1,30 @@
 import { useQuery } from 'convex/react'
 import * as React from 'react'
+import { usePortfolio } from '~/contexts/portfolio-context'
 import { api } from '../../convex/_generated/api'
+import type { Id } from '../../convex/_generated/dataModel'
 import {
   getTransactionCategoryKey,
   TRANSACTION_CATEGORIES,
 } from './transaction-categories'
+
+export const CATEGORY_PALETTE = [
+  '#ef4444',
+  '#f97316',
+  '#eab308',
+  '#22c55e',
+  '#06b6d4',
+  '#3b82f6',
+  '#8b5cf6',
+  '#ec4899',
+]
+
+export function deriveCategoryKey(label: string): string {
+  return label
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '_')
+    .replace(/^_|_$/g, '')
+}
 
 export interface CategoryInfo {
   key: string
@@ -32,7 +52,13 @@ export function useCategories(): {
   getCategory: (key: string) => CategoryInfo
   isLoading: boolean
 } {
-  const dbCategories = useQuery(api.categories.listCategories, {})
+  const { singlePortfolioId, activePortfolioId } = usePortfolio()
+  const queryArgs = singlePortfolioId
+    ? { portfolioId: singlePortfolioId as Id<'portfolios'> }
+    : activePortfolioId === 'all' || activePortfolioId === 'team'
+      ? { includeAllPortfolios: true }
+      : {}
+  const dbCategories = useQuery(api.categories.listCategories, queryArgs)
   const isLoading = dbCategories === undefined
 
   const categories = React.useMemo<Array<CategoryInfo>>(

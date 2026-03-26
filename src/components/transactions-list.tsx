@@ -11,7 +11,7 @@ import {
   getSortedRowModel,
   useReactTable,
 } from '@tanstack/react-table'
-import { useMutation } from 'convex/react'
+import { useMutation, useQuery } from 'convex/react'
 import {
   ArrowDown,
   ArrowUp,
@@ -20,16 +20,22 @@ import {
   ChevronRight,
   ChevronsLeft,
   ChevronsRight,
+  Eye,
   EyeOff,
+  Pencil,
   Plus,
   Search,
 } from 'lucide-react'
 import * as React from 'react'
 import { toast } from 'sonner'
 import { CategoryPicker } from '~/components/category-picker'
-import { CreateRuleDialog } from '~/components/create-rule-dialog'
+import {
+  CreateCategoryDialog,
+  useCreateCategoryDialog,
+} from '~/components/create-category-dialog'
 import type { LabelData } from '~/components/label-picker'
 import { LabelPicker } from '~/components/label-picker'
+import { RuleDialog } from '~/components/rule-dialog'
 import { SelectionBar } from '~/components/selection-bar'
 import { Badge } from '~/components/ui/badge'
 import { Button } from '~/components/ui/button'
@@ -60,6 +66,7 @@ import {
   TableRow,
 } from '~/components/ui/table'
 import { useEncryption } from '~/contexts/encryption-context'
+import { usePortfolio } from '~/contexts/portfolio-context'
 import { useFormatCurrency } from '~/contexts/privacy-context'
 import { useCommand } from '~/hooks/use-command'
 import type { CategoryInfo } from '~/lib/categories'
@@ -89,6 +96,7 @@ export interface TransactionRow {
   counterparty?: string
   card?: string
   comment?: string
+  customDescription?: string
   rdate?: string
   vdate?: string
   accountName?: string
@@ -146,12 +154,28 @@ export function TransactionsList({
     () => data.find((t) => t._id === selectedTransactionId) ?? null,
     [data, selectedTransactionId],
   )
+  const [editingRuleId, setEditingRuleId] = React.useState<string | null>(null)
+  const allRules = useQuery(
+    api.transactionRules.listRules,
+    editingRuleId ? {} : 'skip',
+  )
+  const editingRule = React.useMemo(
+    () => allRules?.find((r) => r._id === editingRuleId),
+    [allRules, editingRuleId],
+  )
   const [ruleDialog, setRuleDialog] = React.useState<{
     open: boolean
     pattern: string
     categoryKey: string
     excludeFromBudget: boolean
-  }>({ open: false, pattern: '', categoryKey: '', excludeFromBudget: false })
+    customDescription: string
+  }>({
+    open: false,
+    pattern: '',
+    categoryKey: '',
+    excludeFromBudget: false,
+    customDescription: '',
+  })
 
   const updateTransactionLabels = useMutation(
     api.transactions.updateTransactionLabels,
@@ -168,6 +192,10 @@ export function TransactionsList({
   const batchUpdateExclusion = useMutation(
     api.transactions.batchUpdateTransactionExclusion,
   )
+  const updateDetails = useMutation(api.transactions.updateTransactionDetails)
+  const batchUpdateDetails = useMutation(
+    api.transactions.batchUpdateTransactionDetails,
+  )
   const labelMap = React.useMemo(() => {
     const map = new Map<string, LabelData>()
     for (const label of labels) {
@@ -181,12 +209,14 @@ export function TransactionsList({
       wording: string,
       categoryKey: string,
       excludeFromBudget: boolean = false,
+      customDescription: string = '',
     ) => {
       setRuleDialog({
         open: true,
         pattern: wording,
         categoryKey,
         excludeFromBudget,
+        customDescription,
       })
     },
     [],
@@ -211,7 +241,12 @@ export function TransactionsList({
       {
         id: 'select',
         header: ({ table }) => (
-          <div onClick={(e) => e.stopPropagation()}>
+          // biome-ignore lint/a11y/noStaticElementInteractions: wrapper only stops click propagation to parent row
+          <div
+            role="presentation"
+            onClick={(e) => e.stopPropagation()}
+            onKeyDown={(e) => e.stopPropagation()}
+          >
             <Checkbox
               checked={
                 table.getIsAllPageRowsSelected() ||
@@ -226,7 +261,12 @@ export function TransactionsList({
           </div>
         ),
         cell: ({ row }) => (
-          <div onClick={(e) => e.stopPropagation()}>
+          // biome-ignore lint/a11y/noStaticElementInteractions: wrapper only stops click propagation to parent row
+          <div
+            role="presentation"
+            onClick={(e) => e.stopPropagation()}
+            onKeyDown={(e) => e.stopPropagation()}
+          >
             <Checkbox
               checked={row.getIsSelected()}
               onCheckedChange={(value) => row.toggleSelected(!!value)}
@@ -240,6 +280,7 @@ export function TransactionsList({
         accessorKey: 'date',
         header: ({ column }) => (
           <button
+            type="button"
             className="flex items-center gap-1"
             onClick={() => column.toggleSorting()}
           >
@@ -273,7 +314,7 @@ export function TransactionsList({
                   row.original.excludedFromBudget && 'line-through',
                 )}
               >
-                {row.original.wording}
+                {row.original.customDescription || row.original.wording}
               </span>
               {row.original.coming && (
                 <Badge variant="outline" className="shrink-0 text-xs">
@@ -339,7 +380,12 @@ export function TransactionsList({
         cell: ({ row }) => {
           const categoryKey = resolveTransactionCategoryKey(row.original)
           return (
-            <div onClick={(e) => e.stopPropagation()}>
+            // biome-ignore lint/a11y/noStaticElementInteractions: wrapper only stops click propagation to parent row
+            <div
+              role="presentation"
+              onClick={(e) => e.stopPropagation()}
+              onKeyDown={(e) => e.stopPropagation()}
+            >
               <CategoryPicker
                 transactionId={row.original._id}
                 currentCategoryKey={categoryKey}
@@ -354,6 +400,7 @@ export function TransactionsList({
         accessorKey: 'value',
         header: ({ column }) => (
           <button
+            type="button"
             className="flex items-center gap-1"
             onClick={() => column.toggleSorting()}
           >
@@ -545,6 +592,88 @@ export function TransactionsList({
     [getSelectedIds, batchUpdateExclusion],
   )
 
+  const handleDescriptionUpdate = React.useCallback(
+    async (transactionId: string, customDescription: string) => {
+      const txn = data.find((t) => t._id === transactionId)
+      if (!txn || !workspacePublicKey) return
+
+      try {
+        const pubKey = await importPublicKey(workspacePublicKey)
+        const encryptedDetails = await encryptData(
+          {
+            wording: txn.wording,
+            originalWording: txn.originalWording,
+            simplifiedWording: txn.simplifiedWording,
+            counterparty: txn.counterparty,
+            card: txn.card,
+            comment: txn.comment,
+            customDescription: customDescription || undefined,
+          },
+          pubKey,
+          transactionId,
+          'encryptedDetails',
+        )
+        await updateDetails({
+          transactionId: transactionId as Id<'transactions'>,
+          encryptedDetails,
+        })
+        toast.success(
+          customDescription ? 'Description updated' : 'Description reset',
+          customDescription
+            ? {
+                action: {
+                  label: 'Create rule',
+                  onClick: () =>
+                    handleCreateRule(txn.wording, '', false, customDescription),
+                },
+              }
+            : undefined,
+        )
+      } catch {
+        toast.error('Failed to update description')
+      }
+    },
+    [data, workspacePublicKey, updateDetails, handleCreateRule],
+  )
+
+  const handleBulkDescriptionChange = React.useCallback(
+    async (customDescription: string) => {
+      const rows = getSelectedRows()
+      if (rows.length === 0 || !workspacePublicKey) return
+
+      try {
+        const pubKey = await importPublicKey(workspacePublicKey)
+        const items = await Promise.all(
+          rows.map(async (txn) => {
+            const encryptedDetails = await encryptData(
+              {
+                wording: txn.wording,
+                originalWording: txn.originalWording,
+                simplifiedWording: txn.simplifiedWording,
+                counterparty: txn.counterparty,
+                card: txn.card,
+                comment: txn.comment,
+                customDescription: customDescription || undefined,
+              },
+              pubKey,
+              txn._id,
+              'encryptedDetails',
+            )
+            return {
+              transactionId: txn._id as Id<'transactions'>,
+              encryptedDetails,
+            }
+          }),
+        )
+        await batchUpdateDetails({ items })
+        toast.success(`Updating description for ${rows.length} transactions...`)
+      } catch {
+        toast.error('Failed to update descriptions')
+      }
+    },
+    [getSelectedRows, batchUpdateDetails, workspacePublicKey],
+  )
+
   const selectedRows = React.useMemo(() => getSelectedRows(), [getSelectedRows])
 
   useCommand('selection.change-labels', {
@@ -579,6 +708,17 @@ export function TransactionsList({
     disabled: !hasSelection,
     view: ({ onBack }) => (
       <BulkExclusionView onSelect={handleBulkExclusionChange} onBack={onBack} />
+    ),
+  })
+
+  useCommand('selection.change-description', {
+    handler: () => {},
+    disabled: !hasSelection,
+    view: ({ onBack }) => (
+      <BulkDescriptionView
+        onSubmit={handleBulkDescriptionChange}
+        onBack={onBack}
+      />
     ),
   })
 
@@ -747,14 +887,25 @@ export function TransactionsList({
         workspaceId={workspaceId}
         onLabelToggle={handleLabelToggle}
         onExclusionToggle={handleExclusionToggle}
+        onDescriptionUpdate={handleDescriptionUpdate}
       />
 
-      <CreateRuleDialog
+      <RuleDialog
         open={ruleDialog.open}
         onOpenChange={(open) => setRuleDialog((prev) => ({ ...prev, open }))}
         defaultPattern={ruleDialog.pattern}
         defaultCategoryKey={ruleDialog.categoryKey}
         defaultExcludeFromBudget={ruleDialog.excludeFromBudget}
+        defaultCustomDescription={ruleDialog.customDescription}
+        onCreated={(ruleId) => setEditingRuleId(ruleId)}
+      />
+
+      <RuleDialog
+        open={!!editingRule}
+        onOpenChange={(open) => {
+          if (!open) setEditingRuleId(null)
+        }}
+        rule={editingRule}
       />
     </div>
   )
@@ -834,6 +985,7 @@ function BulkLabelView({
     <>
       <div className="flex h-12 items-center gap-2 border-b px-3">
         <button
+          type="button"
           onClick={onBack}
           className="flex size-6 shrink-0 items-center justify-center rounded-md text-muted-foreground hover:bg-accent hover:text-foreground"
         >
@@ -844,6 +996,7 @@ function BulkLabelView({
           onChange={(e) => setSearch(e.target.value)}
           placeholder="Search or create label..."
           className="flex h-10 w-full bg-transparent text-sm outline-none placeholder:text-muted-foreground"
+          autoFocus
         />
       </div>
       <div className="min-h-[300px] max-h-[300px] overflow-y-auto overflow-x-hidden scroll-py-1 px-2 py-1">
@@ -860,6 +1013,7 @@ function BulkLabelView({
               const indeterminate = state === 'some'
               return (
                 <button
+                  type="button"
                   key={label._id}
                   onClick={() =>
                     handleToggle(label._id, !checked && !indeterminate)
@@ -883,6 +1037,7 @@ function BulkLabelView({
         )}
         {search.trim() && !exactMatch && (
           <button
+            type="button"
             onClick={handleCreate}
             className="flex w-full items-center gap-2 rounded-sm px-2 py-2 text-sm hover:bg-accent"
           >
@@ -907,6 +1062,7 @@ function BulkCategoryView({
   onBack: () => void
 }) {
   const [search, setSearch] = React.useState('')
+  const { singlePortfolioId } = usePortfolio()
 
   // Determine current category state across selected rows
   const currentCategoryKey = React.useMemo(() => {
@@ -927,15 +1083,34 @@ function BulkCategoryView({
   const filteredBuiltIn = filterCats(builtInCategories)
   const filteredCustom = filterCats(customCategories)
 
+  const exactMatch = categories.some((c) => c.label.toLowerCase() === query)
+
+  const createDialog = useCreateCategoryDialog(
+    customCategories.length,
+    singlePortfolioId,
+  )
+
   const handleSelect = (categoryKey: string) => {
     onSelect(categoryKey)
     onBack()
+  }
+
+  const handleCreateClick = () => {
+    const name = search.trim()
+    if (!name) return
+    setSearch('')
+    createDialog.openDialog(name)
+  }
+
+  const handleCreated = (categoryKey: string) => {
+    handleSelect(categoryKey)
   }
 
   return (
     <>
       <div className="flex h-12 items-center gap-2 border-b px-3">
         <button
+          type="button"
           onClick={onBack}
           className="flex size-6 shrink-0 items-center justify-center rounded-md text-muted-foreground hover:bg-accent hover:text-foreground"
         >
@@ -944,20 +1119,35 @@ function BulkCategoryView({
         <input
           value={search}
           onChange={(e) => setSearch(e.target.value)}
-          placeholder="Search categories..."
+          placeholder="Search or create category..."
           className="flex h-10 w-full bg-transparent text-sm outline-none placeholder:text-muted-foreground"
+          autoFocus
         />
       </div>
       <div className="min-h-[300px] max-h-[300px] overflow-y-auto overflow-x-hidden scroll-py-1 px-2 py-1">
-        {filteredBuiltIn.length === 0 && filteredCustom.length === 0 && (
-          <p className="py-6 text-center text-sm text-muted-foreground">
-            No categories found.
-          </p>
-        )}
+        {filteredBuiltIn.length === 0 &&
+          filteredCustom.length === 0 &&
+          (search.trim() ? (
+            <div className="py-1">
+              <button
+                type="button"
+                onClick={handleCreateClick}
+                className="flex w-full items-center gap-2 rounded-sm px-2 py-2 text-sm hover:bg-accent"
+              >
+                <Plus className="size-3" />
+                Create &ldquo;{search.trim()}&rdquo;
+              </button>
+            </div>
+          ) : (
+            <p className="py-6 text-center text-sm text-muted-foreground">
+              No categories found.
+            </p>
+          ))}
         {filteredBuiltIn.length > 0 && (
           <div className="py-1">
             {filteredBuiltIn.map((cat) => (
               <button
+                type="button"
                 key={cat.key}
                 onClick={() => handleSelect(cat.key)}
                 className="flex w-full items-center gap-2 rounded-sm px-2 py-2 text-sm hover:bg-accent"
@@ -984,6 +1174,7 @@ function BulkCategoryView({
             <div className="py-1">
               {filteredCustom.map((cat) => (
                 <button
+                  type="button"
                   key={cat.key}
                   onClick={() => handleSelect(cat.key)}
                   className={cn(
@@ -1006,7 +1197,29 @@ function BulkCategoryView({
             </div>
           </>
         )}
+        {search.trim() &&
+          !exactMatch &&
+          (filteredBuiltIn.length > 0 || filteredCustom.length > 0) && (
+            <div className="border-t py-1">
+              <button
+                type="button"
+                onClick={handleCreateClick}
+                className="flex w-full items-center gap-2 rounded-sm px-2 py-2 text-sm hover:bg-accent"
+              >
+                <Plus className="size-3" />
+                Create &ldquo;{search.trim()}&rdquo;
+              </button>
+            </div>
+          )}
       </div>
+      <CreateCategoryDialog
+        open={createDialog.dialogOpen}
+        onOpenChange={createDialog.setDialogOpen}
+        initialName={createDialog.initialName}
+        initialColor={createDialog.initialColor}
+        defaultPortfolioId={createDialog.defaultPortfolioId}
+        onCreated={handleCreated}
+      />
     </>
   )
 }
@@ -1021,6 +1234,7 @@ function TransactionDetailSheet({
   workspaceId,
   onLabelToggle,
   onExclusionToggle,
+  onDescriptionUpdate,
 }: {
   transaction: TransactionRow | null
   onOpenChange: (open: boolean) => void
@@ -1035,6 +1249,10 @@ function TransactionDetailSheet({
   workspaceId?: string
   onLabelToggle: (transactionId: string, labelIds: Array<string>) => void
   onExclusionToggle: (transactionId: string, excluded: boolean) => void
+  onDescriptionUpdate: (
+    transactionId: string,
+    customDescription: string,
+  ) => void
 }) {
   if (!transaction) return null
 
@@ -1055,6 +1273,7 @@ function TransactionDetailSheet({
     { label: 'Type', value: transaction.type },
     { label: 'Counterparty', value: transaction.counterparty },
     { label: 'Card', value: transaction.card },
+    { label: 'Wording', value: transaction.wording },
     {
       label: 'Original wording',
       value: transaction.originalWording,
@@ -1075,7 +1294,12 @@ function TransactionDetailSheet({
     <Sheet open={!!transaction} onOpenChange={onOpenChange}>
       <SheetContent side="right" className="overflow-y-auto sm:max-w-md">
         <SheetHeader>
-          <SheetTitle className="pr-6">{transaction.wording}</SheetTitle>
+          <EditableDescription
+            transactionId={transaction._id}
+            customDescription={transaction.customDescription}
+            wording={transaction.wording}
+            onUpdate={onDescriptionUpdate}
+          />
           <SheetDescription>
             {transaction.coming
               ? 'Pending transaction'
@@ -1101,10 +1325,12 @@ function TransactionDetailSheet({
           {hasOriginalCurrency && (
             <p className="text-sm text-muted-foreground">
               Original:{' '}
-              {formatCurrency(
-                transaction.originalValue!,
-                transaction.originalCurrency!,
-              )}
+              {transaction.originalValue != null &&
+                transaction.originalCurrency &&
+                formatCurrency(
+                  transaction.originalValue,
+                  transaction.originalCurrency,
+                )}
             </p>
           )}
 
@@ -1117,6 +1343,7 @@ function TransactionDetailSheet({
               currentCategoryKey={categoryKey}
               wording={transaction.wording}
               onCreateRule={onCreateRule}
+              modal
             />
           </div>
 
@@ -1186,24 +1413,26 @@ function BulkExclusionView({
   onBack: () => void
 }) {
   const options = [
-    { label: 'Exclude from budget', value: true },
-    { label: 'Include in budget', value: false },
+    { label: 'Exclude from budget', value: true, icon: EyeOff },
+    { label: 'Include in budget', value: false, icon: Eye },
   ]
 
   return (
     <>
       <div className="flex h-12 items-center gap-2 border-b px-3">
         <button
+          type="button"
           onClick={onBack}
           className="flex size-6 shrink-0 items-center justify-center rounded-md text-muted-foreground hover:bg-accent hover:text-foreground"
         >
           <ChevronLeft className="size-4" />
         </button>
-        <span className="text-sm font-medium">Budget exclusion</span>
+        <span className="text-sm font-medium">Budget visibility</span>
       </div>
       <div className="min-h-[300px] max-h-[300px] overflow-y-auto overflow-x-hidden scroll-py-1 px-2 py-1">
         {options.map((option) => (
           <button
+            type="button"
             key={String(option.value)}
             onClick={() => {
               onSelect(option.value)
@@ -1211,10 +1440,137 @@ function BulkExclusionView({
             }}
             className="flex w-full items-center gap-2 rounded-sm px-2 py-2 text-sm hover:bg-accent"
           >
-            <EyeOff className="size-4" />
+            <option.icon className="size-4" />
             <span>{option.label}</span>
           </button>
         ))}
+      </div>
+    </>
+  )
+}
+
+function EditableDescription({
+  transactionId,
+  customDescription,
+  wording,
+  onUpdate,
+}: {
+  transactionId: string
+  customDescription?: string
+  wording: string
+  onUpdate: (transactionId: string, customDescription: string) => void
+}) {
+  const [editing, setEditing] = React.useState(false)
+  const [value, setValue] = React.useState(customDescription ?? '')
+  const inputRef = React.useRef<HTMLInputElement>(null)
+
+  React.useEffect(() => {
+    setValue(customDescription ?? '')
+  }, [customDescription])
+
+  const handleSave = () => {
+    setEditing(false)
+    const trimmed = value.trim()
+    if (trimmed !== (customDescription ?? '')) {
+      onUpdate(transactionId, trimmed)
+    }
+  }
+
+  if (editing) {
+    return (
+      <div className="pr-6">
+        <Input
+          ref={inputRef}
+          value={value}
+          onChange={(e) => setValue(e.target.value)}
+          onBlur={handleSave}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter') handleSave()
+            if (e.key === 'Escape') {
+              setValue(customDescription ?? '')
+              setEditing(false)
+            }
+          }}
+          className="text-lg font-semibold"
+          placeholder={wording}
+          autoFocus
+        />
+        {customDescription && (
+          <p className="mt-1 text-xs text-muted-foreground">{wording}</p>
+        )}
+      </div>
+    )
+  }
+
+  return (
+    <div className="pr-6">
+      <button
+        type="button"
+        tabIndex={-1}
+        className="group flex items-center gap-2 text-left"
+        onClick={() => setEditing(true)}
+      >
+        <SheetTitle className="text-lg">
+          {customDescription || wording}
+        </SheetTitle>
+        <Pencil className="size-3.5 shrink-0 text-muted-foreground opacity-0 transition-opacity group-hover:opacity-100" />
+      </button>
+      {customDescription && (
+        <p className="mt-0.5 text-xs text-muted-foreground">{wording}</p>
+      )}
+    </div>
+  )
+}
+
+function BulkDescriptionView({
+  onSubmit,
+  onBack,
+}: {
+  onSubmit: (description: string) => void
+  onBack: () => void
+}) {
+  const [value, setValue] = React.useState('')
+
+  return (
+    <>
+      <div className="flex h-12 items-center gap-2 border-b px-3">
+        <button
+          type="button"
+          onClick={onBack}
+          className="flex size-6 shrink-0 items-center justify-center rounded-md text-muted-foreground hover:bg-accent hover:text-foreground"
+        >
+          <ChevronLeft className="size-4" />
+        </button>
+        <span className="text-sm font-medium">Change description</span>
+      </div>
+      <div className="p-3">
+        <Input
+          value={value}
+          onChange={(e) => setValue(e.target.value)}
+          placeholder="Custom description..."
+          autoFocus
+          onKeyDown={(e) => {
+            if (e.key === 'Enter' && value.trim()) {
+              onSubmit(value.trim())
+              onBack()
+            }
+          }}
+        />
+        <div className="mt-2 flex justify-end gap-2">
+          <Button variant="outline" size="sm" onClick={onBack}>
+            Cancel
+          </Button>
+          <Button
+            size="sm"
+            disabled={!value.trim()}
+            onClick={() => {
+              onSubmit(value.trim())
+              onBack()
+            }}
+          >
+            Apply
+          </Button>
+        </div>
       </div>
     </>
   )
