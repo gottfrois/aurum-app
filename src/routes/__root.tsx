@@ -172,26 +172,19 @@ function RootComponent() {
     <ClerkProvider>
       <ConvexProviderWithClerk client={context.convexClient} useAuth={useAuth}>
         <TooltipProvider>
-          <ThemeProvider
-            attribute="class"
-            defaultTheme="system"
-            enableSystem
-            disableTransitionOnChange
-          >
-            <PortfolioProvider>
-              <EncryptionProvider>
-                <BulkOperationProvider>
-                  <PrivacyProvider>
-                    <RootDocument>
-                      <OnboardingGuard>
-                        <Outlet />
-                      </OnboardingGuard>
-                    </RootDocument>
-                  </PrivacyProvider>
-                </BulkOperationProvider>
-              </EncryptionProvider>
-            </PortfolioProvider>
-          </ThemeProvider>
+          <PortfolioProvider>
+            <EncryptionProvider>
+              <BulkOperationProvider>
+                <PrivacyProvider>
+                  <RootDocument>
+                    <OnboardingGuard>
+                      <Outlet />
+                    </OnboardingGuard>
+                  </RootDocument>
+                </PrivacyProvider>
+              </BulkOperationProvider>
+            </EncryptionProvider>
+          </PortfolioProvider>
         </TooltipProvider>
       </ConvexProviderWithClerk>
     </ClerkProvider>
@@ -236,9 +229,16 @@ function RootDocument({ children }: { children: React.ReactNode }) {
         <HeadContent />
       </head>
       <body>
-        {children}
-        <PassphrasePrompt />
-        <Toaster />
+        <ThemeProvider
+          attribute="class"
+          defaultTheme="system"
+          enableSystem
+          disableTransitionOnChange
+        >
+          {children}
+          <PassphrasePrompt />
+          <Toaster />
+        </ThemeProvider>
         <Scripts />
       </body>
     </html>
