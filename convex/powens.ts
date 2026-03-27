@@ -1173,6 +1173,7 @@ interface RuleMatch {
 function applyTransactionRules(
   rawTransactions: MappedTransaction[],
   transactionRules: Doc<'transactionRules'>[],
+  bankAccountId: Id<'bankAccounts'>,
 ): { excludedIds: number[]; ruleMatches: RuleMatch[] } {
   const activeRules = transactionRules.filter((r) => r.enabled !== false)
   const excludedIds: number[] = []
@@ -1183,6 +1184,15 @@ function applyTransactionRules(
       .filter(Boolean)
       .join(' ')
     for (const rule of activeRules) {
+      // Skip rule if it has account filters and this account is not included
+      if (
+        rule.accountIds &&
+        rule.accountIds.length > 0 &&
+        !rule.accountIds.includes(bankAccountId)
+      ) {
+        continue
+      }
+
       let matched = false
       if (rule.matchType === 'contains') {
         matched = text.toLowerCase().includes(rule.pattern.toLowerCase())
@@ -1406,7 +1416,7 @@ export const syncTransactionsFromWebhook = internalAction({
     // Load transaction rules for auto-categorization and exclusion
     const transactionRules = await ctx.runQuery(
       internal.transactionRules.listRulesForWorkspace,
-      { workspaceId: portfolio.workspaceId },
+      { workspaceId: portfolio.workspaceId, portfolioId: args.portfolioId },
     )
 
     const bankAccounts = await ctx.runQuery(
@@ -1460,6 +1470,7 @@ export const syncTransactionsFromWebhook = internalAction({
         const { excludedIds, ruleMatches } = applyTransactionRules(
           rawTransactions,
           transactionRules,
+          ba._id,
         )
 
         // Step 1: Upsert transactions with placeholder encrypted data to get IDs
@@ -1601,7 +1612,7 @@ export const backfillTransactions = internalAction({
 
     const transactionRules = await ctx.runQuery(
       internal.transactionRules.listRulesForWorkspace,
-      { workspaceId: portfolio.workspaceId },
+      { workspaceId: portfolio.workspaceId, portfolioId: args.portfolioId },
     )
 
     const connections = await ctx.runQuery(
@@ -1654,7 +1665,7 @@ export const backfillTransactions = internalAction({
         const {
           excludedIds: backfillExcludedIds,
           ruleMatches: backfillRuleMatches,
-        } = applyTransactionRules(rawTransactions, transactionRules)
+        } = applyTransactionRules(rawTransactions, transactionRules, ba._id)
 
         // Step 1: Upsert transactions with placeholder encrypted data to get IDs
         const placeholderTransactions = rawTransactions.map((txn) => ({

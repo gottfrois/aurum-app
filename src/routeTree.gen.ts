@@ -36,6 +36,7 @@ import { Route as SettingsSettingsAccountNotificationsRouteImport } from './rout
 import { Route as SettingsSettingsAccountEncryptionRouteImport } from './routes/_settings/settings.account.encryption'
 import { Route as SettingsSettingsAccountConnectionsRouteImport } from './routes/_settings/settings.account.connections'
 import { Route as SettingsSettingsPortfoliosIdIndexRouteImport } from './routes/_settings/settings.portfolios.$id.index'
+import { Route as SettingsSettingsPortfoliosIdRulesRouteImport } from './routes/_settings/settings.portfolios.$id.rules'
 import { Route as SettingsSettingsPortfoliosIdLabelsRouteImport } from './routes/_settings/settings.portfolios.$id.labels'
 import { Route as SettingsSettingsPortfoliosIdGeneralRouteImport } from './routes/_settings/settings.portfolios.$id.general'
 import { Route as SettingsSettingsPortfoliosIdConnectionsRouteImport } from './routes/_settings/settings.portfolios.$id.connections'
@@ -189,6 +190,12 @@ const SettingsSettingsPortfoliosIdIndexRoute =
     path: '/',
     getParentRoute: () => SettingsSettingsPortfoliosIdRoute,
   } as any)
+const SettingsSettingsPortfoliosIdRulesRoute =
+  SettingsSettingsPortfoliosIdRulesRouteImport.update({
+    id: '/rules',
+    path: '/rules',
+    getParentRoute: () => SettingsSettingsPortfoliosIdRoute,
+  } as any)
 const SettingsSettingsPortfoliosIdLabelsRoute =
   SettingsSettingsPortfoliosIdLabelsRouteImport.update({
     id: '/labels',
@@ -243,6 +250,7 @@ export interface FileRoutesByFullPath {
   '/settings/portfolios/$id/connections': typeof SettingsSettingsPortfoliosIdConnectionsRoute
   '/settings/portfolios/$id/general': typeof SettingsSettingsPortfoliosIdGeneralRoute
   '/settings/portfolios/$id/labels': typeof SettingsSettingsPortfoliosIdLabelsRoute
+  '/settings/portfolios/$id/rules': typeof SettingsSettingsPortfoliosIdRulesRoute
   '/settings/portfolios/$id/': typeof SettingsSettingsPortfoliosIdIndexRoute
 }
 export interface FileRoutesByTo {
@@ -273,6 +281,7 @@ export interface FileRoutesByTo {
   '/settings/portfolios/$id/connections': typeof SettingsSettingsPortfoliosIdConnectionsRoute
   '/settings/portfolios/$id/general': typeof SettingsSettingsPortfoliosIdGeneralRoute
   '/settings/portfolios/$id/labels': typeof SettingsSettingsPortfoliosIdLabelsRoute
+  '/settings/portfolios/$id/rules': typeof SettingsSettingsPortfoliosIdRulesRoute
   '/settings/portfolios/$id': typeof SettingsSettingsPortfoliosIdIndexRoute
 }
 export interface FileRoutesById {
@@ -307,6 +316,7 @@ export interface FileRoutesById {
   '/_settings/settings/portfolios/$id/connections': typeof SettingsSettingsPortfoliosIdConnectionsRoute
   '/_settings/settings/portfolios/$id/general': typeof SettingsSettingsPortfoliosIdGeneralRoute
   '/_settings/settings/portfolios/$id/labels': typeof SettingsSettingsPortfoliosIdLabelsRoute
+  '/_settings/settings/portfolios/$id/rules': typeof SettingsSettingsPortfoliosIdRulesRoute
   '/_settings/settings/portfolios/$id/': typeof SettingsSettingsPortfoliosIdIndexRoute
 }
 export interface FileRouteTypes {
@@ -340,6 +350,7 @@ export interface FileRouteTypes {
     | '/settings/portfolios/$id/connections'
     | '/settings/portfolios/$id/general'
     | '/settings/portfolios/$id/labels'
+    | '/settings/portfolios/$id/rules'
     | '/settings/portfolios/$id/'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -370,6 +381,7 @@ export interface FileRouteTypes {
     | '/settings/portfolios/$id/connections'
     | '/settings/portfolios/$id/general'
     | '/settings/portfolios/$id/labels'
+    | '/settings/portfolios/$id/rules'
     | '/settings/portfolios/$id'
   id:
     | '__root__'
@@ -403,6 +415,7 @@ export interface FileRouteTypes {
     | '/_settings/settings/portfolios/$id/connections'
     | '/_settings/settings/portfolios/$id/general'
     | '/_settings/settings/portfolios/$id/labels'
+    | '/_settings/settings/portfolios/$id/rules'
     | '/_settings/settings/portfolios/$id/'
   fileRoutesById: FileRoutesById
 }
@@ -606,6 +619,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof SettingsSettingsPortfoliosIdIndexRouteImport
       parentRoute: typeof SettingsSettingsPortfoliosIdRoute
     }
+    '/_settings/settings/portfolios/$id/rules': {
+      id: '/_settings/settings/portfolios/$id/rules'
+      path: '/rules'
+      fullPath: '/settings/portfolios/$id/rules'
+      preLoaderRoute: typeof SettingsSettingsPortfoliosIdRulesRouteImport
+      parentRoute: typeof SettingsSettingsPortfoliosIdRoute
+    }
     '/_settings/settings/portfolios/$id/labels': {
       id: '/_settings/settings/portfolios/$id/labels'
       path: '/labels'
@@ -660,6 +680,7 @@ interface SettingsSettingsPortfoliosIdRouteChildren {
   SettingsSettingsPortfoliosIdConnectionsRoute: typeof SettingsSettingsPortfoliosIdConnectionsRoute
   SettingsSettingsPortfoliosIdGeneralRoute: typeof SettingsSettingsPortfoliosIdGeneralRoute
   SettingsSettingsPortfoliosIdLabelsRoute: typeof SettingsSettingsPortfoliosIdLabelsRoute
+  SettingsSettingsPortfoliosIdRulesRoute: typeof SettingsSettingsPortfoliosIdRulesRoute
   SettingsSettingsPortfoliosIdIndexRoute: typeof SettingsSettingsPortfoliosIdIndexRoute
 }
 
@@ -673,6 +694,8 @@ const SettingsSettingsPortfoliosIdRouteChildren: SettingsSettingsPortfoliosIdRou
       SettingsSettingsPortfoliosIdGeneralRoute,
     SettingsSettingsPortfoliosIdLabelsRoute:
       SettingsSettingsPortfoliosIdLabelsRoute,
+    SettingsSettingsPortfoliosIdRulesRoute:
+      SettingsSettingsPortfoliosIdRulesRoute,
     SettingsSettingsPortfoliosIdIndexRoute:
       SettingsSettingsPortfoliosIdIndexRoute,
   }

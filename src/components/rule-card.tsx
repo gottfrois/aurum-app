@@ -22,7 +22,9 @@ interface RuleCardProps {
   index: number
   categoryMap: Map<string, Doc<'transactionCategories'>>
   labelMap: Map<Id<'transactionLabels'>, Doc<'transactionLabels'>>
+  bankAccountMap?: Map<string, string>
   dragDisabled: boolean
+  readOnly?: boolean
   onEdit: () => void
   onDelete: () => void
   onToggle: (enabled: boolean) => void
@@ -33,7 +35,9 @@ export function RuleCard({
   index,
   categoryMap,
   labelMap,
+  bankAccountMap,
   dragDisabled,
+  readOnly,
   onEdit,
   onDelete,
   onToggle,
@@ -76,6 +80,25 @@ export function RuleCard({
             {matchVerb}
           </Badge>
           <span className="truncate font-mono">{patternDisplay}</span>
+          {rule.accountIds && rule.accountIds.length > 0 && bankAccountMap && (
+            <>
+              <span className="text-muted-foreground">from</span>
+              {rule.accountIds.length === 1 ? (
+                <Badge variant="outline" className="rounded-md text-xs">
+                  {bankAccountMap.get(rule.accountIds[0]) ?? 'Unknown'}
+                </Badge>
+              ) : (
+                <CollapsedBadges
+                  items={rule.accountIds.map((id) => ({
+                    color: 'hsl(var(--muted-foreground))',
+                    name: bankAccountMap.get(id) ?? 'Unknown',
+                  }))}
+                  count={rule.accountIds.length}
+                  noun="account"
+                />
+              )}
+            </>
+          )}
         </div>
 
         {actions.length > 0 && (
@@ -106,29 +129,33 @@ export function RuleCard({
         )}
       </div>
 
-      <Switch
-        checked={isEnabled}
-        onCheckedChange={onToggle}
-        className="shrink-0 self-center"
-      />
+      {!readOnly && (
+        <>
+          <Switch
+            checked={isEnabled}
+            onCheckedChange={onToggle}
+            className="shrink-0 self-center"
+          />
 
-      <DropdownMenu>
-        <DropdownMenuTrigger asChild>
-          <Button
-            variant="ghost"
-            size="icon"
-            className="size-8 shrink-0 self-center"
-          >
-            <MoreHorizontal className="size-4" />
-          </Button>
-        </DropdownMenuTrigger>
-        <DropdownMenuContent align="end">
-          <DropdownMenuItem onClick={onEdit}>Edit</DropdownMenuItem>
-          <DropdownMenuItem className="text-destructive" onClick={onDelete}>
-            Delete
-          </DropdownMenuItem>
-        </DropdownMenuContent>
-      </DropdownMenu>
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button
+                variant="ghost"
+                size="icon"
+                className="size-8 shrink-0 self-center"
+              >
+                <MoreHorizontal className="size-4" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              <DropdownMenuItem onClick={onEdit}>Edit</DropdownMenuItem>
+              <DropdownMenuItem className="text-destructive" onClick={onDelete}>
+                Delete
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+        </>
+      )}
     </div>
   )
 }

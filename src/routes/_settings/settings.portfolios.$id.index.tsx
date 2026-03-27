@@ -7,6 +7,7 @@ import {
   Settings,
   Sticker,
   Tag,
+  Workflow,
 } from 'lucide-react'
 import * as React from 'react'
 import { toast } from 'sonner'
@@ -86,6 +87,13 @@ function PortfolioSettingsPage() {
               icon={Sticker}
               title="Labels"
               subtitle="Labels available to this portfolio"
+            />
+            <NavItem
+              to="/settings/portfolios/$id/rules"
+              params={{ id: portfolio._id }}
+              icon={Workflow}
+              title="Rules"
+              subtitle="Automation rules for this portfolio"
             />
           </ItemCardItems>
         </ItemCard>

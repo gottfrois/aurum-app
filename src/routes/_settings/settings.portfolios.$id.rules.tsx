@@ -5,7 +5,6 @@ import { Plus, Zap } from 'lucide-react'
 import * as React from 'react'
 import { toast } from 'sonner'
 import { ConfirmDialog } from '~/components/confirm-dialog'
-import { RequireOwner } from '~/components/require-owner'
 import { RuleCard } from '~/components/rule-card'
 import { RuleDialog } from '~/components/rule-dialog'
 import { Button } from '~/components/ui/button'
@@ -21,10 +20,9 @@ import { PageHeader } from '~/components/ui/page-header'
 import { ScrollArea } from '~/components/ui/scroll-area'
 import { Skeleton } from '~/components/ui/skeleton'
 import { Sortable, SortableItem } from '~/components/ui/sortable'
-import { usePortfolio } from '~/contexts/portfolio-context'
 import { useCachedDecryptRecords } from '~/hooks/use-cached-decrypt'
 import { api } from '../../../convex/_generated/api'
-import type { Doc } from '../../../convex/_generated/dataModel'
+import type { Doc, Id } from '../../../convex/_generated/dataModel'
 
 type DecryptedBankAccount = Doc<'bankAccounts'> & {
   name?: string
@@ -32,45 +30,63 @@ type DecryptedBankAccount = Doc<'bankAccounts'> & {
   connectorName?: string
 }
 
-export const Route = createFileRoute('/_settings/settings/workspace/rules')({
-  component: RulesPage,
+export const Route = createFileRoute(
+  '/_settings/settings/portfolios/$id/rules',
+)({
+  component: PortfolioRulesPage,
 })
 
-function RulesPage() {
-  return (
-    <RequireOwner>
+function PortfolioRulesPage() {
+  const { id } = Route.useParams()
+  const portfolioId = id as Id<'portfolios'>
+  const portfolio = useQuery(api.portfolios.getPortfolio, { portfolioId })
+
+  if (portfolio === undefined) {
+    return (
       <div className="flex h-full flex-col overflow-hidden px-10 pt-16">
-        <div className="shrink-0">
-          <PageHeader
-            title="Automation Rules"
-            description="Rules are processed top-to-bottom. The first matching rule assigns the category. Labels and budget exclusions are applied from all matching rules."
-          />
-        </div>
-        <div className="mt-8 flex min-h-0 flex-1 flex-col">
-          <RulesList />
+        <Skeleton className="h-9 w-32" />
+        <div className="mt-8">
+          <Skeleton className="h-48 w-full rounded-lg" />
         </div>
       </div>
-    </RequireOwner>
+    )
+  }
+
+  if (!portfolio) return null
+
+  return (
+    <div className="flex h-full flex-col overflow-hidden px-10 pt-16">
+      <div className="shrink-0">
+        <PageHeader
+          title="Automation Rules"
+          description="Portfolio rules are processed first, then workspace rules. The first matching rule assigns the category."
+        />
+      </div>
+      <div className="mt-8 flex min-h-0 flex-1 flex-col">
+        <PortfolioRulesList portfolioId={portfolioId} />
+      </div>
+    </div>
   )
 }
 
-function RulesList() {
-  const rules = useQuery(api.transactionRules.listRules, {})
-  const categories = useQuery(api.categories.listCategories, {})
+function PortfolioRulesList({
+  portfolioId,
+}: {
+  portfolioId: Id<'portfolios'>
+}) {
+  const rules = useQuery(api.transactionRules.listRules, { portfolioId })
+  const categories = useQuery(api.categories.listCategories, { portfolioId })
   const workspace = useQuery(api.workspaces.getMyWorkspace)
-  const { allPortfolioIds } = usePortfolio()
   const labels = useQuery(
     api.transactionLabels.listWorkspaceLabels,
     workspace ? { workspaceId: workspace._id } : 'skip',
   )
-  const rawBankAccounts = useQuery(
-    api.powens.listAllBankAccounts,
-    allPortfolioIds.length > 0 ? { portfolioIds: allPortfolioIds } : 'skip',
-  )
+  const rawBankAccounts = useQuery(api.powens.listBankAccounts, { portfolioId })
   const bankAccounts = useCachedDecryptRecords(
     'bankAccounts',
     rawBankAccounts,
   ) as DecryptedBankAccount[] | undefined
+
   const deleteRule = useMutation(api.transactionRules.deleteRule)
   const reorderRules = useMutation(api.transactionRules.reorderRules)
   const toggleRule = useMutation(api.transactionRules.toggleRule)
@@ -90,7 +106,6 @@ function RulesList() {
   >(null)
   const pendingReorder = React.useRef(false)
 
-  // Open edit dialog once a newly created rule appears in the list
   React.useEffect(() => {
     if (pendingEditId && rules) {
       const created = rules.find((r) => r._id === pendingEditId)
@@ -101,40 +116,47 @@ function RulesList() {
     }
   }, [pendingEditId, rules])
 
-  // Sync server rules to local state when no reorder is pending
   React.useEffect(() => {
     if (rules && !pendingReorder.current) {
       setLocalRules(rules)
     }
   }, [rules])
 
-  const bankAccountMap = React.useMemo(() => {
-    const map = new Map<string, string>()
-    if (!bankAccounts) return map
-    for (const ba of bankAccounts) {
-      const label = ba.customName
-        ? ba.customName
-        : ba.connectorName
-          ? `${ba.connectorName} – ${ba.name ?? ''}`
-          : (ba.name ?? '')
-      map.set(ba._id, label)
-    }
-    return map
-  }, [bankAccounts])
-
-  if (rules === undefined || categories === undefined) {
+  if (
+    rules === undefined ||
+    categories === undefined ||
+    bankAccounts === undefined
+  ) {
     return <Skeleton className="h-48 w-full rounded-lg" />
   }
 
   const displayRules = localRules ?? rules
   const categoryMap = new Map(categories.map((c) => [c.key, c]))
   const labelMap = new Map((labels ?? []).map((l) => [l._id, l]))
+
+  // Build bank account name map for display on rule cards
+  const bankAccountMap = new Map<string, string>()
+  for (const ba of bankAccounts) {
+    const label = ba.customName
+      ? ba.customName
+      : ba.connectorName
+        ? `${ba.connectorName} – ${ba.name ?? ''}`
+        : (ba.name ?? '')
+    bankAccountMap.set(ba._id, label)
+  }
+
   const isFiltering = filter.trim().length > 0
   const filteredRules = isFiltering
     ? displayRules.filter((r) =>
         r.pattern.toLowerCase().includes(filter.toLowerCase()),
       )
     : displayRules
+
+  // Split into portfolio-specific and inherited workspace rules
+  const portfolioRules = filteredRules.filter(
+    (r) => r.portfolioId === portfolioId,
+  )
+  const inheritedRules = filteredRules.filter((r) => !r.portfolioId)
 
   const handleDelete = async () => {
     if (!deletingRule) return
@@ -168,9 +190,11 @@ function RulesList() {
 
   const handleReorder = (reordered: Doc<'transactionRules'>[]) => {
     pendingReorder.current = true
-    setLocalRules(reordered)
+    // Only reorder portfolio rules; keep inherited rules at the end
+    const newRules = [...reordered, ...inheritedRules]
+    setLocalRules(newRules)
     const orderedIds = reordered.map((r) => r._id)
-    reorderRules({ orderedRuleIds: orderedIds })
+    reorderRules({ orderedRuleIds: orderedIds, portfolioId })
       .catch(() => {
         toast.error('Failed to reorder rules')
         setLocalRules(rules ?? null)
@@ -179,6 +203,8 @@ function RulesList() {
         pendingReorder.current = false
       })
   }
+
+  const totalRules = portfolioRules.length + inheritedRules.length
 
   return (
     <>
@@ -197,7 +223,7 @@ function RulesList() {
       </div>
 
       <ScrollArea className="min-h-0 flex-1">
-        {filteredRules.length === 0 && !isFiltering ? (
+        {totalRules === 0 && !isFiltering ? (
           <Empty className="mt-8">
             <EmptyHeader>
               <EmptyMedia variant="icon">
@@ -205,8 +231,8 @@ function RulesList() {
               </EmptyMedia>
               <EmptyTitle>No automation rules yet</EmptyTitle>
               <EmptyDescription>
-                Rules automatically categorize, label, and exclude transactions
-                based on their description.
+                Create portfolio-specific rules or manage workspace rules in
+                workspace settings.
               </EmptyDescription>
             </EmptyHeader>
             <Button size="sm" onClick={() => setCreateOpen(true)}>
@@ -214,40 +240,77 @@ function RulesList() {
               Add rule
             </Button>
           </Empty>
-        ) : filteredRules.length === 0 && isFiltering ? (
+        ) : totalRules === 0 && isFiltering ? (
           <p className="py-8 text-center text-sm text-muted-foreground">
             No rules match "{filter}"
           </p>
         ) : (
-          <Sortable
-            value={filteredRules}
-            onValueChange={handleReorder}
-            getItemValue={(item) => item._id}
-            modifiers={[restrictToVerticalAxis]}
-            className="space-y-2 pb-8"
-          >
-            {filteredRules.map((rule, index) => (
-              <SortableItem key={rule._id} value={rule._id}>
-                <RuleCard
-                  rule={rule}
-                  index={index}
-                  categoryMap={categoryMap}
-                  labelMap={labelMap}
-                  bankAccountMap={bankAccountMap}
-                  dragDisabled={isFiltering}
-                  onEdit={() => setEditingRule(rule)}
-                  onDelete={() => setDeletingRule(rule)}
-                  onToggle={(enabled) => handleToggle(rule, enabled)}
-                />
-              </SortableItem>
-            ))}
-          </Sortable>
+          <div className="space-y-6 pb-8">
+            {/* Portfolio-specific rules (editable, reorderable) */}
+            {portfolioRules.length > 0 && (
+              <section>
+                <h3 className="mb-2 text-xs font-medium uppercase tracking-wide text-muted-foreground">
+                  Portfolio
+                </h3>
+                <Sortable
+                  value={portfolioRules}
+                  onValueChange={handleReorder}
+                  getItemValue={(item) => item._id}
+                  modifiers={[restrictToVerticalAxis]}
+                  className="space-y-2"
+                >
+                  {portfolioRules.map((rule, index) => (
+                    <SortableItem key={rule._id} value={rule._id}>
+                      <RuleCard
+                        rule={rule}
+                        index={index}
+                        categoryMap={categoryMap}
+                        labelMap={labelMap}
+                        bankAccountMap={bankAccountMap}
+                        dragDisabled={isFiltering}
+                        onEdit={() => setEditingRule(rule)}
+                        onDelete={() => setDeletingRule(rule)}
+                        onToggle={(enabled) => handleToggle(rule, enabled)}
+                      />
+                    </SortableItem>
+                  ))}
+                </Sortable>
+              </section>
+            )}
+
+            {/* Inherited workspace rules (read-only) */}
+            {inheritedRules.length > 0 && (
+              <section>
+                <h3 className="mb-2 text-xs font-medium uppercase tracking-wide text-muted-foreground">
+                  Inherited from workspace
+                </h3>
+                <div className="space-y-2 opacity-60">
+                  {inheritedRules.map((rule, index) => (
+                    <RuleCard
+                      key={rule._id}
+                      rule={rule}
+                      index={portfolioRules.length + index}
+                      categoryMap={categoryMap}
+                      labelMap={labelMap}
+                      bankAccountMap={bankAccountMap}
+                      dragDisabled
+                      readOnly
+                      onEdit={() => {}}
+                      onDelete={() => {}}
+                      onToggle={() => {}}
+                    />
+                  ))}
+                </div>
+              </section>
+            )}
+          </div>
         )}
       </ScrollArea>
 
       <RuleDialog
         open={createOpen}
         onOpenChange={setCreateOpen}
+        portfolioId={portfolioId}
         onCreated={(ruleId) => setPendingEditId(ruleId)}
       />
 
@@ -257,6 +320,7 @@ function RulesList() {
           if (!open) setEditingRule(undefined)
         }}
         rule={editingRule}
+        portfolioId={portfolioId}
       />
 
       <ConfirmDialog

@@ -29,10 +29,18 @@ import {
   PopoverTrigger,
 } from '~/components/ui/popover'
 import { Switch } from '~/components/ui/switch'
+import { usePortfolio } from '~/contexts/portfolio-context'
+import { useCachedDecryptRecords } from '~/hooks/use-cached-decrypt'
 import { useRetroactiveRuleApplication } from '~/hooks/use-retroactive-rule-application'
 import { cn } from '~/lib/utils'
 import { api } from '../../convex/_generated/api'
 import type { Doc, Id } from '../../convex/_generated/dataModel'
+
+type DecryptedBankAccount = Doc<'bankAccounts'> & {
+  name?: string
+  customName?: string
+  connectorName?: string
+}
 
 interface RuleDialogProps {
   open: boolean
@@ -43,6 +51,7 @@ interface RuleDialogProps {
   defaultExcludeFromBudget?: boolean
   defaultCustomDescription?: string
   onCreated?: (ruleId: Id<'transactionRules'>) => void
+  portfolioId?: Id<'portfolios'>
 }
 
 export function RuleDialog({
@@ -54,6 +63,7 @@ export function RuleDialog({
   defaultExcludeFromBudget = false,
   defaultCustomDescription = '',
   onCreated,
+  portfolioId,
 }: RuleDialogProps) {
   const isEdit = !!rule
   const [pattern, setPattern] = React.useState(defaultPattern)
@@ -65,15 +75,44 @@ export function RuleDialog({
     defaultExcludeFromBudget,
   )
   const [selectedLabelIds, setSelectedLabelIds] = React.useState<string[]>([])
+  const [selectedAccountIds, setSelectedAccountIds] = React.useState<string[]>(
+    [],
+  )
   const [customDescription, setCustomDescription] = React.useState('')
   const [applyRetroactively, setApplyRetroactively] = React.useState(true)
   const [saving, setSaving] = React.useState(false)
 
   const workspace = useQuery(api.workspaces.getMyWorkspace)
+  const { allPortfolioIds } = usePortfolio()
   const labels = useQuery(
     api.transactionLabels.listWorkspaceLabels,
     workspace ? { workspaceId: workspace._id } : 'skip',
   )
+
+  // Fetch bank accounts for the relevant scope
+  const rawBankAccountsSingle = useQuery(
+    api.powens.listBankAccounts,
+    portfolioId ? { portfolioId } : 'skip',
+  )
+  const rawBankAccountsAll = useQuery(
+    api.powens.listAllBankAccounts,
+    !portfolioId && allPortfolioIds.length > 0
+      ? { portfolioIds: allPortfolioIds }
+      : 'skip',
+  )
+  const rawBankAccounts = portfolioId
+    ? rawBankAccountsSingle
+    : rawBankAccountsAll
+  const bankAccounts = useCachedDecryptRecords(
+    'bankAccounts',
+    rawBankAccounts,
+  ) as DecryptedBankAccount[] | undefined
+
+  const activeBankAccounts = React.useMemo(
+    () => bankAccounts?.filter((ba) => !ba.deleted && !ba.disabled) ?? [],
+    [bankAccounts],
+  )
+
   const createRule = useMutation(api.transactionRules.createRule)
   const updateRule = useMutation(api.transactionRules.updateRule)
   const { apply } = useRetroactiveRuleApplication()
@@ -86,6 +125,7 @@ export function RuleDialog({
         setCategoryKey(rule.categoryKey ?? '')
         setExcludeFromBudget(rule.excludeFromBudget ?? false)
         setSelectedLabelIds((rule.labelIds as string[] | undefined) ?? [])
+        setSelectedAccountIds((rule.accountIds as string[] | undefined) ?? [])
         setCustomDescription(rule.customDescription ?? '')
         setApplyRetroactively(true)
       } else {
@@ -94,6 +134,7 @@ export function RuleDialog({
         setCategoryKey(defaultCategoryKey)
         setExcludeFromBudget(defaultExcludeFromBudget)
         setSelectedLabelIds([])
+        setSelectedAccountIds([])
         setCustomDescription(defaultCustomDescription)
         setApplyRetroactively(true)
       }
@@ -117,6 +158,11 @@ export function RuleDialog({
     if (!pattern.trim() || !hasAction) return
     setSaving(true)
     try {
+      const accountIdsArg =
+        selectedAccountIds.length > 0
+          ? (selectedAccountIds as Array<Id<'bankAccounts'>>)
+          : undefined
+
       if (isEdit) {
         await updateRule({
           ruleId: rule._id,
@@ -126,6 +172,7 @@ export function RuleDialog({
           excludeFromBudget,
           labelIds: selectedLabelIds as Array<Id<'transactionLabels'>>,
           customDescription: customDescription.trim() || '',
+          accountIds: accountIdsArg ?? ([] as Array<Id<'bankAccounts'>>),
         })
         toast.success('Rule updated')
       } else {
@@ -139,6 +186,8 @@ export function RuleDialog({
               ? (selectedLabelIds as Array<Id<'transactionLabels'>>)
               : undefined,
           customDescription: customDescription.trim() || undefined,
+          portfolioId,
+          accountIds: accountIdsArg,
         })
         toast.success('Rule created', {
           description: applyRetroactively
@@ -163,6 +212,8 @@ export function RuleDialog({
             labelIds:
               selectedLabelIds.length > 0 ? selectedLabelIds : undefined,
             customDescription: customDescription.trim() || undefined,
+            portfolioId,
+            accountIds: accountIdsArg,
           })
         }
       }
@@ -219,6 +270,24 @@ export function RuleDialog({
                 autoFocus
               />
             </div>
+
+            {/* Account filter */}
+            {activeBankAccounts.length > 0 && (
+              <div className="space-y-2">
+                <Label>From account</Label>
+                <AccountMultiSelect
+                  accounts={activeBankAccounts}
+                  selectedAccountIds={selectedAccountIds}
+                  onToggle={(accountId) =>
+                    setSelectedAccountIds((prev) =>
+                      prev.includes(accountId)
+                        ? prev.filter((id) => id !== accountId)
+                        : [...prev, accountId],
+                    )
+                  }
+                />
+              </div>
+            )}
           </div>
 
           {/* Actions */}
@@ -255,9 +324,7 @@ export function RuleDialog({
                         {category.label}
                       </span>
                     ) : (
-                      <span className="text-muted-foreground">
-                        No category (optional)
-                      </span>
+                      <span className="text-muted-foreground">No category</span>
                     )}
                     <ChevronsUpDown className="ml-auto size-4 shrink-0 opacity-50" />
                   </Button>
@@ -284,7 +351,7 @@ export function RuleDialog({
               <Input
                 value={customDescription}
                 onChange={(e) => setCustomDescription(e.target.value)}
-                placeholder="Custom description (optional)"
+                placeholder="Custom description"
               />
             </div>
 
@@ -427,7 +494,7 @@ function LabelMultiSelect({
               ))}
             </span>
           ) : (
-            <span className="text-muted-foreground">No labels (optional)</span>
+            <span className="text-muted-foreground">No labels</span>
           )}
           <ChevronsUpDown className="ml-auto size-4 shrink-0 opacity-50" />
         </Button>
@@ -457,6 +524,88 @@ function LabelMultiSelect({
                     style={{ backgroundColor: label.color }}
                   />
                   <span>{label.name}</span>
+                </CommandItem>
+              ))}
+            </CommandGroup>
+          </CommandList>
+        </Command>
+      </PopoverContent>
+    </Popover>
+  )
+}
+
+function getAccountDisplayName(account: DecryptedBankAccount): string {
+  if (account.customName) return account.customName
+  if (account.connectorName) {
+    return `${account.connectorName} – ${account.name ?? ''}`
+  }
+  return account.name ?? 'Unknown account'
+}
+
+function AccountMultiSelect({
+  accounts,
+  selectedAccountIds,
+  onToggle,
+}: {
+  accounts: DecryptedBankAccount[]
+  selectedAccountIds: string[]
+  onToggle: (accountId: string) => void
+}) {
+  const [open, setOpen] = React.useState(false)
+
+  const selectedAccounts = accounts.filter((a) =>
+    selectedAccountIds.includes(a._id),
+  )
+
+  return (
+    <Popover open={open} onOpenChange={setOpen}>
+      <PopoverTrigger asChild>
+        <Button
+          type="button"
+          variant="outline"
+          role="combobox"
+          aria-expanded={open}
+          className="h-auto min-h-9 w-full justify-between font-normal"
+        >
+          {selectedAccounts.length > 0 ? (
+            <span className="flex min-w-0 flex-wrap gap-1">
+              {selectedAccounts.map((account) => (
+                <Badge
+                  key={account._id}
+                  variant="secondary"
+                  className="px-2 py-0.5 text-xs"
+                >
+                  {getAccountDisplayName(account)}
+                </Badge>
+              ))}
+            </span>
+          ) : (
+            <span className="text-muted-foreground">All accounts</span>
+          )}
+          <ChevronsUpDown className="ml-auto size-4 shrink-0 opacity-50" />
+        </Button>
+      </PopoverTrigger>
+      <PopoverContent
+        className="w-[--radix-popover-trigger-width] p-0"
+        align="start"
+      >
+        <Command>
+          <CommandInput placeholder="Search accounts..." />
+          <CommandList>
+            <CommandEmpty>No accounts found.</CommandEmpty>
+            <CommandGroup>
+              {accounts.map((account) => (
+                <CommandItem
+                  key={account._id}
+                  value={getAccountDisplayName(account)}
+                  onSelect={() => onToggle(account._id)}
+                >
+                  <Checkbox
+                    checked={selectedAccountIds.includes(account._id)}
+                    tabIndex={-1}
+                    className="pointer-events-none"
+                  />
+                  <span>{getAccountDisplayName(account)}</span>
                 </CommandItem>
               ))}
             </CommandGroup>

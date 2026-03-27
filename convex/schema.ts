@@ -184,6 +184,8 @@ export default defineSchema({
 
   transactionRules: defineTable({
     workspaceId: v.id('workspaces'),
+    portfolioId: v.optional(v.id('portfolios')),
+    accountIds: v.optional(v.array(v.id('bankAccounts'))),
     pattern: v.string(),
     matchType: v.union(v.literal('contains'), v.literal('regex')),
     categoryKey: v.optional(v.string()),
@@ -195,7 +197,9 @@ export default defineSchema({
     createdBy: v.string(),
     createdAt: v.number(),
     impactedTransactionCount: v.optional(v.number()),
-  }).index('by_workspaceId', ['workspaceId']),
+  })
+    .index('by_workspaceId', ['workspaceId'])
+    .index('by_portfolioId', ['portfolioId']),
 
   filterViews: defineTable({
     workspaceId: v.id('workspaces'),

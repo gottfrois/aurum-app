@@ -9,8 +9,10 @@ import { insertAuditLogDirect } from './auditLog'
 import { getActorInfo, getAuthUserId, requireAuthUserId } from './lib/auth'
 
 export const listRules = query({
-  args: {},
-  handler: async (ctx) => {
+  args: {
+    portfolioId: v.optional(v.id('portfolios')),
+  },
+  handler: async (ctx, args) => {
     const userId = await getAuthUserId(ctx)
     if (!userId) return []
 
@@ -26,7 +28,22 @@ export const listRules = query({
         q.eq('workspaceId', member.workspaceId),
       )
       .collect()
-    return rules.sort((a, b) => (a.sortOrder ?? 0) - (b.sortOrder ?? 0))
+
+    if (args.portfolioId) {
+      // Portfolio view: portfolio-specific rules first, then inherited workspace rules
+      const portfolioRules = rules
+        .filter((r) => r.portfolioId === args.portfolioId)
+        .sort((a, b) => (a.sortOrder ?? 0) - (b.sortOrder ?? 0))
+      const workspaceRules = rules
+        .filter((r) => !r.portfolioId)
+        .sort((a, b) => (a.sortOrder ?? 0) - (b.sortOrder ?? 0))
+      return [...portfolioRules, ...workspaceRules]
+    }
+
+    // Workspace view: only workspace-global rules
+    return rules
+      .filter((r) => !r.portfolioId)
+      .sort((a, b) => (a.sortOrder ?? 0) - (b.sortOrder ?? 0))
   },
 })
 
@@ -38,6 +55,8 @@ export const createRule = mutation({
     excludeFromBudget: v.optional(v.boolean()),
     labelIds: v.optional(v.array(v.id('transactionLabels'))),
     customDescription: v.optional(v.string()),
+    portfolioId: v.optional(v.id('portfolios')),
+    accountIds: v.optional(v.array(v.id('bankAccounts'))),
   },
   handler: async (ctx, args) => {
     const userId = await requireAuthUserId(ctx)
@@ -58,19 +77,59 @@ export const createRule = mutation({
       throw new Error('At least one action is required')
     }
 
-    const existingRules = await ctx.db
+    // Validate portfolio belongs to workspace
+    if (args.portfolioId) {
+      const portfolio = await ctx.db.get(args.portfolioId)
+      if (!portfolio) {
+        throw new Error('Portfolio not found')
+      }
+      // Portfolio must belong to a member of this workspace
+      const portfolioMember = await ctx.db.get(portfolio.memberId)
+      if (
+        !portfolioMember ||
+        portfolioMember.workspaceId !== member.workspaceId
+      ) {
+        throw new Error('Portfolio does not belong to this workspace')
+      }
+    }
+
+    // Validate accountIds belong to the correct scope
+    if (args.accountIds && args.accountIds.length > 0) {
+      for (const accountId of args.accountIds) {
+        const account = await ctx.db.get(accountId)
+        if (!account) {
+          throw new Error('Bank account not found')
+        }
+        if (args.portfolioId && account.portfolioId !== args.portfolioId) {
+          throw new Error(
+            'Bank account does not belong to the specified portfolio',
+          )
+        }
+      }
+    }
+
+    // Compute sortOrder within the same scope
+    const allRules = await ctx.db
       .query('transactionRules')
       .withIndex('by_workspaceId', (q) =>
         q.eq('workspaceId', member.workspaceId),
       )
       .collect()
-    const maxOrder = existingRules.reduce(
+    const scopeRules = allRules.filter((r) =>
+      args.portfolioId ? r.portfolioId === args.portfolioId : !r.portfolioId,
+    )
+    const maxOrder = scopeRules.reduce(
       (max, r) => Math.max(max, r.sortOrder ?? 0),
       0,
     )
 
     const ruleId = await ctx.db.insert('transactionRules', {
       workspaceId: member.workspaceId,
+      portfolioId: args.portfolioId,
+      accountIds:
+        args.accountIds && args.accountIds.length > 0
+          ? args.accountIds
+          : undefined,
       pattern: args.pattern,
       matchType: args.matchType,
       categoryKey: args.categoryKey,
@@ -78,7 +137,7 @@ export const createRule = mutation({
       labelIds: args.labelIds,
       customDescription: args.customDescription,
       enabled: true,
-      sortOrder: existingRules.length === 0 ? 0 : maxOrder + 1,
+      sortOrder: scopeRules.length === 0 ? 0 : maxOrder + 1,
       createdBy: userId,
       createdAt: Date.now(),
     })
@@ -100,6 +159,8 @@ export const createRule = mutation({
         categoryKey: args.categoryKey,
         excludeFromBudget: args.excludeFromBudget,
         labelCount: args.labelIds?.length ?? 0,
+        portfolioId: args.portfolioId,
+        accountIds: args.accountIds,
       }),
     })
 
@@ -117,6 +178,7 @@ export const updateRule = mutation({
     labelIds: v.optional(v.array(v.id('transactionLabels'))),
     customDescription: v.optional(v.string()),
     enabled: v.optional(v.boolean()),
+    accountIds: v.optional(v.array(v.id('bankAccounts'))),
   },
   handler: async (ctx, args) => {
     const userId = await requireAuthUserId(ctx)
@@ -131,6 +193,19 @@ export const updateRule = mutation({
     const rule = await ctx.db.get(args.ruleId)
     if (!rule || rule.workspaceId !== member.workspaceId) {
       throw new Error('Rule not found')
+    }
+
+    // Validate accountIds belong to the correct scope
+    if (args.accountIds !== undefined && args.accountIds.length > 0) {
+      for (const accountId of args.accountIds) {
+        const account = await ctx.db.get(accountId)
+        if (!account) {
+          throw new Error('Bank account not found')
+        }
+        if (rule.portfolioId && account.portfolioId !== rule.portfolioId) {
+          throw new Error('Bank account does not belong to the rule portfolio')
+        }
+      }
     }
 
     const changedFields: string[] = []
@@ -157,6 +232,11 @@ export const updateRule = mutation({
       changedFields.push('customDescription')
     if (args.enabled !== undefined && args.enabled !== rule.enabled)
       changedFields.push('enabled')
+    if (
+      args.accountIds !== undefined &&
+      JSON.stringify(args.accountIds) !== JSON.stringify(rule.accountIds)
+    )
+      changedFields.push('accountIds')
 
     // Skip if nothing actually changed
     if (changedFields.length === 0) return
@@ -177,6 +257,9 @@ export const updateRule = mutation({
         customDescription: args.customDescription || undefined,
       }),
       ...(args.enabled !== undefined && { enabled: args.enabled }),
+      ...(args.accountIds !== undefined && {
+        accountIds: args.accountIds.length > 0 ? args.accountIds : undefined,
+      }),
     })
 
     const workspace = await ctx.db.get('workspaces', member.workspaceId)
@@ -326,7 +409,10 @@ export const batchDeleteRules = mutation({
 })
 
 export const reorderRules = mutation({
-  args: { orderedRuleIds: v.array(v.id('transactionRules')) },
+  args: {
+    orderedRuleIds: v.array(v.id('transactionRules')),
+    portfolioId: v.optional(v.id('portfolios')),
+  },
   handler: async (ctx, args) => {
     const userId = await requireAuthUserId(ctx)
     const member = await ctx.db
@@ -341,6 +427,13 @@ export const reorderRules = mutation({
       const rule = await ctx.db.get(args.orderedRuleIds[i])
       if (!rule || rule.workspaceId !== member.workspaceId) {
         throw new Error('Rule not found')
+      }
+      // Only reorder rules within the same scope
+      const ruleInScope = args.portfolioId
+        ? rule.portfolioId === args.portfolioId
+        : !rule.portfolioId
+      if (!ruleInScope) {
+        throw new Error('Rule does not belong to the specified scope')
       }
       await ctx.db.patch(args.orderedRuleIds[i], { sortOrder: i })
     }
@@ -425,12 +518,29 @@ export const recordRuleApplication = mutation({
 })
 
 export const listRulesForWorkspace = internalQuery({
-  args: { workspaceId: v.id('workspaces') },
+  args: {
+    workspaceId: v.id('workspaces'),
+    portfolioId: v.optional(v.id('portfolios')),
+  },
   handler: async (ctx, args) => {
     const rules = await ctx.db
       .query('transactionRules')
       .withIndex('by_workspaceId', (q) => q.eq('workspaceId', args.workspaceId))
       .collect()
-    return rules.sort((a, b) => (a.sortOrder ?? 0) - (b.sortOrder ?? 0))
+
+    if (args.portfolioId) {
+      // Portfolio-specific rules first, then workspace-global rules
+      const portfolioRules = rules
+        .filter((r) => r.portfolioId === args.portfolioId)
+        .sort((a, b) => (a.sortOrder ?? 0) - (b.sortOrder ?? 0))
+      const workspaceRules = rules
+        .filter((r) => !r.portfolioId)
+        .sort((a, b) => (a.sortOrder ?? 0) - (b.sortOrder ?? 0))
+      return [...portfolioRules, ...workspaceRules]
+    }
+
+    return rules
+      .filter((r) => !r.portfolioId)
+      .sort((a, b) => (a.sortOrder ?? 0) - (b.sortOrder ?? 0))
   },
 })

@@ -46,6 +46,8 @@ export function useRetroactiveRuleApplication() {
       excludeFromBudget?: boolean
       labelIds?: string[]
       customDescription?: string
+      portfolioId?: Id<'portfolios'>
+      accountIds?: Array<Id<'bankAccounts'>>
     }) => {
       if (!privateKey || !workspacePublicKey) {
         bulkOp?.setError('Encryption not unlocked')
@@ -54,10 +56,15 @@ export function useRetroactiveRuleApplication() {
 
       const pubKey = await importPublicKey(workspacePublicKey)
 
+      // Scope to specific portfolio or all portfolios
+      const targetPortfolioIds = params.portfolioId
+        ? [params.portfolioId]
+        : allPortfolioIds
+
       // Get total count for progress bar
       const totalCount = await convex.query(
         api.transactions.countAllTransactions,
-        { portfolioIds: allPortfolioIds },
+        { portfolioIds: targetPortfolioIds },
       )
       if (!totalCount) return
 
@@ -70,12 +77,17 @@ export function useRetroactiveRuleApplication() {
         matcher = (text) => text.toLowerCase().includes(lower)
       }
 
+      const accountIdSet =
+        params.accountIds && params.accountIds.length > 0
+          ? new Set(params.accountIds as string[])
+          : null
+
       bulkOp?.start(params.pattern, totalCount)
       let processed = 0
       let updated = 0
 
       // Process each portfolio separately using cursor-based pagination
-      for (const portfolioId of allPortfolioIds) {
+      for (const portfolioId of targetPortfolioIds) {
         let cursor: string | null = null
         let isDone = false
 
@@ -117,6 +129,14 @@ export function useRetroactiveRuleApplication() {
 
             for (const txn of chunk) {
               try {
+                // Skip if rule has account filters and this transaction's account is not included
+                if (
+                  accountIdSet &&
+                  !accountIdSet.has(txn.bankAccountId as string)
+                ) {
+                  continue
+                }
+
                 const details = await decryptFieldGroups(
                   { encryptedDetails: txn.encryptedDetails },
                   privateKey,
