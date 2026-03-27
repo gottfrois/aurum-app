@@ -118,7 +118,7 @@ export function useRetroactiveRuleApplication() {
 
             if (!matcher(searchText)) continue
 
-            // Track all matched transactions for audit logging
+            // Track all matched transactions for audit logging and count
             affectedTransactionIds.add(txn._id)
 
             // Apply category action
@@ -182,7 +182,6 @@ export function useRetroactiveRuleApplication() {
         if (categoryItems.length > 0) {
           try {
             await batchUpdateCategories({ items: categoryItems })
-            updated += categoryItems.length
           } catch {
             bulkOp?.setError('Failed to save batch')
             return
@@ -192,7 +191,6 @@ export function useRetroactiveRuleApplication() {
         if (detailItems.length > 0) {
           try {
             await batchUpdateDetails({ items: detailItems })
-            updated += detailItems.length
           } catch {
             bulkOp?.setError('Failed to save batch')
             return
@@ -205,7 +203,6 @@ export function useRetroactiveRuleApplication() {
               transactionIds: exclusionIds,
               excludedFromBudget: true,
             })
-            updated += exclusionIds.length
           } catch {
             bulkOp?.setError('Failed to save batch')
             return
@@ -222,12 +219,13 @@ export function useRetroactiveRuleApplication() {
               transactionIds: labelIds,
               addLabelIds: params.labelIds as Array<Id<'transactionLabels'>>,
             })
-            updated += labelIds.length
           } catch {
             bulkOp?.setError('Failed to save batch')
             return
           }
         }
+
+        updated += affectedTransactionIds.size
 
         // Record rule application audit logs for affected transactions
         if (affectedTransactionIds.size > 0) {
