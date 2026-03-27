@@ -11,7 +11,7 @@ import {
   getSortedRowModel,
   useReactTable,
 } from '@tanstack/react-table'
-import { useMutation, useQuery } from 'convex/react'
+import { useMutation, usePaginatedQuery, useQuery } from 'convex/react'
 import {
   ArrowDown,
   ArrowUp,
@@ -25,6 +25,7 @@ import {
   Pencil,
   Plus,
   Search,
+  XIcon,
 } from 'lucide-react'
 import * as React from 'react'
 import { toast } from 'sonner'
@@ -49,12 +50,11 @@ import {
   SelectTrigger,
   SelectValue,
 } from '~/components/ui/select'
-import { Separator } from '~/components/ui/separator'
 import {
   Sheet,
+  SheetClose,
   SheetContent,
   SheetDescription,
-  SheetHeader,
   SheetTitle,
 } from '~/components/ui/sheet'
 import { Switch } from '~/components/ui/switch'
@@ -1264,7 +1264,11 @@ function TransactionDetailSheet({
     customDescription: string,
   ) => void
 }) {
-  const auditEntries = useQuery(
+  const {
+    results: auditEntries,
+    status: auditStatus,
+    loadMore,
+  } = usePaginatedQuery(
     api.auditLog.listByTransactionPublic,
     transaction?.portfolioId
       ? {
@@ -1272,6 +1276,7 @@ function TransactionDetailSheet({
           portfolioId: transaction.portfolioId as Id<'portfolios'>,
         }
       : 'skip',
+    { initialNumItems: 10 },
   )
 
   if (!transaction) return null
@@ -1312,38 +1317,51 @@ function TransactionDetailSheet({
 
   return (
     <Sheet open={!!transaction} onOpenChange={onOpenChange}>
-      <SheetContent side="right" className="overflow-y-auto sm:max-w-md">
-        <SheetHeader>
-          <EditableDescription
-            transactionId={transaction._id}
-            customDescription={transaction.customDescription}
-            wording={transaction.wording}
-            onUpdate={onDescriptionUpdate}
-          />
-          <SheetDescription>
-            {transaction.coming
-              ? 'Pending transaction'
-              : 'Completed transaction'}
-          </SheetDescription>
-        </SheetHeader>
-
-        <div className="flex flex-col gap-6 px-4 pb-4">
-          <div className="flex items-center justify-between">
-            <span
-              className={cn(
-                'text-2xl font-semibold font-mono tabular-nums',
-                transaction.value > 0
-                  ? 'text-emerald-600 dark:text-emerald-400'
-                  : 'text-red-600 dark:text-red-400',
-              )}
-            >
-              {transaction.value > 0 ? '+' : ''}
-              {formatCurrency(transaction.value, currency)}
-            </span>
+      <SheetContent
+        side="right"
+        className="overflow-y-auto sm:max-w-md gap-0"
+        showCloseButton={false}
+      >
+        {/* Header */}
+        <div className="px-4 py-6 sm:px-6">
+          <div className="flex items-start justify-between">
+            <div className="flex-1">
+              <EditableDescription
+                transactionId={transaction._id}
+                customDescription={transaction.customDescription}
+                wording={transaction.wording}
+                onUpdate={onDescriptionUpdate}
+              />
+              <SheetDescription className="mt-1">
+                {transaction.coming
+                  ? 'Pending transaction'
+                  : 'Completed transaction'}
+              </SheetDescription>
+            </div>
+            <div className="ml-3 flex h-7 items-center">
+              <SheetClose className="rounded-md text-muted-foreground hover:text-foreground focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring">
+                <span className="sr-only">Close panel</span>
+                <XIcon className="size-5" />
+              </SheetClose>
+            </div>
           </div>
+        </div>
 
+        {/* Amount */}
+        <div className="px-4 sm:px-6">
+          <span
+            className={cn(
+              'text-2xl font-bold font-mono tabular-nums',
+              transaction.value > 0
+                ? 'text-emerald-600 dark:text-emerald-400'
+                : 'text-red-600 dark:text-red-400',
+            )}
+          >
+            {transaction.value > 0 ? '+' : ''}
+            {formatCurrency(transaction.value, currency)}
+          </span>
           {hasOriginalCurrency && (
-            <p className="text-sm text-muted-foreground">
+            <p className="mt-1 text-sm text-muted-foreground">
               Original:{' '}
               {transaction.originalValue != null &&
                 transaction.originalCurrency &&
@@ -1353,96 +1371,125 @@ function TransactionDetailSheet({
                 )}
             </p>
           )}
+        </div>
 
-          <div>
-            <p className="mb-1 text-xs font-medium text-muted-foreground">
-              Category
-            </p>
-            <CategoryPicker
-              transactionId={transaction._id}
-              currentCategoryKey={categoryKey}
-              wording={transaction.wording}
-              onCreateRule={onCreateRule}
-              modal
-            />
-          </div>
-
-          {workspaceId && (
+        {/* Actions */}
+        <div className="mt-6 px-4 sm:px-6">
+          <div className="space-y-4">
             <div>
-              <p className="mb-1 text-xs font-medium text-muted-foreground">
-                Labels
-              </p>
-              <LabelPicker
-                labels={labels}
-                selectedLabelIds={transaction.labelIds ?? []}
-                workspaceId={workspaceId}
-                onToggle={(labelIds) =>
-                  onLabelToggle(transaction._id, labelIds)
-                }
+              <dt className="text-sm font-medium text-muted-foreground">
+                Category
+              </dt>
+              <dd className="mt-1">
+                <CategoryPicker
+                  transactionId={transaction._id}
+                  currentCategoryKey={categoryKey}
+                  wording={transaction.wording}
+                  onCreateRule={onCreateRule}
+                  modal
+                />
+              </dd>
+            </div>
+
+            {workspaceId && (
+              <div>
+                <dt className="text-sm font-medium text-muted-foreground">
+                  Labels
+                </dt>
+                <dd className="mt-1">
+                  <LabelPicker
+                    labels={labels}
+                    selectedLabelIds={transaction.labelIds ?? []}
+                    workspaceId={workspaceId}
+                    onToggle={(labelIds) =>
+                      onLabelToggle(transaction._id, labelIds)
+                    }
+                  />
+                </dd>
+              </div>
+            )}
+
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <EyeOff className="size-4 text-muted-foreground" />
+                <span className="text-sm">Exclude from budget</span>
+              </div>
+              <Switch
+                checked={transaction.excludedFromBudget ?? false}
+                onCheckedChange={(checked) => {
+                  onExclusionToggle(transaction._id, checked)
+                  if (checked) {
+                    toast.success('Excluded from budget', {
+                      action: {
+                        label: 'Create rule',
+                        onClick: () =>
+                          onCreateRule(transaction.wording, '', true),
+                      },
+                    })
+                  } else {
+                    toast.success('Included in budget')
+                  }
+                }}
               />
             </div>
-          )}
-
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <EyeOff className="size-4 text-muted-foreground" />
-              <span className="text-sm">Exclude from budget</span>
-            </div>
-            <Switch
-              checked={transaction.excludedFromBudget ?? false}
-              onCheckedChange={(checked) => {
-                onExclusionToggle(transaction._id, checked)
-                if (checked) {
-                  toast.success('Excluded from budget', {
-                    action: {
-                      label: 'Create rule',
-                      onClick: () =>
-                        onCreateRule(transaction.wording, '', true),
-                    },
-                  })
-                } else {
-                  toast.success('Included in budget')
-                }
-              }}
-            />
           </div>
+        </div>
 
-          <Separator />
-
-          <dl className="grid gap-3">
+        {/* Details */}
+        <div className="mt-6 px-4 pb-5 pt-5 sm:px-0 sm:pt-0">
+          <dl className="space-y-6 px-4 sm:space-y-4 sm:px-6">
             {details
               .filter((d) => d.value)
               .map((d) => (
-                <div key={d.label} className="grid grid-cols-[120px_1fr] gap-2">
-                  <dt className="text-sm text-muted-foreground">{d.label}</dt>
-                  <dd className="text-sm break-words">{d.value}</dd>
+                <div key={d.label}>
+                  <dt className="text-sm font-medium text-muted-foreground">
+                    {d.label}
+                  </dt>
+                  <dd className="mt-1 text-sm break-words">{d.value}</dd>
                 </div>
               ))}
           </dl>
-
-          {auditEntries && auditEntries.length > 0 && (
-            <>
-              <Separator />
-              <div>
-                <p className="mb-3 text-xs font-medium text-muted-foreground">
-                  Activity
-                </p>
-                <AuditTimeline
-                  entries={auditEntries.map((log) => ({
-                    id: log._id,
-                    timestamp: log.timestamp,
-                    event: log.event,
-                    actorType: log.actorType as 'user' | 'system',
-                    actorName: log.actorName,
-                    actorAvatarUrl: log.actorAvatarUrl ?? undefined,
-                    metadata: log.metadata,
-                    resourceType: log.resourceType,
-                  }))}
-                />
-              </div>
-            </>
-          )}
         </div>
+
+        {/* Activity */}
+        {auditEntries.length > 0 && (
+          <div className="mt-2 border-t px-4 pt-5 pb-6 sm:px-6">
+            <dt className="text-sm font-medium text-muted-foreground">
+              Activity
+            </dt>
+            <dd className="mt-3">
+              <AuditTimeline
+                entries={auditEntries.map((log) => ({
+                  id: log._id,
+                  timestamp: log.timestamp,
+                  event: log.event,
+                  actorType: log.actorType as 'user' | 'system',
+                  actorName: log.actorName,
+                  actorAvatarUrl: log.actorAvatarUrl ?? undefined,
+                  metadata: log.metadata,
+                  resourceType: log.resourceType,
+                }))}
+              />
+              {auditStatus === 'CanLoadMore' && (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="mt-2 w-full text-muted-foreground"
+                  onClick={() => loadMore(10)}
+                >
+                  Load older activity
+                </Button>
+              )}
+              {auditStatus === 'LoadingMore' && (
+                <div className="mt-2 flex justify-center">
+                  <span className="text-sm text-muted-foreground">
+                    Loading…
+                  </span>
+                </div>
+              )}
+            </dd>
+          </div>
+        )}
       </SheetContent>
     </Sheet>
   )
@@ -1521,7 +1568,7 @@ function EditableDescription({
 
   if (editing) {
     return (
-      <div className="pr-6">
+      <div>
         <Input
           ref={inputRef}
           value={value}
@@ -1546,14 +1593,14 @@ function EditableDescription({
   }
 
   return (
-    <div className="pr-6">
+    <div>
       <button
         type="button"
         tabIndex={-1}
         className="group flex items-center gap-2 text-left"
         onClick={() => setEditing(true)}
       >
-        <SheetTitle className="text-lg">
+        <SheetTitle className="text-base">
           {customDescription || wording}
         </SheetTitle>
         <Pencil className="size-3.5 shrink-0 text-muted-foreground opacity-0 transition-opacity group-hover:opacity-100" />

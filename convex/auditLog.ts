@@ -1,6 +1,7 @@
-import type { GenericDatabaseWriter } from 'convex/server'
+import type { GenericDatabaseWriter, PaginationResult } from 'convex/server'
+import { paginationOptsValidator } from 'convex/server'
 import { v } from 'convex/values'
-import type { DataModel, Id } from './_generated/dataModel'
+import type { DataModel, Doc, Id } from './_generated/dataModel'
 import { internalMutation, query } from './_generated/server'
 import { getAuthUserId } from './lib/auth'
 
@@ -215,20 +216,28 @@ export const listByTransactionPublic = query({
   args: {
     transactionId: v.id('transactions'),
     portfolioId: v.id('portfolios'),
+    paginationOpts: paginationOptsValidator,
   },
   handler: async (ctx, args) => {
+    const emptyPage = {
+      page: [],
+      isDone: true,
+      continueCursor: '',
+    } as PaginationResult<Doc<'auditLogs'>>
+
     const userId = await getAuthUserId(ctx)
-    if (!userId) return []
+    if (!userId) return emptyPage
 
     // Verify the caller owns the portfolio/workspace
     const portfolio = await ctx.db.get(args.portfolioId)
-    if (!portfolio) return []
+    if (!portfolio) return emptyPage
 
     const member = await ctx.db
       .query('workspaceMembers')
       .withIndex('by_userId', (q) => q.eq('userId', userId))
       .first()
-    if (!member || member.workspaceId !== portfolio.workspaceId) return []
+    if (!member || member.workspaceId !== portfolio.workspaceId)
+      return emptyPage
 
     return await ctx.db
       .query('auditLogs')
@@ -236,7 +245,7 @@ export const listByTransactionPublic = query({
         q.eq('resourceId', args.transactionId),
       )
       .order('desc')
-      .take(50)
+      .paginate(args.paginationOpts)
   },
 })
 
