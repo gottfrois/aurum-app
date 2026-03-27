@@ -14,6 +14,7 @@ import {
 } from '~/components/ui/sidebar'
 import { CommandProvider, useCommandDispatch } from '~/contexts/command-context'
 import { useEncryption } from '~/contexts/encryption-context'
+import { usePrivacy } from '~/contexts/privacy-context'
 import { useCommand } from '~/hooks/use-command'
 import { useNavigationCommands } from '~/hooks/use-navigation-commands'
 import { api } from '../../convex/_generated/api'
@@ -26,6 +27,7 @@ function AppCommands() {
   const { setPaletteState } = useCommandDispatch()
   const { toggleSidebar } = useSidebar()
   const { lock, isUnlocked } = useEncryption()
+  const { togglePrivacy } = usePrivacy()
   const [shortcutsOpen, setShortcutsOpen] = React.useState(false)
   const [connectionDialogOpen, setConnectionDialogOpen] = React.useState(false)
 
@@ -50,6 +52,10 @@ function AppCommands() {
       void lock()
     },
     disabled: !isUnlocked,
+  })
+
+  useCommand('privacy.toggle', {
+    handler: togglePrivacy,
   })
 
   useNavigationCommands()

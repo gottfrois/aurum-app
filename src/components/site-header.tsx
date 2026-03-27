@@ -86,8 +86,9 @@ export function SiteHeader({
                 )}
               </Button>
             </TooltipTrigger>
-            <TooltipContent>
-              {isPrivate ? 'Show balances' : 'Hide balances'}
+            <TooltipContent className="flex items-center gap-2">
+              <span>{isPrivate ? 'Show balances' : 'Hide balances'}</span>
+              <HotkeyDisplay hotkey={{ keys: 'alt+h' }} />
             </TooltipContent>
           </Tooltip>
         </div>

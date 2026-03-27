@@ -1,6 +1,7 @@
 import {
   ArrowLeftRight,
   Command,
+  Eye,
   EyeOff,
   Keyboard,
   Landmark,
@@ -115,6 +116,13 @@ export const COMMAND_DEFINITIONS: Record<string, CommandDefinition> = {
     group: 'General',
     icon: Lock,
     hotkey: { keys: 'alt+l', scope: 'global' },
+  },
+  'privacy.toggle': {
+    id: 'privacy.toggle',
+    label: 'Toggle balances visibility',
+    group: 'General',
+    icon: Eye,
+    hotkey: { keys: 'alt+h', scope: 'global' },
   },
   'ai.filter': {
     id: 'ai.filter',
