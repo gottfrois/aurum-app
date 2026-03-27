@@ -1,3 +1,4 @@
+import { paginationOptsValidator } from 'convex/server'
 import { v } from 'convex/values'
 import { internal } from './_generated/api'
 import {
@@ -51,6 +52,46 @@ export const listAllTransactions = query({
     )
 
     return results.flat().filter((t) => !t.deleted)
+  },
+})
+
+export const listTransactionPage = query({
+  args: {
+    portfolioId: v.id('portfolios'),
+    paginationOpts: paginationOptsValidator,
+  },
+  handler: async (ctx, args) => {
+    const userId = await getAuthUserId(ctx)
+    if (!userId) {
+      return { page: [], isDone: true, continueCursor: '' }
+    }
+
+    return await ctx.db
+      .query('transactions')
+      .withIndex('by_portfolioId', (q) => q.eq('portfolioId', args.portfolioId))
+      .filter((q) => q.eq(q.field('deleted'), false))
+      .paginate(args.paginationOpts)
+  },
+})
+
+export const countAllTransactions = query({
+  args: {
+    portfolioIds: v.array(v.id('portfolios')),
+  },
+  handler: async (ctx, args) => {
+    const userId = await getAuthUserId(ctx)
+    if (!userId) return 0
+
+    let total = 0
+    for (const portfolioId of args.portfolioIds) {
+      const txns = await ctx.db
+        .query('transactions')
+        .withIndex('by_portfolioId', (q) => q.eq('portfolioId', portfolioId))
+        .filter((q) => q.eq(q.field('deleted'), false))
+        .collect()
+      total += txns.length
+    }
+    return total
   },
 })
 

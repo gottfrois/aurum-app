@@ -1,4 +1,5 @@
 import { useConvex, useMutation } from 'convex/react'
+import type { PaginationResult } from 'convex/server'
 import { useCallback } from 'react'
 import { useBulkOperationOptional } from '~/contexts/bulk-operation-context'
 import { useEncryption } from '~/contexts/encryption-context'
@@ -8,6 +9,7 @@ import { api } from '../../convex/_generated/api'
 import type { Id } from '../../convex/_generated/dataModel'
 
 const BATCH_SIZE = 50
+const PAGE_SIZE = 500
 
 function sleep(ms: number): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, ms))
@@ -52,14 +54,12 @@ export function useRetroactiveRuleApplication() {
 
       const pubKey = await importPublicKey(workspacePublicKey)
 
-      const transactions = await convex.query(
-        api.transactions.listAllTransactions,
+      // Get total count for progress bar
+      const totalCount = await convex.query(
+        api.transactions.countAllTransactions,
         { portfolioIds: allPortfolioIds },
       )
-
-      if (!transactions || transactions.length === 0) {
-        return
-      }
+      if (!totalCount) return
 
       let matcher: (text: string) => boolean
       if (params.matchType === 'regex') {
@@ -70,182 +70,197 @@ export function useRetroactiveRuleApplication() {
         matcher = (text) => text.toLowerCase().includes(lower)
       }
 
-      bulkOp?.start(params.pattern, transactions.length)
+      bulkOp?.start(params.pattern, totalCount)
       let processed = 0
       let updated = 0
 
-      for (let i = 0; i < transactions.length; i += BATCH_SIZE) {
-        // Check cancel
-        if (bulkOp?.cancelRef.current) break
+      // Process each portfolio separately using cursor-based pagination
+      for (const portfolioId of allPortfolioIds) {
+        let cursor: string | null = null
+        let isDone = false
 
-        // Check pause — poll until resumed
-        while (bulkOp?.pauseRef.current && !bulkOp.cancelRef.current) {
-          await sleep(200)
-        }
-        if (bulkOp?.cancelRef.current) break
+        while (!isDone) {
+          if (bulkOp?.cancelRef.current) break
 
-        const chunk = transactions.slice(i, i + BATCH_SIZE)
-        const categoryItems: Array<{
-          transactionId: (typeof transactions)[number]['_id']
-          encryptedCategories: string
-        }> = []
-        const detailItems: Array<{
-          transactionId: (typeof transactions)[number]['_id']
-          encryptedDetails: string
-        }> = []
-        const exclusionIds: Array<(typeof transactions)[number]['_id']> = []
-        const labelIds: Array<(typeof transactions)[number]['_id']> = []
-        const affectedTransactionIds = new Set<
-          (typeof transactions)[number]['_id']
-        >()
+          const result: PaginationResult<
+            (typeof api.transactions.listTransactionPage)['_returnType']['page'][number]
+          > = await convex.query(api.transactions.listTransactionPage, {
+            portfolioId,
+            paginationOpts: { numItems: PAGE_SIZE, cursor },
+          })
 
-        for (const txn of chunk) {
-          try {
-            // Decrypt details to get wording fields
-            const details = await decryptFieldGroups(
-              { encryptedDetails: txn.encryptedDetails },
-              privateKey,
-              txn._id,
-            )
+          const page = result.page
+          isDone = result.isDone
+          cursor = result.continueCursor
 
-            // Build search text from wording fields
-            const searchParts = [
-              details.wording,
-              details.originalWording,
-              details.simplifiedWording,
-            ].filter(Boolean) as string[]
-            const searchText = searchParts.join(' ')
+          // Process this page in chunks of BATCH_SIZE
+          for (let i = 0; i < page.length; i += BATCH_SIZE) {
+            if (bulkOp?.cancelRef.current) break
 
-            if (!matcher(searchText)) continue
+            while (bulkOp?.pauseRef.current && !bulkOp.cancelRef.current) {
+              await sleep(200)
+            }
+            if (bulkOp?.cancelRef.current) break
 
-            // Track all matched transactions for audit logging and count
-            affectedTransactionIds.add(txn._id)
+            const chunk = page.slice(i, i + BATCH_SIZE)
+            const categoryItems: Array<{
+              transactionId: Id<'transactions'>
+              encryptedCategories: string
+            }> = []
+            const detailItems: Array<{
+              transactionId: Id<'transactions'>
+              encryptedDetails: string
+            }> = []
+            const exclusionIds: Array<Id<'transactions'>> = []
+            const labelIds: Array<Id<'transactions'>> = []
+            const affectedTransactionIds = new Set<Id<'transactions'>>()
 
-            // Apply category action
-            if (params.categoryKey) {
-              const categories = await decryptFieldGroups(
-                { encryptedCategories: txn.encryptedCategories },
-                privateKey,
-                txn._id,
-              )
-
-              if (!categories.userCategoryKey) {
-                const newCategories = {
-                  ...categories,
-                  userCategoryKey: params.categoryKey,
-                }
-                const encrypted = await encryptData(
-                  newCategories,
-                  pubKey,
+            for (const txn of chunk) {
+              try {
+                const details = await decryptFieldGroups(
+                  { encryptedDetails: txn.encryptedDetails },
+                  privateKey,
                   txn._id,
-                  'encryptedCategories',
                 )
-                categoryItems.push({
-                  transactionId: txn._id,
-                  encryptedCategories: encrypted,
-                })
+
+                const searchParts = [
+                  details.wording,
+                  details.originalWording,
+                  details.simplifiedWording,
+                ].filter(Boolean) as string[]
+                const searchText = searchParts.join(' ')
+
+                if (!matcher(searchText)) continue
+
+                affectedTransactionIds.add(txn._id)
+
+                if (params.categoryKey) {
+                  const categories = await decryptFieldGroups(
+                    { encryptedCategories: txn.encryptedCategories },
+                    privateKey,
+                    txn._id,
+                  )
+
+                  if (!categories.userCategoryKey) {
+                    const newCategories = {
+                      ...categories,
+                      userCategoryKey: params.categoryKey,
+                    }
+                    const encrypted = await encryptData(
+                      newCategories,
+                      pubKey,
+                      txn._id,
+                      'encryptedCategories',
+                    )
+                    categoryItems.push({
+                      transactionId: txn._id,
+                      encryptedCategories: encrypted,
+                    })
+                  }
+                }
+
+                if (params.customDescription && !details.customDescription) {
+                  const newDetails = {
+                    ...details,
+                    customDescription: params.customDescription,
+                  }
+                  const encrypted = await encryptData(
+                    newDetails,
+                    pubKey,
+                    txn._id,
+                    'encryptedDetails',
+                  )
+                  detailItems.push({
+                    transactionId: txn._id,
+                    encryptedDetails: encrypted,
+                  })
+                }
+
+                if (params.excludeFromBudget && !txn.excludedFromBudget) {
+                  exclusionIds.push(txn._id)
+                }
+
+                if (params.labelIds && params.labelIds.length > 0) {
+                  labelIds.push(txn._id)
+                }
+              } catch {
+                // Skip transactions that fail to decrypt
               }
             }
 
-            // Apply custom description action
-            if (params.customDescription && !details.customDescription) {
-              const newDetails = {
-                ...details,
-                customDescription: params.customDescription,
+            if (categoryItems.length > 0) {
+              try {
+                await batchUpdateCategories({ items: categoryItems })
+              } catch {
+                bulkOp?.setError('Failed to save batch')
+                return
               }
-              const encrypted = await encryptData(
-                newDetails,
-                pubKey,
-                txn._id,
-                'encryptedDetails',
-              )
-              detailItems.push({
-                transactionId: txn._id,
-                encryptedDetails: encrypted,
+            }
+
+            if (detailItems.length > 0) {
+              try {
+                await batchUpdateDetails({ items: detailItems })
+              } catch {
+                bulkOp?.setError('Failed to save batch')
+                return
+              }
+            }
+
+            if (exclusionIds.length > 0) {
+              try {
+                await batchUpdateExclusion({
+                  transactionIds: exclusionIds,
+                  excludedFromBudget: true,
+                })
+              } catch {
+                bulkOp?.setError('Failed to save batch')
+                return
+              }
+            }
+
+            if (
+              params.labelIds &&
+              params.labelIds.length > 0 &&
+              labelIds.length > 0
+            ) {
+              try {
+                await batchUpdateLabels({
+                  transactionIds: labelIds,
+                  addLabelIds: params.labelIds as Array<
+                    Id<'transactionLabels'>
+                  >,
+                })
+              } catch {
+                bulkOp?.setError('Failed to save batch')
+                return
+              }
+            }
+
+            updated += affectedTransactionIds.size
+
+            if (affectedTransactionIds.size > 0) {
+              const appliedActions: string[] = []
+              if (params.categoryKey) appliedActions.push('category')
+              if (params.customDescription) appliedActions.push('description')
+              if (params.excludeFromBudget)
+                appliedActions.push('excludeFromBudget')
+              if (params.labelIds && params.labelIds.length > 0)
+                appliedActions.push('labels')
+
+              await recordRuleApplication({
+                ruleId: params.ruleId,
+                rulePattern: params.rulePattern,
+                transactionIds: [...affectedTransactionIds],
+                appliedActions,
               })
             }
 
-            // Apply exclusion action
-            if (params.excludeFromBudget && !txn.excludedFromBudget) {
-              exclusionIds.push(txn._id)
-            }
-
-            // Apply label action
-            if (params.labelIds && params.labelIds.length > 0) {
-              labelIds.push(txn._id)
-            }
-          } catch {
-            // Skip transactions that fail to decrypt
+            processed += chunk.length
+            bulkOp?.updateProgress(processed)
           }
         }
 
-        if (categoryItems.length > 0) {
-          try {
-            await batchUpdateCategories({ items: categoryItems })
-          } catch {
-            bulkOp?.setError('Failed to save batch')
-            return
-          }
-        }
-
-        if (detailItems.length > 0) {
-          try {
-            await batchUpdateDetails({ items: detailItems })
-          } catch {
-            bulkOp?.setError('Failed to save batch')
-            return
-          }
-        }
-
-        if (exclusionIds.length > 0) {
-          try {
-            await batchUpdateExclusion({
-              transactionIds: exclusionIds,
-              excludedFromBudget: true,
-            })
-          } catch {
-            bulkOp?.setError('Failed to save batch')
-            return
-          }
-        }
-
-        if (
-          params.labelIds &&
-          params.labelIds.length > 0 &&
-          labelIds.length > 0
-        ) {
-          try {
-            await batchUpdateLabels({
-              transactionIds: labelIds,
-              addLabelIds: params.labelIds as Array<Id<'transactionLabels'>>,
-            })
-          } catch {
-            bulkOp?.setError('Failed to save batch')
-            return
-          }
-        }
-
-        updated += affectedTransactionIds.size
-
-        // Record rule application audit logs for affected transactions
-        if (affectedTransactionIds.size > 0) {
-          const appliedActions: string[] = []
-          if (params.categoryKey) appliedActions.push('category')
-          if (params.customDescription) appliedActions.push('description')
-          if (params.excludeFromBudget) appliedActions.push('excludeFromBudget')
-          if (params.labelIds && params.labelIds.length > 0)
-            appliedActions.push('labels')
-
-          await recordRuleApplication({
-            ruleId: params.ruleId,
-            rulePattern: params.rulePattern,
-            transactionIds: [...affectedTransactionIds],
-            appliedActions,
-          })
-        }
-
-        processed += chunk.length
-        bulkOp?.updateProgress(processed)
+        if (bulkOp?.cancelRef.current) break
       }
 
       if (bulkOp?.cancelRef.current) return
