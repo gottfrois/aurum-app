@@ -11,6 +11,7 @@
 import type * as aiFilters from "../aiFilters.js";
 import type * as auditLog from "../auditLog.js";
 import type * as balanceSnapshots from "../balanceSnapshots.js";
+import type * as batchOperations from "../batchOperations.js";
 import type * as billing from "../billing.js";
 import type * as categories from "../categories.js";
 import type * as email from "../email.js";
@@ -45,6 +46,7 @@ declare const fullApi: ApiFromModules<{
   aiFilters: typeof aiFilters;
   auditLog: typeof auditLog;
   balanceSnapshots: typeof balanceSnapshots;
+  batchOperations: typeof batchOperations;
   billing: typeof billing;
   categories: typeof categories;
   email: typeof email;

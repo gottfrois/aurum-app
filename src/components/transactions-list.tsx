@@ -513,30 +513,23 @@ export function TransactionsList({
       const ids = getSelectedIds()
       if (ids.length === 0) return
 
-      const label = labelMap.get(labelId)
       try {
         if (checked) {
           await batchUpdateLabels({
             transactionIds: ids as Array<Id<'transactions'>>,
             addLabelIds: [labelId as Id<'transactionLabels'>],
           })
-          toast.success(
-            `Adding "${label?.name}" to ${ids.length} transactions...`,
-          )
         } else {
           await batchUpdateLabels({
             transactionIds: ids as Array<Id<'transactions'>>,
             removeLabelIds: [labelId as Id<'transactionLabels'>],
           })
-          toast.success(
-            `Removing "${label?.name}" from ${ids.length} transactions...`,
-          )
         }
       } catch {
         toast.error('Failed to update labels')
       }
     },
-    [getSelectedIds, batchUpdateLabels, labelMap],
+    [getSelectedIds, batchUpdateLabels],
   )
 
   const handleBulkCategoryChange = React.useCallback(
@@ -568,15 +561,11 @@ export function TransactionsList({
         )
 
         await batchUpdateCategory({ updates })
-        const cat = getCategory(categoryKey)
-        toast.success(
-          `Changing category to "${cat.label}" for ${ids.length} transactions...`,
-        )
       } catch {
         toast.error('Failed to update category')
       }
     },
-    [getSelectedIds, batchUpdateCategory, workspacePublicKey, getCategory],
+    [getSelectedIds, batchUpdateCategory, workspacePublicKey],
   )
 
   const handleExclusionToggle = React.useCallback(
@@ -603,11 +592,6 @@ export function TransactionsList({
           transactionIds: ids as Array<Id<'transactions'>>,
           excludedFromBudget: excluded,
         })
-        toast.success(
-          excluded
-            ? `Excluding ${ids.length} transactions from budget...`
-            : `Including ${ids.length} transactions in budget...`,
-        )
       } catch {
         toast.error('Failed to update exclusion')
       }

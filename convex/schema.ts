@@ -217,6 +217,26 @@ export default defineSchema({
     .index('by_workspaceId', ['workspaceId'])
     .index('by_portfolioId', ['portfolioId']),
 
+  batchOperations: defineTable({
+    workspaceId: v.id('workspaces'),
+    type: v.union(
+      v.literal('labels'),
+      v.literal('category'),
+      v.literal('exclusion'),
+      v.literal('description'),
+    ),
+    status: v.union(
+      v.literal('processing'),
+      v.literal('complete'),
+      v.literal('error'),
+    ),
+    total: v.number(),
+    processed: v.number(),
+    label: v.string(),
+    error: v.optional(v.string()),
+    createdAt: v.number(),
+  }).index('by_workspaceId_status', ['workspaceId', 'status']),
+
   auditLogs: defineTable({
     timestamp: v.number(),
     retainUntil: v.optional(v.number()),

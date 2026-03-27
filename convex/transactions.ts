@@ -231,6 +231,22 @@ export const batchUpdateTransactionLabels = mutation({
 
     const identity = await ctx.auth.getUserIdentity()
 
+    const operationId = await ctx.db.insert('batchOperations', {
+      workspaceId: member.workspaceId,
+      type: 'labels',
+      status: 'processing',
+      total: args.transactionIds.length,
+      processed: 0,
+      label: 'Updating labels',
+      createdAt: Date.now(),
+    })
+
+    await ctx.scheduler.runAfter(
+      5 * 60 * 1000,
+      internal.batchOperations.cleanupBatchOperation,
+      { operationId },
+    )
+
     await ctx.scheduler.runAfter(
       0,
       internal.transactions.batchUpdateLabelsAsync,
@@ -239,6 +255,7 @@ export const batchUpdateTransactionLabels = mutation({
         addLabelIds: args.addLabelIds,
         removeLabelIds: args.removeLabelIds,
         workspaceId: member.workspaceId,
+        operationId,
         ...getActorInfo(identity),
       },
     )
@@ -253,21 +270,36 @@ export const batchUpdateLabelsAsync = internalAction({
     addLabelIds: v.optional(v.array(v.id('transactionLabels'))),
     removeLabelIds: v.optional(v.array(v.id('transactionLabels'))),
     workspaceId: v.id('workspaces'),
+    operationId: v.id('batchOperations'),
     actorId: v.optional(v.string()),
     actorName: v.optional(v.string()),
     actorAvatarUrl: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
-    for (let i = 0; i < args.transactionIds.length; i += BATCH_CHUNK_SIZE) {
-      const chunk = args.transactionIds.slice(i, i + BATCH_CHUNK_SIZE)
-      await ctx.runMutation(internal.transactions.batchUpdateLabelsChunk, {
-        transactionIds: chunk,
-        addLabelIds: args.addLabelIds,
-        removeLabelIds: args.removeLabelIds,
-        workspaceId: args.workspaceId,
-        actorId: args.actorId,
-        actorName: args.actorName,
-        actorAvatarUrl: args.actorAvatarUrl,
+    try {
+      for (let i = 0; i < args.transactionIds.length; i += BATCH_CHUNK_SIZE) {
+        const chunk = args.transactionIds.slice(i, i + BATCH_CHUNK_SIZE)
+        await ctx.runMutation(internal.transactions.batchUpdateLabelsChunk, {
+          transactionIds: chunk,
+          addLabelIds: args.addLabelIds,
+          removeLabelIds: args.removeLabelIds,
+          workspaceId: args.workspaceId,
+          actorId: args.actorId,
+          actorName: args.actorName,
+          actorAvatarUrl: args.actorAvatarUrl,
+        })
+        await ctx.runMutation(internal.batchOperations.updateBatchProgress, {
+          operationId: args.operationId,
+          processed: Math.min(i + BATCH_CHUNK_SIZE, args.transactionIds.length),
+        })
+      }
+      await ctx.runMutation(internal.batchOperations.completeBatchOperation, {
+        operationId: args.operationId,
+      })
+    } catch (e) {
+      await ctx.runMutation(internal.batchOperations.completeBatchOperation, {
+        operationId: args.operationId,
+        error: e instanceof Error ? e.message : 'Batch operation failed',
       })
     }
   },
@@ -464,6 +496,24 @@ export const batchUpdateTransactionExclusion = mutation({
 
     const identity = await ctx.auth.getUserIdentity()
 
+    const operationId = await ctx.db.insert('batchOperations', {
+      workspaceId: member.workspaceId,
+      type: 'exclusion',
+      status: 'processing',
+      total: args.transactionIds.length,
+      processed: 0,
+      label: args.excludedFromBudget
+        ? 'Excluding from budget'
+        : 'Including in budget',
+      createdAt: Date.now(),
+    })
+
+    await ctx.scheduler.runAfter(
+      5 * 60 * 1000,
+      internal.batchOperations.cleanupBatchOperation,
+      { operationId },
+    )
+
     await ctx.scheduler.runAfter(
       0,
       internal.transactions.batchUpdateExclusionAsync,
@@ -471,6 +521,7 @@ export const batchUpdateTransactionExclusion = mutation({
         transactionIds: args.transactionIds,
         excludedFromBudget: args.excludedFromBudget,
         workspaceId: member.workspaceId,
+        operationId,
         ...getActorInfo(identity),
       },
     )
@@ -482,20 +533,35 @@ export const batchUpdateExclusionAsync = internalAction({
     transactionIds: v.array(v.id('transactions')),
     excludedFromBudget: v.boolean(),
     workspaceId: v.id('workspaces'),
+    operationId: v.id('batchOperations'),
     actorId: v.optional(v.string()),
     actorName: v.optional(v.string()),
     actorAvatarUrl: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
-    for (let i = 0; i < args.transactionIds.length; i += BATCH_CHUNK_SIZE) {
-      const chunk = args.transactionIds.slice(i, i + BATCH_CHUNK_SIZE)
-      await ctx.runMutation(internal.transactions.batchUpdateExclusionChunk, {
-        transactionIds: chunk,
-        excludedFromBudget: args.excludedFromBudget,
-        workspaceId: args.workspaceId,
-        actorId: args.actorId,
-        actorName: args.actorName,
-        actorAvatarUrl: args.actorAvatarUrl,
+    try {
+      for (let i = 0; i < args.transactionIds.length; i += BATCH_CHUNK_SIZE) {
+        const chunk = args.transactionIds.slice(i, i + BATCH_CHUNK_SIZE)
+        await ctx.runMutation(internal.transactions.batchUpdateExclusionChunk, {
+          transactionIds: chunk,
+          excludedFromBudget: args.excludedFromBudget,
+          workspaceId: args.workspaceId,
+          actorId: args.actorId,
+          actorName: args.actorName,
+          actorAvatarUrl: args.actorAvatarUrl,
+        })
+        await ctx.runMutation(internal.batchOperations.updateBatchProgress, {
+          operationId: args.operationId,
+          processed: Math.min(i + BATCH_CHUNK_SIZE, args.transactionIds.length),
+        })
+      }
+      await ctx.runMutation(internal.batchOperations.completeBatchOperation, {
+        operationId: args.operationId,
+      })
+    } catch (e) {
+      await ctx.runMutation(internal.batchOperations.completeBatchOperation, {
+        operationId: args.operationId,
+        error: e instanceof Error ? e.message : 'Batch operation failed',
       })
     }
   },
@@ -769,12 +835,29 @@ export const batchUpdateTransactionCategory = mutation({
 
     const identity = await ctx.auth.getUserIdentity()
 
+    const operationId = await ctx.db.insert('batchOperations', {
+      workspaceId: member.workspaceId,
+      type: 'category',
+      status: 'processing',
+      total: args.updates.length,
+      processed: 0,
+      label: 'Updating category',
+      createdAt: Date.now(),
+    })
+
+    await ctx.scheduler.runAfter(
+      5 * 60 * 1000,
+      internal.batchOperations.cleanupBatchOperation,
+      { operationId },
+    )
+
     await ctx.scheduler.runAfter(
       0,
       internal.transactions.batchUpdateCategoryAsync,
       {
         updates: args.updates,
         workspaceId: member.workspaceId,
+        operationId,
         ...getActorInfo(identity),
       },
     )
@@ -790,19 +873,34 @@ export const batchUpdateCategoryAsync = internalAction({
       }),
     ),
     workspaceId: v.id('workspaces'),
+    operationId: v.id('batchOperations'),
     actorId: v.optional(v.string()),
     actorName: v.optional(v.string()),
     actorAvatarUrl: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
-    for (let i = 0; i < args.updates.length; i += BATCH_CHUNK_SIZE) {
-      const chunk = args.updates.slice(i, i + BATCH_CHUNK_SIZE)
-      await ctx.runMutation(internal.transactions.batchUpdateCategoryChunk, {
-        updates: chunk,
-        workspaceId: args.workspaceId,
-        actorId: args.actorId,
-        actorName: args.actorName,
-        actorAvatarUrl: args.actorAvatarUrl,
+    try {
+      for (let i = 0; i < args.updates.length; i += BATCH_CHUNK_SIZE) {
+        const chunk = args.updates.slice(i, i + BATCH_CHUNK_SIZE)
+        await ctx.runMutation(internal.transactions.batchUpdateCategoryChunk, {
+          updates: chunk,
+          workspaceId: args.workspaceId,
+          actorId: args.actorId,
+          actorName: args.actorName,
+          actorAvatarUrl: args.actorAvatarUrl,
+        })
+        await ctx.runMutation(internal.batchOperations.updateBatchProgress, {
+          operationId: args.operationId,
+          processed: Math.min(i + BATCH_CHUNK_SIZE, args.updates.length),
+        })
+      }
+      await ctx.runMutation(internal.batchOperations.completeBatchOperation, {
+        operationId: args.operationId,
+      })
+    } catch (e) {
+      await ctx.runMutation(internal.batchOperations.completeBatchOperation, {
+        operationId: args.operationId,
+        error: e instanceof Error ? e.message : 'Batch operation failed',
       })
     }
   },
