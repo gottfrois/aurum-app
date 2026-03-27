@@ -110,6 +110,8 @@ interface TransactionsListProps {
   currency: string
   labels?: Array<LabelData>
   workspaceId?: string
+  filterActions?: React.ReactNode
+  activeFilters?: React.ReactNode
 }
 
 const PAGE_SIZE_OPTIONS = ['25', '50', '100']
@@ -139,6 +141,8 @@ export function TransactionsList({
   currency,
   labels = [],
   workspaceId,
+  filterActions,
+  activeFilters,
 }: TransactionsListProps) {
   const formatCurrency = useFormatCurrency()
   const { categories, getCategory } = useCategories()
@@ -758,7 +762,10 @@ export function TransactionsList({
             className="pl-9"
           />
         </div>
+        {filterActions}
       </div>
+
+      {activeFilters}
 
       <div className="rounded-md border">
         <Table>

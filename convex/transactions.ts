@@ -82,6 +82,25 @@ export const listAllTransactionsByPortfolios = query({
   },
 })
 
+export const listTransactionsByBankAccount = query({
+  args: {
+    bankAccountId: v.id('bankAccounts'),
+  },
+  handler: async (ctx, args) => {
+    const userId = await getAuthUserId(ctx)
+    if (!userId) return []
+
+    const results = await ctx.db
+      .query('transactions')
+      .withIndex('by_bankAccountId', (q) =>
+        q.eq('bankAccountId', args.bankAccountId),
+      )
+      .collect()
+
+    return results.filter((t) => !t.deleted)
+  },
+})
+
 export const updateTransactionLabels = mutation({
   args: {
     transactionId: v.id('transactions'),

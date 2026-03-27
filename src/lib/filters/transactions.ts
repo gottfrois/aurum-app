@@ -32,12 +32,13 @@ interface TransactionFilterDeps {
   categoryOptions: Array<EnumOption>
   labelOptions: Array<EnumOption>
   transactionTypeOptions: Array<EnumOption>
+  excludeFields?: Array<TransactionFilterField>
 }
 
 export function createTransactionFilterConfig(
   deps: TransactionFilterDeps,
 ): FilterConfig<TransactionFilterField> {
-  const fields: Array<FilterFieldDescriptor<TransactionFilterField>> = [
+  const allFields: Array<FilterFieldDescriptor<TransactionFilterField>> = [
     {
       name: 'account',
       label: 'Account',
@@ -171,6 +172,10 @@ export function createTransactionFilterConfig(
       icon: EyeOff,
     },
   ]
+
+  const fields = deps.excludeFields
+    ? allFields.filter((f) => !deps.excludeFields!.includes(f.name))
+    : allFields
 
   return {
     fields,

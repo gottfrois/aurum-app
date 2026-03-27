@@ -3,20 +3,28 @@ import { useQuery } from 'convex/react'
 import * as React from 'react'
 import { AllocationChart } from '~/components/allocation-chart'
 import { BalanceChart } from '~/components/balance-chart'
+import { ActiveFilters, FilterActions } from '~/components/filters/filter-bar'
 import type { Investment } from '~/components/holdings-table'
 import { HoldingsTable } from '~/components/holdings-table'
 import { SiteHeader } from '~/components/site-header'
+import type { TransactionRow } from '~/components/transactions-list'
+import { TransactionsList } from '~/components/transactions-list'
 import { Card, CardContent, CardHeader, CardTitle } from '~/components/ui/card'
 import { Skeleton } from '~/components/ui/skeleton'
+import { usePortfolio } from '~/contexts/portfolio-context'
 import { useFormatCurrency } from '~/contexts/privacy-context'
 import {
   useCachedDecryptRecord,
   useCachedDecryptRecords,
 } from '~/hooks/use-cached-decrypt'
+import { useFilters } from '~/hooks/use-filters'
 import { isInvestmentAccount } from '~/lib/account-categories'
+import { useCategories } from '~/lib/categories'
 import type { Period } from '~/lib/chart-periods'
 import { getStartTimestamp } from '~/lib/chart-periods'
 import { fillMissingDates } from '~/lib/fill-missing-dates'
+import { createTransactionFilterConfig } from '~/lib/filters/transactions'
+import type { EnumOption, FilterConfig } from '~/lib/filters/types'
 import { api } from '../../../convex/_generated/api'
 import type { Id } from '../../../convex/_generated/dataModel'
 
@@ -27,6 +35,33 @@ type DecryptedBankAccount = NonNullable<
   balance?: number
   connectorName?: string
   customName?: string
+}
+
+interface TransactionRecord {
+  _id: string
+  bankAccountId: string
+  portfolioId: string
+  date: string
+  rdate?: string
+  vdate?: string
+  wording: string
+  originalWording?: string
+  simplifiedWording?: string
+  category?: string
+  categoryParent?: string
+  userCategoryKey?: string
+  labelIds?: Array<string>
+  excludedFromBudget?: boolean
+  value: number
+  originalValue?: number
+  originalCurrency?: string
+  type?: string
+  coming: boolean
+  counterparty?: string
+  card?: string
+  comment?: string
+  customDescription?: string
+  encryptedData?: string
 }
 
 export const Route = createFileRoute('/_app/accounts/$accountId')({
@@ -48,6 +83,10 @@ function AccountDetailPage() {
     () => getStartTimestamp(period),
     [period],
   )
+
+  const { portfolios } = usePortfolio()
+  const workspaceId = portfolios?.[0]?.workspaceId ?? null
+  const { categories } = useCategories()
 
   const rawBankAccount = useQuery(api.powens.getBankAccount, {
     bankAccountId: accountId as Id<'bankAccounts'>,
@@ -80,9 +119,106 @@ function AccountDetailPage() {
     | Investment[]
     | undefined
 
+  const rawTransactions = useQuery(
+    api.transactions.listTransactionsByBankAccount,
+    { bankAccountId: accountId as Id<'bankAccounts'> },
+  )
+  const transactions = useCachedDecryptRecords(
+    'transactions',
+    rawTransactions as Array<TransactionRecord> | undefined,
+  )
+
+  const labelsData = useQuery(
+    api.transactionLabels.listLabels,
+    workspaceId ? { workspaceId } : 'skip',
+  )
+  const labels = labelsData ?? []
+
   const formatCurrency = useFormatCurrency()
 
   const isLoading = bankAccount === undefined || snapshots === undefined
+
+  const categoryOptions = React.useMemo<Array<EnumOption>>(
+    () =>
+      categories.map((c) => ({
+        value: c.key,
+        label: c.label,
+        color: c.color,
+      })),
+    [categories],
+  )
+
+  const labelOptions = React.useMemo<Array<EnumOption>>(
+    () =>
+      labels.map((l) => ({
+        value: l._id,
+        label: l.name,
+        color: l.color,
+      })),
+    [labels],
+  )
+
+  const transactionTypeOptions = React.useMemo<Array<EnumOption>>(() => {
+    if (!transactions) return []
+    const types = new Set(
+      transactions.map((t) => t.type).filter(Boolean) as Array<string>,
+    )
+    return [...types].sort().map((t) => ({ value: t, label: t }))
+  }, [transactions])
+
+  const transactionConfig = React.useMemo(
+    () =>
+      createTransactionFilterConfig({
+        accountOptions: [],
+        categoryOptions,
+        labelOptions,
+        transactionTypeOptions,
+        excludeFields: ['account'],
+      }),
+    [categoryOptions, labelOptions, transactionTypeOptions],
+  )
+
+  const {
+    conditions,
+    filteredData: filteredTransactions,
+    addCondition,
+    updateCondition,
+    removeCondition,
+    clearAll,
+    loadConditions,
+  } = useFilters<string, TransactionRecord>(
+    transactions,
+    transactionConfig as FilterConfig<string>,
+  )
+
+  const tableData = React.useMemo<Array<TransactionRow>>(() => {
+    if (!filteredTransactions) return []
+    return filteredTransactions.map((t) => ({
+      _id: t._id,
+      bankAccountId: t.bankAccountId,
+      portfolioId: t.portfolioId,
+      date: t.date,
+      rdate: t.rdate,
+      vdate: t.vdate,
+      wording: t.wording,
+      originalWording: t.originalWording,
+      simplifiedWording: t.simplifiedWording,
+      category: t.category,
+      categoryParent: t.categoryParent,
+      userCategoryKey: t.userCategoryKey,
+      labelIds: t.labelIds,
+      excludedFromBudget: t.excludedFromBudget,
+      value: t.value,
+      originalValue: t.originalValue,
+      originalCurrency: t.originalCurrency,
+      type: t.type,
+      coming: t.coming,
+      counterparty: t.counterparty,
+      card: t.card,
+      comment: t.comment,
+      customDescription: t.customDescription,
+    }))
+  }, [filteredTransactions])
 
   const holdingsAllocation = React.useMemo(() => {
     if (!investments || investments.length === 0) return []
@@ -204,6 +340,37 @@ function AccountDetailPage() {
                   </CardContent>
                 </Card>
               )}
+
+              <TransactionsList
+                data={tableData}
+                currency={bankAccount.currency ?? 'EUR'}
+                labels={labels}
+                workspaceId={workspaceId ?? undefined}
+                filterActions={
+                  <FilterActions
+                    config={transactionConfig}
+                    conditions={conditions}
+                    onAdd={addCondition}
+                    onUpdate={updateCondition}
+                    onRemove={removeCondition}
+                    onLoadConditions={loadConditions}
+                    entityType="transactions"
+                  />
+                }
+                activeFilters={
+                  conditions.length > 0 ? (
+                    <ActiveFilters
+                      config={transactionConfig}
+                      conditions={conditions}
+                      onAdd={addCondition}
+                      onUpdate={updateCondition}
+                      onRemove={removeCondition}
+                      onClearAll={clearAll}
+                      entityType="transactions"
+                    />
+                  ) : undefined
+                }
+              />
             </>
           )}
         </div>
