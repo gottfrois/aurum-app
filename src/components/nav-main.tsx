@@ -104,10 +104,7 @@ export function NavMain({
               >
                 <CirclePlus />
                 <span>Add Connection</span>
-                <HotkeyDisplay
-                  className="ml-auto"
-                  hotkey={{ keys: 'shift+c' }}
-                />
+                <HotkeyDisplay className="ml-auto" hotkey={{ keys: 'c' }} />
               </SidebarMenuButton>
             </SidebarMenuItem>
           </SidebarMenu>

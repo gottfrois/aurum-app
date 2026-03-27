@@ -56,7 +56,13 @@ export function useCommand(
   const hasModifier = hotkey?.keys
     ? /\b(mod|ctrl|alt|meta|shift)\b/i.test(hotkey.keys)
     : false
-  const needsUseKey = !!hotkey && !hasModifier
+  // Only use event.key matching for symbol keys (not alphanumeric)
+  // This allows "c" to work without conflicting with "mod+c" (copy)
+  const isSymbolKey =
+    !!hotkey?.keys &&
+    !hasModifier &&
+    !/^[a-z0-9]$/i.test(hotkey.keys.toLowerCase())
+  const needsUseKey = isSymbolKey
 
   useHotkeys(
     hotkey?.keys ?? '',
