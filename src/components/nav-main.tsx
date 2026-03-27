@@ -91,6 +91,17 @@ export function NavMain({
       .map(([key, cat]) => ({ key, ...cat }))
   }, [bankAccounts])
 
+  const [isConnecting, setIsConnecting] = React.useState(false)
+
+  const handleAddConnection = async () => {
+    setIsConnecting(true)
+    try {
+      await addConnectionCommand?.handler()
+    } finally {
+      setIsConnecting(false)
+    }
+  }
+
   return (
     <SidebarGroup>
       <SidebarGroupContent className="flex flex-col gap-2">
@@ -99,11 +110,12 @@ export function NavMain({
             <SidebarMenuItem className="flex items-center gap-2">
               <SidebarMenuButton
                 tooltip="Add Connection"
-                className="min-w-8 bg-primary text-primary-foreground duration-200 ease-linear hover:bg-primary/90 hover:text-primary-foreground active:bg-primary/90 active:text-primary-foreground"
-                onClick={() => addConnectionCommand?.handler()}
+                className="min-w-8 bg-primary text-primary-foreground duration-200 ease-linear hover:bg-primary/90 hover:text-primary-foreground active:bg-primary/90 active:text-primary-foreground disabled:opacity-50 disabled:cursor-not-allowed"
+                onClick={handleAddConnection}
+                disabled={isConnecting}
               >
-                <CirclePlus />
-                <span>Add Connection</span>
+                <CirclePlus className={isConnecting ? 'animate-spin' : ''} />
+                <span>{isConnecting ? 'Connecting...' : 'Add Connection'}</span>
                 <HotkeyDisplay className="ml-auto" hotkey={{ keys: 'c' }} />
               </SidebarMenuButton>
             </SidebarMenuItem>
