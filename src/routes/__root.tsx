@@ -150,13 +150,14 @@ export const Route = createRootRouteWithContext<{
     }
 
     const isSignIn = ctx.location.pathname.startsWith('/sign-in')
+    const isWaitlist = ctx.location.pathname.startsWith('/waitlist')
     const isAuthenticated = userId && token
 
-    if (!isAuthenticated && !isSignIn) {
-      throw redirect({ to: '/sign-in/$', params: { _splat: '' } })
+    if (!isAuthenticated && !isSignIn && !isWaitlist) {
+      throw redirect({ to: '/waitlist' })
     }
 
-    if (isAuthenticated && isSignIn) {
+    if (isAuthenticated && (isSignIn || isWaitlist)) {
       throw redirect({ to: '/' })
     }
 
@@ -191,7 +192,12 @@ function RootComponent() {
   )
 }
 
-const EXEMPT_PATHS = ['/onboarding', '/sign-in', '/powens/callback']
+const EXEMPT_PATHS = [
+  '/onboarding',
+  '/sign-in',
+  '/powens/callback',
+  '/waitlist',
+]
 
 function OnboardingGuard({ children }: { children: React.ReactNode }) {
   const { isAuthenticated, isLoading: isAuthLoading } = useConvexAuth()

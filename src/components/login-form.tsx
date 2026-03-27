@@ -1,5 +1,5 @@
 import { useSignIn, useSignUp } from '@clerk/tanstack-react-start/legacy'
-import { useNavigate } from '@tanstack/react-router'
+import { Link, useNavigate } from '@tanstack/react-router'
 import { Loader2 } from 'lucide-react'
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { Button } from '~/components/ui/button'
@@ -120,6 +120,16 @@ export function LoginForm({
           const alreadyExists = signUpClerkErr.errors?.some(
             (e) => e.code === 'form_identifier_exists',
           )
+          const isWaitlistRestricted = signUpClerkErr.errors?.some(
+            (e) =>
+              e.code === 'form_restricted_to_waitlist' ||
+              e.code === 'sign_up_restricted' ||
+              e.longMessage?.toLowerCase().includes('waitlist'),
+          )
+          if (isWaitlistRestricted) {
+            void navigate({ to: '/waitlist' })
+            return
+          }
           if (alreadyExists) {
             setError(
               'An account with this email already exists. Please use Google sign-in or try again.',
@@ -369,6 +379,11 @@ export function LoginForm({
               )}
             </Button>
           </Field>
+          <FieldDescription className="text-center">
+            <Link to="/waitlist" className="underline underline-offset-4">
+              Join the waitlist
+            </Link>
+          </FieldDescription>
         </FieldGroup>
       </form>
     </div>

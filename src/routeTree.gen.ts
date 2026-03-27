@@ -9,6 +9,7 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
+import { Route as WaitlistRouteImport } from './routes/waitlist'
 import { Route as OnboardingRouteImport } from './routes/onboarding'
 import { Route as CheckoutRouteImport } from './routes/checkout'
 import { Route as SettingsRouteImport } from './routes/_settings'
@@ -42,6 +43,11 @@ import { Route as SettingsSettingsPortfoliosIdGeneralRouteImport } from './route
 import { Route as SettingsSettingsPortfoliosIdConnectionsRouteImport } from './routes/_settings/settings.portfolios.$id.connections'
 import { Route as SettingsSettingsPortfoliosIdCategoriesRouteImport } from './routes/_settings/settings.portfolios.$id.categories'
 
+const WaitlistRoute = WaitlistRouteImport.update({
+  id: '/waitlist',
+  path: '/waitlist',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const OnboardingRoute = OnboardingRouteImport.update({
   id: '/onboarding',
   path: '/onboarding',
@@ -225,6 +231,7 @@ export interface FileRoutesByFullPath {
   '/': typeof AppIndexRoute
   '/checkout': typeof CheckoutRoute
   '/onboarding': typeof OnboardingRoute
+  '/waitlist': typeof WaitlistRoute
   '/portfolios': typeof AppPortfoliosRoute
   '/transactions': typeof AppTransactionsRoute
   '/powens/callback': typeof PowensCallbackRoute
@@ -257,6 +264,7 @@ export interface FileRoutesByTo {
   '/': typeof AppIndexRoute
   '/checkout': typeof CheckoutRoute
   '/onboarding': typeof OnboardingRoute
+  '/waitlist': typeof WaitlistRoute
   '/portfolios': typeof AppPortfoliosRoute
   '/transactions': typeof AppTransactionsRoute
   '/powens/callback': typeof PowensCallbackRoute
@@ -290,6 +298,7 @@ export interface FileRoutesById {
   '/_settings': typeof SettingsRouteWithChildren
   '/checkout': typeof CheckoutRoute
   '/onboarding': typeof OnboardingRoute
+  '/waitlist': typeof WaitlistRoute
   '/_app/portfolios': typeof AppPortfoliosRoute
   '/_app/transactions': typeof AppTransactionsRoute
   '/powens/callback': typeof PowensCallbackRoute
@@ -325,6 +334,7 @@ export interface FileRouteTypes {
     | '/'
     | '/checkout'
     | '/onboarding'
+    | '/waitlist'
     | '/portfolios'
     | '/transactions'
     | '/powens/callback'
@@ -357,6 +367,7 @@ export interface FileRouteTypes {
     | '/'
     | '/checkout'
     | '/onboarding'
+    | '/waitlist'
     | '/portfolios'
     | '/transactions'
     | '/powens/callback'
@@ -389,6 +400,7 @@ export interface FileRouteTypes {
     | '/_settings'
     | '/checkout'
     | '/onboarding'
+    | '/waitlist'
     | '/_app/portfolios'
     | '/_app/transactions'
     | '/powens/callback'
@@ -424,12 +436,20 @@ export interface RootRouteChildren {
   SettingsRoute: typeof SettingsRouteWithChildren
   CheckoutRoute: typeof CheckoutRoute
   OnboardingRoute: typeof OnboardingRoute
+  WaitlistRoute: typeof WaitlistRoute
   PowensCallbackRoute: typeof PowensCallbackRoute
   SignInSplatRoute: typeof SignInSplatRoute
 }
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
+    '/waitlist': {
+      id: '/waitlist'
+      path: '/waitlist'
+      fullPath: '/waitlist'
+      preLoaderRoute: typeof WaitlistRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/onboarding': {
       id: '/onboarding'
       path: '/onboarding'
@@ -755,6 +775,7 @@ const rootRouteChildren: RootRouteChildren = {
   SettingsRoute: SettingsRouteWithChildren,
   CheckoutRoute: CheckoutRoute,
   OnboardingRoute: OnboardingRoute,
+  WaitlistRoute: WaitlistRoute,
   PowensCallbackRoute: PowensCallbackRoute,
   SignInSplatRoute: SignInSplatRoute,
 }
