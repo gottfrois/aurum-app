@@ -153,7 +153,12 @@ export type AuditMetadata =
     }
   | {
       type: 'transaction.rule_applied'
-      data: { transactionId: string; ruleId: string; appliedActions: string[] }
+      data: {
+        transactionId: string
+        ruleId: string
+        rulePattern: string
+        appliedActions: string[]
+      }
     }
   | {
       type: 'connection.synced'
@@ -258,6 +263,43 @@ export const listByWorkspace = query({
       )
       .order('desc')
       .take(args.limit ?? 100)
+  },
+})
+
+export const insertRuleApplicationLogs = internalMutation({
+  args: {
+    workspaceId: v.id('workspaces'),
+    workspaceName: v.string(),
+    portfolioId: v.optional(v.id('portfolios')),
+    portfolioName: v.optional(v.string()),
+    entries: v.array(
+      v.object({
+        transactionId: v.string(),
+        ruleId: v.string(),
+        rulePattern: v.string(),
+        appliedActions: v.array(v.string()),
+      }),
+    ),
+  },
+  handler: async (ctx, args) => {
+    for (const entry of args.entries) {
+      await insertAuditLogDirect(ctx.db, {
+        workspaceId: args.workspaceId,
+        workspaceName: args.workspaceName,
+        portfolioId: args.portfolioId,
+        portfolioName: args.portfolioName,
+        actorType: 'system',
+        event: 'transaction.rule_applied',
+        resourceType: 'transaction',
+        resourceId: entry.transactionId,
+        metadata: JSON.stringify({
+          transactionId: entry.transactionId,
+          ruleId: entry.ruleId,
+          rulePattern: entry.rulePattern,
+          appliedActions: entry.appliedActions,
+        }),
+      })
+    }
   },
 })
 

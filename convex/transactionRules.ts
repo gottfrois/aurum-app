@@ -1,5 +1,10 @@
 import { v } from 'convex/values'
-import { internalQuery, mutation, query } from './_generated/server'
+import {
+  internalMutation,
+  internalQuery,
+  mutation,
+  query,
+} from './_generated/server'
 import { insertAuditLogDirect } from './auditLog'
 import { getActorInfo, getAuthUserId, requireAuthUserId } from './lib/auth'
 
@@ -357,6 +362,67 @@ export const reorderRules = mutation({
 })
 
 // Internal helpers
+
+export const incrementImpactedCount = internalMutation({
+  args: {
+    ruleId: v.id('transactionRules'),
+    count: v.number(),
+  },
+  handler: async (ctx, args) => {
+    const rule = await ctx.db.get(args.ruleId)
+    if (!rule) return
+    await ctx.db.patch(args.ruleId, {
+      impactedTransactionCount:
+        (rule.impactedTransactionCount ?? 0) + args.count,
+    })
+  },
+})
+
+export const recordRuleApplication = mutation({
+  args: {
+    ruleId: v.id('transactionRules'),
+    rulePattern: v.string(),
+    transactionIds: v.array(v.id('transactions')),
+    appliedActions: v.array(v.string()),
+  },
+  handler: async (ctx, args) => {
+    const userId = await requireAuthUserId(ctx)
+    const member = await ctx.db
+      .query('workspaceMembers')
+      .withIndex('by_userId', (q) => q.eq('userId', userId))
+      .first()
+    if (!member) throw new Error('Not a workspace member')
+
+    const rule = await ctx.db.get(args.ruleId)
+    if (!rule || rule.workspaceId !== member.workspaceId) {
+      throw new Error('Rule not found')
+    }
+
+    const workspace = await ctx.db.get('workspaces', member.workspaceId)
+
+    for (const transactionId of args.transactionIds) {
+      await insertAuditLogDirect(ctx.db, {
+        workspaceId: member.workspaceId,
+        workspaceName: workspace?.name ?? '',
+        actorType: 'system',
+        event: 'transaction.rule_applied',
+        resourceType: 'transaction',
+        resourceId: transactionId,
+        metadata: JSON.stringify({
+          transactionId,
+          ruleId: args.ruleId,
+          rulePattern: args.rulePattern,
+          appliedActions: args.appliedActions,
+        }),
+      })
+    }
+
+    await ctx.db.patch(args.ruleId, {
+      impactedTransactionCount:
+        (rule.impactedTransactionCount ?? 0) + args.transactionIds.length,
+    })
+  },
+})
 
 export const listRulesForWorkspace = internalQuery({
   args: { workspaceId: v.id('workspaces') },

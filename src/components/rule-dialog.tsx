@@ -154,6 +154,8 @@ export function RuleDialog({
 
         if (applyRetroactively) {
           apply({
+            ruleId,
+            rulePattern: pattern.trim(),
             pattern: pattern.trim(),
             matchType,
             categoryKey: categoryKey || undefined,

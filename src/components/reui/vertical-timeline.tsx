@@ -1,3 +1,4 @@
+import { Link } from '@tanstack/react-router'
 import { Bot } from 'lucide-react'
 import type { ReactNode } from 'react'
 import {
@@ -187,7 +188,18 @@ const EVENT_LABELS: Record<
     `revoked invitation for ${m.invitedEmail}`,
   'transaction.synced': (m) =>
     `synced ${m.created} new and ${m.updated} updated transaction${(m.created as number) + (m.updated as number) !== 1 ? 's' : ''} from bank`,
-  'transaction.rule_applied': () => 'applied a rule to this transaction',
+  'transaction.rule_applied': (m) => (
+    <>
+      applied rule{' '}
+      <Link
+        to="/settings/workspace/rules"
+        className="font-medium text-foreground underline"
+      >
+        "{String(m.rulePattern ?? '')}"
+      </Link>{' '}
+      to this transaction
+    </>
+  ),
   'connection.synced': () => 'synced a bank connection',
   'connection.state_changed': (m) => {
     const prev = m.previousState as string | undefined

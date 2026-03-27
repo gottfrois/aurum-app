@@ -1,7 +1,7 @@
 import { v } from 'convex/values'
 import { internal } from './_generated/api'
 import type { Doc, Id } from './_generated/dataModel'
-import type { MutationCtx } from './_generated/server'
+import type { ActionCtx, MutationCtx } from './_generated/server'
 import {
   action,
   internalAction,
@@ -1163,6 +1163,133 @@ function mapPowensTransaction(raw: PowensRawTransaction): MappedTransaction {
   }
 }
 
+interface RuleMatch {
+  powensTransactionId: number
+  ruleId: Id<'transactionRules'>
+  rulePattern: string
+  appliedActions: string[]
+}
+
+function applyTransactionRules(
+  rawTransactions: MappedTransaction[],
+  transactionRules: Doc<'transactionRules'>[],
+): { excludedIds: number[]; ruleMatches: RuleMatch[] } {
+  const activeRules = transactionRules.filter((r) => r.enabled !== false)
+  const excludedIds: number[] = []
+  const ruleMatches: RuleMatch[] = []
+
+  for (const txn of rawTransactions) {
+    const text = [txn.wording, txn.originalWording, txn.simplifiedWording]
+      .filter(Boolean)
+      .join(' ')
+    for (const rule of activeRules) {
+      let matched = false
+      if (rule.matchType === 'contains') {
+        matched = text.toLowerCase().includes(rule.pattern.toLowerCase())
+      } else {
+        try {
+          matched = new RegExp(rule.pattern, 'i').test(text)
+        } catch {
+          // invalid regex, skip
+        }
+      }
+      if (matched) {
+        const appliedActions: string[] = []
+        if (rule.categoryKey && !txn.userCategoryKey) {
+          txn.userCategoryKey = rule.categoryKey
+          appliedActions.push('category')
+        }
+        if (rule.customDescription && !txn.customDescription) {
+          txn.customDescription = rule.customDescription
+          appliedActions.push('description')
+        }
+        if (rule.excludeFromBudget) {
+          excludedIds.push(txn.powensTransactionId)
+          appliedActions.push('excludeFromBudget')
+        }
+        ruleMatches.push({
+          powensTransactionId: txn.powensTransactionId,
+          ruleId: rule._id,
+          rulePattern: rule.pattern,
+          appliedActions,
+        })
+      }
+    }
+  }
+
+  return { excludedIds, ruleMatches }
+}
+
+async function emitRuleApplicationAuditLogs(
+  ctx: ActionCtx,
+  ruleMatches: RuleMatch[],
+  transactionIds: Array<{
+    powensTransactionId: number
+    id: Id<'transactions'>
+  }>,
+  workspaceId: Id<'workspaces'>,
+  portfolioId: Id<'portfolios'>,
+) {
+  if (ruleMatches.length === 0) return
+
+  // Map powensTransactionId to transactionId and build audit log entries
+  const entries = ruleMatches
+    .map((match) => {
+      const idEntry = transactionIds.find(
+        (e) => e.powensTransactionId === match.powensTransactionId,
+      )
+      if (!idEntry) return null
+      return {
+        transactionId: idEntry.id as string,
+        ruleId: match.ruleId as string,
+        rulePattern: match.rulePattern,
+        appliedActions: match.appliedActions,
+      }
+    })
+    .filter(Boolean) as Array<{
+    transactionId: string
+    ruleId: string
+    rulePattern: string
+    appliedActions: string[]
+  }>
+
+  if (entries.length === 0) return
+
+  // Get workspace name for audit logs
+  const workspace = (await ctx.runQuery(internal.powens.getWorkspaceInternal, {
+    workspaceId,
+  })) as { name: string } | null
+
+  // Insert audit logs in chunks to stay within mutation limits
+  const CHUNK_SIZE = 100
+  for (let i = 0; i < entries.length; i += CHUNK_SIZE) {
+    await ctx.runMutation(internal.auditLog.insertRuleApplicationLogs, {
+      workspaceId,
+      workspaceName: workspace?.name ?? '',
+      portfolioId,
+      entries: entries.slice(i, i + CHUNK_SIZE),
+    })
+  }
+
+  // Increment impacted count per rule
+  const countsByRule = new Map<Id<'transactionRules'>, number>()
+  for (const match of ruleMatches) {
+    // Only count matches that resolved to a transaction ID
+    const hasEntry = transactionIds.some(
+      (e) => e.powensTransactionId === match.powensTransactionId,
+    )
+    if (hasEntry) {
+      countsByRule.set(match.ruleId, (countsByRule.get(match.ruleId) ?? 0) + 1)
+    }
+  }
+  for (const [ruleId, count] of countsByRule) {
+    await ctx.runMutation(internal.transactionRules.incrementImpactedCount, {
+      ruleId,
+      count,
+    })
+  }
+}
+
 export const upsertTransactions = internalMutation({
   args: {
     bankAccountId: v.id('bankAccounts'),
@@ -1330,36 +1457,10 @@ export const syncTransactionsFromWebhook = internalAction({
         if (rawTransactions.length === 0) break
 
         // Apply transaction rules to incoming transactions
-        const activeRules = transactionRules.filter((r) => r.enabled !== false)
-        const excludedIds: Array<number> = []
-        for (const txn of rawTransactions) {
-          const text = [txn.wording, txn.originalWording, txn.simplifiedWording]
-            .filter(Boolean)
-            .join(' ')
-          for (const rule of activeRules) {
-            let matched = false
-            if (rule.matchType === 'contains') {
-              matched = text.toLowerCase().includes(rule.pattern.toLowerCase())
-            } else {
-              try {
-                matched = new RegExp(rule.pattern, 'i').test(text)
-              } catch {
-                // invalid regex, skip
-              }
-            }
-            if (matched) {
-              if (rule.categoryKey && !txn.userCategoryKey) {
-                txn.userCategoryKey = rule.categoryKey
-              }
-              if (rule.customDescription && !txn.customDescription) {
-                txn.customDescription = rule.customDescription
-              }
-              if (rule.excludeFromBudget) {
-                excludedIds.push(txn.powensTransactionId)
-              }
-            }
-          }
-        }
+        const { excludedIds, ruleMatches } = applyTransactionRules(
+          rawTransactions,
+          transactionRules,
+        )
 
         // Step 1: Upsert transactions with placeholder encrypted data to get IDs
         const placeholderTransactions = rawTransactions.map((txn) => ({
@@ -1459,6 +1560,15 @@ export const syncTransactionsFromWebhook = internalAction({
           }
         }
 
+        // Emit audit logs and increment counters for rule matches
+        await emitRuleApplicationAuditLogs(
+          ctx,
+          ruleMatches,
+          transactionIds,
+          portfolio.workspaceId,
+          args.portfolioId,
+        )
+
         if (rawTransactions.length < limit) break
         offset += limit
       }
@@ -1541,36 +1651,10 @@ export const backfillTransactions = internalAction({
 
         if (rawTransactions.length === 0) break
 
-        const activeRules = transactionRules.filter((r) => r.enabled !== false)
-        const backfillExcludedIds: Array<number> = []
-        for (const txn of rawTransactions) {
-          const text = [txn.wording, txn.originalWording, txn.simplifiedWording]
-            .filter(Boolean)
-            .join(' ')
-          for (const rule of activeRules) {
-            let matched = false
-            if (rule.matchType === 'contains') {
-              matched = text.toLowerCase().includes(rule.pattern.toLowerCase())
-            } else {
-              try {
-                matched = new RegExp(rule.pattern, 'i').test(text)
-              } catch {
-                // invalid regex, skip
-              }
-            }
-            if (matched) {
-              if (rule.categoryKey && !txn.userCategoryKey) {
-                txn.userCategoryKey = rule.categoryKey
-              }
-              if (rule.customDescription && !txn.customDescription) {
-                txn.customDescription = rule.customDescription
-              }
-              if (rule.excludeFromBudget) {
-                backfillExcludedIds.push(txn.powensTransactionId)
-              }
-            }
-          }
-        }
+        const {
+          excludedIds: backfillExcludedIds,
+          ruleMatches: backfillRuleMatches,
+        } = applyTransactionRules(rawTransactions, transactionRules)
 
         // Step 1: Upsert transactions with placeholder encrypted data to get IDs
         const placeholderTransactions = rawTransactions.map((txn) => ({
@@ -1669,6 +1753,15 @@ export const backfillTransactions = internalAction({
             )
           }
         }
+
+        // Emit audit logs and increment counters for rule matches
+        await emitRuleApplicationAuditLogs(
+          ctx,
+          backfillRuleMatches,
+          transactionIds,
+          portfolio.workspaceId,
+          args.portfolioId,
+        )
 
         totalSynced += rawTransactions.length
         if (rawTransactions.length < limit) break

@@ -97,6 +97,13 @@ export function RuleCard({
             ))}
           </div>
         )}
+
+        {(rule.impactedTransactionCount ?? 0) > 0 && (
+          <p className="mt-1 text-xs text-muted-foreground">
+            Applied to {rule.impactedTransactionCount} transaction
+            {rule.impactedTransactionCount !== 1 ? 's' : ''}
+          </p>
+        )}
       </div>
 
       <Switch

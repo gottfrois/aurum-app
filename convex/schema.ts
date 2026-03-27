@@ -194,6 +194,7 @@ export default defineSchema({
     sortOrder: v.optional(v.number()),
     createdBy: v.string(),
     createdAt: v.number(),
+    impactedTransactionCount: v.optional(v.number()),
   }).index('by_workspaceId', ['workspaceId']),
 
   filterViews: defineTable({

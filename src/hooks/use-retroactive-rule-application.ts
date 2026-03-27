@@ -30,9 +30,14 @@ export function useRetroactiveRuleApplication() {
   const batchUpdateDetails = useMutation(
     api.transactions.batchUpdateTransactionDetails,
   )
+  const recordRuleApplication = useMutation(
+    api.transactionRules.recordRuleApplication,
+  )
 
   const apply = useCallback(
     async (params: {
+      ruleId: Id<'transactionRules'>
+      rulePattern: string
       pattern: string
       matchType: 'contains' | 'regex'
       categoryKey?: string
@@ -90,6 +95,9 @@ export function useRetroactiveRuleApplication() {
         }> = []
         const exclusionIds: Array<(typeof transactions)[number]['_id']> = []
         const labelIds: Array<(typeof transactions)[number]['_id']> = []
+        const affectedTransactionIds = new Set<
+          (typeof transactions)[number]['_id']
+        >()
 
         for (const txn of chunk) {
           try {
@@ -109,6 +117,9 @@ export function useRetroactiveRuleApplication() {
             const searchText = searchParts.join(' ')
 
             if (!matcher(searchText)) continue
+
+            // Track all matched transactions for audit logging
+            affectedTransactionIds.add(txn._id)
 
             // Apply category action
             if (params.categoryKey) {
@@ -218,6 +229,23 @@ export function useRetroactiveRuleApplication() {
           }
         }
 
+        // Record rule application audit logs for affected transactions
+        if (affectedTransactionIds.size > 0) {
+          const appliedActions: string[] = []
+          if (params.categoryKey) appliedActions.push('category')
+          if (params.customDescription) appliedActions.push('description')
+          if (params.excludeFromBudget) appliedActions.push('excludeFromBudget')
+          if (params.labelIds && params.labelIds.length > 0)
+            appliedActions.push('labels')
+
+          await recordRuleApplication({
+            ruleId: params.ruleId,
+            rulePattern: params.rulePattern,
+            transactionIds: [...affectedTransactionIds],
+            appliedActions,
+          })
+        }
+
         processed += chunk.length
         bulkOp?.updateProgress(processed)
       }
@@ -235,6 +263,7 @@ export function useRetroactiveRuleApplication() {
       batchUpdateDetails,
       batchUpdateExclusion,
       batchUpdateLabels,
+      recordRuleApplication,
     ],
   )
 
