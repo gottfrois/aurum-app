@@ -1,3 +1,4 @@
+import { withThemeByClassName } from '@storybook/addon-themes'
 import type { Preview } from '@storybook/react-vite'
 import { TooltipProvider } from '../src/components/ui/tooltip'
 import '../src/styles/app.css'
@@ -9,6 +10,13 @@ const preview: Preview = {
         <Story />
       </TooltipProvider>
     ),
+    withThemeByClassName({
+      themes: {
+        light: '',
+        dark: 'dark',
+      },
+      defaultTheme: 'light',
+    }),
   ],
   parameters: {
     controls: {

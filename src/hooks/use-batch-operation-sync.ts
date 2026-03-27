@@ -4,6 +4,17 @@ import { useBulkOperation } from '~/contexts/bulk-operation-context'
 import { api } from '../../convex/_generated/api'
 import type { Id } from '../../convex/_generated/dataModel'
 
+const BATCH_LABELS: Record<string, string> = {
+  'batch.labels.updating': 'Updating labels',
+  'batch.category.updating': 'Updating category',
+  'batch.exclusion.excluding': 'Excluding from budget',
+  'batch.exclusion.including': 'Including in budget',
+}
+
+function resolveBatchLabel(key: string): string {
+  return BATCH_LABELS[key] ?? key
+}
+
 export function useBatchOperationSync() {
   const { state, start, updateProgress, complete, setError } =
     useBulkOperation()
@@ -32,7 +43,11 @@ export function useBatchOperationSync() {
     if (activeBatchOp.status === 'processing') {
       if (syncedOpRef.current !== activeBatchOp._id) {
         // New server operation detected
-        start(activeBatchOp.label, activeBatchOp.total, 'server')
+        start(
+          resolveBatchLabel(activeBatchOp.label),
+          activeBatchOp.total,
+          'server',
+        )
         syncedOpRef.current = activeBatchOp._id
       } else {
         // Progress update
