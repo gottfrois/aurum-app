@@ -219,6 +219,7 @@ export default defineSchema({
 
   batchOperations: defineTable({
     workspaceId: v.id('workspaces'),
+    userId: v.string(),
     type: v.union(
       v.literal('labels'),
       v.literal('category'),
@@ -234,8 +235,11 @@ export default defineSchema({
     processed: v.number(),
     label: v.string(),
     error: v.optional(v.string()),
+    retainUntil: v.number(),
     createdAt: v.number(),
-  }).index('by_workspaceId_status', ['workspaceId', 'status']),
+  })
+    .index('by_workspaceId_status', ['workspaceId', 'status'])
+    .index('by_retainUntil', ['retainUntil']),
 
   auditLogs: defineTable({
     timestamp: v.number(),

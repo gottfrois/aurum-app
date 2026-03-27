@@ -14,6 +14,7 @@ import type * as balanceSnapshots from "../balanceSnapshots.js";
 import type * as batchOperations from "../batchOperations.js";
 import type * as billing from "../billing.js";
 import type * as categories from "../categories.js";
+import type * as crons from "../crons.js";
 import type * as email from "../email.js";
 import type * as encryptionKeys from "../encryptionKeys.js";
 import type * as filterViews from "../filterViews.js";
@@ -49,6 +50,7 @@ declare const fullApi: ApiFromModules<{
   batchOperations: typeof batchOperations;
   billing: typeof billing;
   categories: typeof categories;
+  crons: typeof crons;
   email: typeof email;
   encryptionKeys: typeof encryptionKeys;
   filterViews: typeof filterViews;

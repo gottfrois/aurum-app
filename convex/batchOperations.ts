@@ -99,14 +99,18 @@ export const deleteBatchOperation = mutation({
   },
 })
 
-export const cleanupBatchOperation = internalMutation({
-  args: {
-    operationId: v.id('batchOperations'),
-  },
-  handler: async (ctx, args) => {
-    const op = await ctx.db.get(args.operationId)
-    if (op) {
-      await ctx.db.delete(args.operationId)
+export const purgeExpiredOperations = internalMutation({
+  handler: async (ctx) => {
+    const now = Date.now()
+    const expired = await ctx.db
+      .query('batchOperations')
+      .withIndex('by_retainUntil', (q) => q.lt('retainUntil', now))
+      .collect()
+
+    for (const op of expired) {
+      await ctx.db.delete(op._id)
     }
+
+    return { deleted: expired.length }
   },
 })

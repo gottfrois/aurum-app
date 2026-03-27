@@ -231,21 +231,18 @@ export const batchUpdateTransactionLabels = mutation({
 
     const identity = await ctx.auth.getUserIdentity()
 
+    const now = Date.now()
     const operationId = await ctx.db.insert('batchOperations', {
       workspaceId: member.workspaceId,
+      userId,
       type: 'labels',
       status: 'processing',
       total: args.transactionIds.length,
       processed: 0,
-      label: 'Updating labels',
-      createdAt: Date.now(),
+      label: 'batch.labels.updating',
+      retainUntil: now + BATCH_OPERATION_RETENTION_MS,
+      createdAt: now,
     })
-
-    await ctx.scheduler.runAfter(
-      5 * 60 * 1000,
-      internal.batchOperations.cleanupBatchOperation,
-      { operationId },
-    )
 
     await ctx.scheduler.runAfter(
       0,
@@ -263,6 +260,7 @@ export const batchUpdateTransactionLabels = mutation({
 })
 
 const BATCH_CHUNK_SIZE = 100
+const BATCH_OPERATION_RETENTION_MS = 5 * 60 * 1000 // 5 minutes
 
 export const batchUpdateLabelsAsync = internalAction({
   args: {
@@ -496,23 +494,20 @@ export const batchUpdateTransactionExclusion = mutation({
 
     const identity = await ctx.auth.getUserIdentity()
 
+    const now = Date.now()
     const operationId = await ctx.db.insert('batchOperations', {
       workspaceId: member.workspaceId,
+      userId,
       type: 'exclusion',
       status: 'processing',
       total: args.transactionIds.length,
       processed: 0,
       label: args.excludedFromBudget
-        ? 'Excluding from budget'
-        : 'Including in budget',
-      createdAt: Date.now(),
+        ? 'batch.exclusion.excluding'
+        : 'batch.exclusion.including',
+      retainUntil: now + BATCH_OPERATION_RETENTION_MS,
+      createdAt: now,
     })
-
-    await ctx.scheduler.runAfter(
-      5 * 60 * 1000,
-      internal.batchOperations.cleanupBatchOperation,
-      { operationId },
-    )
 
     await ctx.scheduler.runAfter(
       0,
@@ -835,21 +830,18 @@ export const batchUpdateTransactionCategory = mutation({
 
     const identity = await ctx.auth.getUserIdentity()
 
+    const now = Date.now()
     const operationId = await ctx.db.insert('batchOperations', {
       workspaceId: member.workspaceId,
+      userId,
       type: 'category',
       status: 'processing',
       total: args.updates.length,
       processed: 0,
-      label: 'Updating category',
-      createdAt: Date.now(),
+      label: 'batch.category.updating',
+      retainUntil: now + BATCH_OPERATION_RETENTION_MS,
+      createdAt: now,
     })
-
-    await ctx.scheduler.runAfter(
-      5 * 60 * 1000,
-      internal.batchOperations.cleanupBatchOperation,
-      { operationId },
-    )
 
     await ctx.scheduler.runAfter(
       0,
