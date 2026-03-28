@@ -29,9 +29,14 @@ export interface BreadcrumbItem {
 export function SiteHeader({
   title = 'Dashboard',
   breadcrumbs,
+  actions,
+  children,
 }: {
   title?: string
   breadcrumbs?: Array<BreadcrumbItem>
+  /** Rendered inline next to the breadcrumb / title */
+  actions?: React.ReactNode
+  children?: React.ReactNode
 }) {
   const { isPrivate, togglePrivacy } = usePrivacy()
   const { isUnlocked, lock } = useEncryption()
@@ -77,7 +82,9 @@ export function SiteHeader({
         ) : (
           <h1 className="text-base font-medium">{title}</h1>
         )}
+        {actions && <div className="ml-1.5">{actions}</div>}
         <div className="ml-auto flex items-center gap-1">
+          {children}
           {isUnlocked && <EncryptionStatusButton onLock={lock} />}
           <Tooltip>
             <TooltipTrigger asChild>

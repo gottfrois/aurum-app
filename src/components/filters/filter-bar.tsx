@@ -1,17 +1,7 @@
-import { useMutation } from 'convex/react'
+import { useNavigate } from '@tanstack/react-router'
 import { Plus } from 'lucide-react'
-import * as React from 'react'
-import { toast } from 'sonner'
 import { Button } from '~/components/ui/button'
-import { Input } from '~/components/ui/input'
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from '~/components/ui/popover'
-import { serializeFilters } from '~/lib/filters/serialize'
 import type { FilterCondition, FilterConfig } from '~/lib/filters/types'
-import { api } from '../../../convex/_generated/api'
 import { FilterChip } from './filter-chip'
 import { FilterDropdown } from './filter-dropdown'
 import { SavedViews } from './saved-views'
@@ -28,12 +18,10 @@ interface FilterActionsProps {
 
 export function FilterActions({
   config,
-  conditions,
   onAdd,
   onUpdate,
   onRemove,
   onLoadConditions,
-  entityType,
 }: FilterActionsProps) {
   return (
     <div className="ml-auto flex items-center gap-2">
@@ -44,11 +32,7 @@ export function FilterActions({
         onRemove={onRemove}
         onLoadConditions={onLoadConditions}
       />
-      <SavedViews
-        entityType={entityType}
-        currentConditions={conditions}
-        onLoadConditions={onLoadConditions}
-      />
+      <SavedViews />
     </div>
   )
 }
@@ -60,6 +44,7 @@ interface ActiveFiltersProps {
   onUpdate: (id: string, updates: Partial<Omit<FilterCondition, 'id'>>) => void
   onRemove: (id: string) => void
   onClearAll: () => void
+  onSaveView?: () => void
   entityType: string
 }
 
@@ -70,8 +55,10 @@ export function ActiveFilters({
   onUpdate,
   onRemove,
   onClearAll,
-  entityType,
+  onSaveView,
 }: ActiveFiltersProps) {
+  const navigate = useNavigate()
+
   if (conditions.length === 0) return null
 
   return (
@@ -109,64 +96,19 @@ export function ActiveFilters({
         >
           Clear
         </Button>
-        <SaveFilterButton entityType={entityType} conditions={conditions} />
+        <Button
+          variant="ghost"
+          size="sm"
+          className="gap-1.5"
+          onClick={
+            onSaveView ??
+            (() =>
+              navigate({ to: '/transactions', search: { createView: true } }))
+          }
+        >
+          Save view
+        </Button>
       </div>
     </div>
-  )
-}
-
-function SaveFilterButton({
-  entityType,
-  conditions,
-}: {
-  entityType: string
-  conditions: Array<FilterCondition>
-}) {
-  const createView = useMutation(api.filterViews.create)
-  const [open, setOpen] = React.useState(false)
-  const [name, setName] = React.useState('')
-
-  const handleSave = async () => {
-    if (!name.trim()) return
-    try {
-      await createView({
-        entityType,
-        name: name.trim(),
-        filters: serializeFilters(conditions),
-      })
-      setName('')
-      setOpen(false)
-      toast.success('View saved')
-    } catch {
-      toast.error('Failed to save view')
-    }
-  }
-
-  return (
-    <Popover open={open} onOpenChange={setOpen}>
-      <PopoverTrigger asChild>
-        <Button variant="ghost" size="sm" className="gap-1.5">
-          Save
-        </Button>
-      </PopoverTrigger>
-      <PopoverContent className="w-[240px] p-2" align="end">
-        <div className="flex gap-2">
-          <Input
-            autoFocus
-            value={name}
-            onChange={(e) => setName(e.target.value)}
-            onKeyDown={(e) => {
-              if (e.key === 'Enter') handleSave()
-              if (e.key === 'Escape') setOpen(false)
-            }}
-            placeholder="View name..."
-            className="h-8"
-          />
-          <Button size="sm" className="h-8" onClick={handleSave}>
-            Save
-          </Button>
-        </div>
-      </PopoverContent>
-    </Popover>
   )
 }

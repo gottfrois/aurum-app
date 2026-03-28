@@ -30,6 +30,8 @@ import {
 
 export interface DataTableGroup<TData> {
   label: string
+  description?: string
+  action?: React.ReactNode
   filter: (row: TData) => boolean
 }
 
@@ -197,12 +199,27 @@ export function DataTable<TData, TValue>({
                           colSpan={allColumns.length}
                           className="py-1.5"
                         >
-                          <span className="font-medium text-muted-foreground">
-                            {group.label}
-                          </span>
-                          <span className="ml-1.5 text-muted-foreground/60">
-                            {groupRows.length}
-                          </span>
+                          <div className="flex items-center">
+                            <span className="font-medium text-muted-foreground">
+                              {group.label}
+                            </span>
+                            <span className="ml-1.5 text-muted-foreground/60">
+                              {groupRows.length}
+                            </span>
+                            {group.description && (
+                              <>
+                                <span className="mx-1.5 text-muted-foreground/40">
+                                  ·
+                                </span>
+                                <span className="text-muted-foreground/60">
+                                  {group.description}
+                                </span>
+                              </>
+                            )}
+                            {group.action && (
+                              <span className="ml-auto">{group.action}</span>
+                            )}
+                          </div>
                         </TableCell>
                       </TableRow>
                       {groupRows.map((row) => (

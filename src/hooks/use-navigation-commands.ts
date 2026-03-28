@@ -16,4 +16,11 @@ export function useNavigationCommands(): void {
   useCommand('nav.settings', {
     handler: () => void navigate({ to: '/settings' }),
   })
+  useCommand('nav.views', {
+    handler: () => void navigate({ to: '/views' }),
+  })
+  useCommand('view.create', {
+    handler: () =>
+      void navigate({ to: '/transactions', search: { createView: true } }),
+  })
 }

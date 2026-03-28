@@ -205,10 +205,33 @@ export default defineSchema({
     workspaceId: v.id('workspaces'),
     entityType: v.string(),
     name: v.string(),
+    description: v.optional(v.string()),
+    color: v.optional(v.string()),
     filters: v.string(),
+    visibility: v.optional(
+      v.union(
+        v.literal('personal'),
+        v.literal('workspace'),
+        v.literal('portfolio'),
+      ),
+    ),
+    portfolioId: v.optional(v.id('portfolios')),
     createdBy: v.string(),
     createdAt: v.number(),
-  }).index('by_workspaceId_entityType', ['workspaceId', 'entityType']),
+    updatedAt: v.optional(v.number()),
+  })
+    .index('by_workspaceId_entityType', ['workspaceId', 'entityType'])
+    .index('by_workspaceId', ['workspaceId']),
+
+  filterViewFavorites: defineTable({
+    workspaceId: v.id('workspaces'),
+    userId: v.string(),
+    viewId: v.id('filterViews'),
+    sortOrder: v.number(),
+    createdAt: v.number(),
+  })
+    .index('by_workspaceId_userId', ['workspaceId', 'userId'])
+    .index('by_viewId', ['viewId']),
 
   transactionLabels: defineTable({
     workspaceId: v.id('workspaces'),

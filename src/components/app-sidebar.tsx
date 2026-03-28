@@ -3,10 +3,12 @@ import {
   ArrowLeftRight,
   Keyboard,
   Landmark,
+  Layers,
   LayoutDashboard,
   Settings,
 } from 'lucide-react'
 import type * as React from 'react'
+import { NavFavorites } from '~/components/nav-favorites'
 import { NavMain } from '~/components/nav-main'
 import { NavUser } from '~/components/nav-user'
 import { PortfolioSwitcher } from '~/components/portfolio-switcher'
@@ -36,6 +38,11 @@ const navMain = [
     icon: ArrowLeftRight,
   },
   {
+    title: 'Views',
+    url: '/views',
+    icon: Layers,
+  },
+  {
     title: 'Accounts',
     url: '/accounts',
     icon: Landmark,
@@ -53,6 +60,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
       </SidebarHeader>
       <SidebarContent>
         <NavMain items={navMain} />
+        <NavFavorites />
         <SidebarGroup className="mt-auto">
           <SidebarGroupContent>
             <SidebarMenu>

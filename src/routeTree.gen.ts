@@ -20,7 +20,9 @@ import { Route as PowensCallbackRouteImport } from './routes/powens/callback'
 import { Route as AppTransactionsRouteImport } from './routes/_app/transactions'
 import { Route as AppPortfoliosRouteImport } from './routes/_app/portfolios'
 import { Route as SettingsSettingsIndexRouteImport } from './routes/_settings/settings.index'
+import { Route as AppViewsIndexRouteImport } from './routes/_app/views.index'
 import { Route as AppAccountsIndexRouteImport } from './routes/_app/accounts.index'
+import { Route as AppViewsViewIdRouteImport } from './routes/_app/views.$viewId'
 import { Route as AppAccountsAccountIdRouteImport } from './routes/_app/accounts.$accountId'
 import { Route as SettingsSettingsWorkspaceIndexRouteImport } from './routes/_settings/settings.workspace.index'
 import { Route as SettingsSettingsAccountIndexRouteImport } from './routes/_settings/settings.account.index'
@@ -96,9 +98,19 @@ const SettingsSettingsIndexRoute = SettingsSettingsIndexRouteImport.update({
   path: '/settings/',
   getParentRoute: () => SettingsRoute,
 } as any)
+const AppViewsIndexRoute = AppViewsIndexRouteImport.update({
+  id: '/views/',
+  path: '/views/',
+  getParentRoute: () => AppRoute,
+} as any)
 const AppAccountsIndexRoute = AppAccountsIndexRouteImport.update({
   id: '/accounts/',
   path: '/accounts/',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppViewsViewIdRoute = AppViewsViewIdRouteImport.update({
+  id: '/views/$viewId',
+  path: '/views/$viewId',
   getParentRoute: () => AppRoute,
 } as any)
 const AppAccountsAccountIdRoute = AppAccountsAccountIdRouteImport.update({
@@ -237,7 +249,9 @@ export interface FileRoutesByFullPath {
   '/powens/callback': typeof PowensCallbackRoute
   '/sign-in/$': typeof SignInSplatRoute
   '/accounts/$accountId': typeof AppAccountsAccountIdRoute
+  '/views/$viewId': typeof AppViewsViewIdRoute
   '/accounts/': typeof AppAccountsIndexRoute
+  '/views/': typeof AppViewsIndexRoute
   '/settings/': typeof SettingsSettingsIndexRoute
   '/settings/account/connections': typeof SettingsSettingsAccountConnectionsRoute
   '/settings/account/encryption': typeof SettingsSettingsAccountEncryptionRoute
@@ -270,7 +284,9 @@ export interface FileRoutesByTo {
   '/powens/callback': typeof PowensCallbackRoute
   '/sign-in/$': typeof SignInSplatRoute
   '/accounts/$accountId': typeof AppAccountsAccountIdRoute
+  '/views/$viewId': typeof AppViewsViewIdRoute
   '/accounts': typeof AppAccountsIndexRoute
+  '/views': typeof AppViewsIndexRoute
   '/settings': typeof SettingsSettingsIndexRoute
   '/settings/account/connections': typeof SettingsSettingsAccountConnectionsRoute
   '/settings/account/encryption': typeof SettingsSettingsAccountEncryptionRoute
@@ -305,7 +321,9 @@ export interface FileRoutesById {
   '/sign-in/$': typeof SignInSplatRoute
   '/_app/': typeof AppIndexRoute
   '/_app/accounts/$accountId': typeof AppAccountsAccountIdRoute
+  '/_app/views/$viewId': typeof AppViewsViewIdRoute
   '/_app/accounts/': typeof AppAccountsIndexRoute
+  '/_app/views/': typeof AppViewsIndexRoute
   '/_settings/settings/': typeof SettingsSettingsIndexRoute
   '/_settings/settings/account/connections': typeof SettingsSettingsAccountConnectionsRoute
   '/_settings/settings/account/encryption': typeof SettingsSettingsAccountEncryptionRoute
@@ -340,7 +358,9 @@ export interface FileRouteTypes {
     | '/powens/callback'
     | '/sign-in/$'
     | '/accounts/$accountId'
+    | '/views/$viewId'
     | '/accounts/'
+    | '/views/'
     | '/settings/'
     | '/settings/account/connections'
     | '/settings/account/encryption'
@@ -373,7 +393,9 @@ export interface FileRouteTypes {
     | '/powens/callback'
     | '/sign-in/$'
     | '/accounts/$accountId'
+    | '/views/$viewId'
     | '/accounts'
+    | '/views'
     | '/settings'
     | '/settings/account/connections'
     | '/settings/account/encryption'
@@ -407,7 +429,9 @@ export interface FileRouteTypes {
     | '/sign-in/$'
     | '/_app/'
     | '/_app/accounts/$accountId'
+    | '/_app/views/$viewId'
     | '/_app/accounts/'
+    | '/_app/views/'
     | '/_settings/settings/'
     | '/_settings/settings/account/connections'
     | '/_settings/settings/account/encryption'
@@ -520,11 +544,25 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof SettingsSettingsIndexRouteImport
       parentRoute: typeof SettingsRoute
     }
+    '/_app/views/': {
+      id: '/_app/views/'
+      path: '/views'
+      fullPath: '/views/'
+      preLoaderRoute: typeof AppViewsIndexRouteImport
+      parentRoute: typeof AppRoute
+    }
     '/_app/accounts/': {
       id: '/_app/accounts/'
       path: '/accounts'
       fullPath: '/accounts/'
       preLoaderRoute: typeof AppAccountsIndexRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/views/$viewId': {
+      id: '/_app/views/$viewId'
+      path: '/views/$viewId'
+      fullPath: '/views/$viewId'
+      preLoaderRoute: typeof AppViewsViewIdRouteImport
       parentRoute: typeof AppRoute
     }
     '/_app/accounts/$accountId': {
@@ -682,7 +720,9 @@ interface AppRouteChildren {
   AppTransactionsRoute: typeof AppTransactionsRoute
   AppIndexRoute: typeof AppIndexRoute
   AppAccountsAccountIdRoute: typeof AppAccountsAccountIdRoute
+  AppViewsViewIdRoute: typeof AppViewsViewIdRoute
   AppAccountsIndexRoute: typeof AppAccountsIndexRoute
+  AppViewsIndexRoute: typeof AppViewsIndexRoute
 }
 
 const AppRouteChildren: AppRouteChildren = {
@@ -690,7 +730,9 @@ const AppRouteChildren: AppRouteChildren = {
   AppTransactionsRoute: AppTransactionsRoute,
   AppIndexRoute: AppIndexRoute,
   AppAccountsAccountIdRoute: AppAccountsAccountIdRoute,
+  AppViewsViewIdRoute: AppViewsViewIdRoute,
   AppAccountsIndexRoute: AppAccountsIndexRoute,
+  AppViewsIndexRoute: AppViewsIndexRoute,
 }
 
 const AppRouteWithChildren = AppRoute._addFileChildren(AppRouteChildren)
