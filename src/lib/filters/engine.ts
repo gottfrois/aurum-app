@@ -1,197 +1,146 @@
-import type { FilterCondition, FilterConfig } from './types'
+import type { Filter } from '~/components/reui/filters'
+import type { FieldDescriptor } from './types'
 
-function evaluateString(
-  rawValue: unknown,
-  operator: string,
-  filterValue: unknown,
-): boolean {
-  const value = rawValue == null ? '' : String(rawValue)
-  const lower = value.toLowerCase()
-
-  switch (operator) {
-    case 'is':
-      return lower === String(filterValue).toLowerCase()
-    case 'is_not':
-      return lower !== String(filterValue).toLowerCase()
-    case 'contains':
-      return lower.includes(String(filterValue).toLowerCase())
-    case 'does_not_contain':
-      return !lower.includes(String(filterValue).toLowerCase())
-    case 'is_any_of':
-      if (!Array.isArray(filterValue) || filterValue.length === 0) return true
-      return filterValue.some((v) => lower === String(v).toLowerCase())
-    case 'is_none_of':
-      return Array.isArray(filterValue)
-        ? filterValue.every((v) => lower !== String(v).toLowerCase())
-        : true
-    case 'is_empty':
-      return value === ''
-    case 'is_not_empty':
-      return value !== ''
-    default:
-      return true
-  }
-}
-
-function evaluateNumber(
-  rawValue: unknown,
-  operator: string,
-  filterValue: unknown,
-): boolean {
-  if (operator === 'is_empty') return rawValue == null
-  if (operator === 'is_not_empty') return rawValue != null
-
-  const value = Number(rawValue)
-  if (Number.isNaN(value)) return false
-
-  switch (operator) {
-    case 'eq':
-      return value === Number(filterValue)
-    case 'neq':
-      return value !== Number(filterValue)
-    case 'gt':
-      return value > Number(filterValue)
-    case 'lt':
-      return value < Number(filterValue)
-    case 'gte':
-      return value >= Number(filterValue)
-    case 'lte':
-      return value <= Number(filterValue)
-    case 'between': {
-      const range = filterValue as { from: number; to: number }
-      return value >= range.from && value <= range.to
-    }
-    default:
-      return true
-  }
-}
-
-function evaluateDate(
-  rawValue: unknown,
-  operator: string,
-  filterValue: unknown,
-): boolean {
-  if (operator === 'is_empty') return rawValue == null || rawValue === ''
-  if (operator === 'is_not_empty') return rawValue != null && rawValue !== ''
-
-  const value = String(rawValue ?? '')
-  if (!value) return false
-
-  switch (operator) {
-    case 'is':
-      return value === String(filterValue)
-    case 'is_not':
-      return value !== String(filterValue)
-    case 'gt':
-      return value > String(filterValue)
-    case 'lt':
-      return value < String(filterValue)
-    case 'between': {
-      const range = filterValue as { from: string; to: string }
-      return value >= range.from && value <= range.to
-    }
-    default:
-      return true
-  }
-}
-
-function evaluateEnum(
-  rawValue: unknown,
-  operator: string,
-  filterValue: unknown,
-): boolean {
-  // Handle array raw values (e.g. labelIds)
-  if (Array.isArray(rawValue)) {
-    switch (operator) {
-      case 'is_any_of':
-        if (!Array.isArray(filterValue) || filterValue.length === 0) return true
-        return rawValue.some((v) => filterValue.includes(String(v)))
-      case 'is_none_of':
-        if (!Array.isArray(filterValue)) return true
-        return rawValue.every((v) => !filterValue.includes(String(v)))
-      case 'is_empty':
-        return rawValue.length === 0
-      case 'is_not_empty':
-        return rawValue.length > 0
-      default:
-        return true
-    }
-  }
-
-  const value = rawValue == null ? '' : String(rawValue)
-
-  switch (operator) {
-    case 'is_any_of':
-      if (!Array.isArray(filterValue) || filterValue.length === 0) return true
-      return filterValue.includes(value)
-    case 'is_none_of':
-      return Array.isArray(filterValue) ? !filterValue.includes(value) : true
-    case 'is_empty':
-      return value === ''
-    case 'is_not_empty':
-      return value !== ''
-    default:
-      return true
-  }
-}
-
-function evaluateBoolean(
-  rawValue: unknown,
-  _operator: string,
-  filterValue: unknown,
-): boolean {
-  return Boolean(rawValue) === Boolean(filterValue)
-}
-
-export function evaluateCondition<TField extends string>(
+function evaluateFilter(
   record: Record<string, unknown>,
-  condition: FilterCondition<TField>,
-  config: FilterConfig<TField>,
+  filter: Filter,
+  fields: Array<FieldDescriptor>,
 ): boolean {
-  const fieldDescriptor = config.fieldMap.get(condition.field)
-  if (!fieldDescriptor) return true
+  const field = fields.find((f) => f.key === filter.field)
+  if (!field) return true
 
-  // Conditions without a value configured yet should not filter anything,
-  // unless the operator is valueless (is_empty / is_not_empty)
-  const op = condition.operator
-  if (
-    condition.value === undefined &&
-    op !== 'is_empty' &&
-    op !== 'is_not_empty'
-  ) {
-    return true
+  const rawValue = field.accessor(record)
+  const { operator, values } = filter
+
+  // Valueless operators
+  if (operator === 'empty') {
+    if (Array.isArray(rawValue)) return rawValue.length === 0
+    return rawValue == null || rawValue === ''
+  }
+  if (operator === 'not_empty') {
+    if (Array.isArray(rawValue)) return rawValue.length > 0
+    return rawValue != null && rawValue !== ''
   }
 
-  const rawValue = fieldDescriptor.accessor(record)
+  // No values configured yet — don't filter
+  if (values.length === 0) return true
 
-  switch (fieldDescriptor.valueType) {
-    case 'string':
-      return evaluateString(rawValue, condition.operator, condition.value)
-    case 'number':
-      return evaluateNumber(rawValue, condition.operator, condition.value)
-    case 'date':
-      return evaluateDate(rawValue, condition.operator, condition.value)
-    case 'enum':
-      return evaluateEnum(rawValue, condition.operator, condition.value)
-    case 'boolean':
-      return evaluateBoolean(rawValue, condition.operator, condition.value)
-    default:
-      return true
+  // Multi-value operators (enum/multiselect)
+  if (operator === 'is_any_of') {
+    const filterValues = values.map(String)
+    if (filterValues.length === 0) return true
+    if (Array.isArray(rawValue)) {
+      return rawValue.some((v) => filterValues.includes(String(v)))
+    }
+    return filterValues.includes(String(rawValue ?? ''))
   }
+  if (operator === 'is_not_any_of' || operator === 'is_none_of') {
+    const filterValues = values.map(String)
+    if (Array.isArray(rawValue)) {
+      return rawValue.every((v) => !filterValues.includes(String(v)))
+    }
+    return !filterValues.includes(String(rawValue ?? ''))
+  }
+  if (operator === 'includes_all') {
+    const filterValues = values.map(String)
+    if (!Array.isArray(rawValue)) return false
+    return filterValues.every((v) => rawValue.map(String).includes(v))
+  }
+  if (operator === 'excludes_all') {
+    const filterValues = values.map(String)
+    if (!Array.isArray(rawValue)) return true
+    return filterValues.every((v) => !rawValue.map(String).includes(v))
+  }
+
+  // Single-value operators
+  const filterValue = values[0]
+
+  // String operators
+  if (operator === 'is') {
+    return (
+      String(rawValue ?? '').toLowerCase() === String(filterValue).toLowerCase()
+    )
+  }
+  if (operator === 'is_not') {
+    return (
+      String(rawValue ?? '').toLowerCase() !== String(filterValue).toLowerCase()
+    )
+  }
+  if (operator === 'contains') {
+    return String(rawValue ?? '')
+      .toLowerCase()
+      .includes(String(filterValue).toLowerCase())
+  }
+  if (operator === 'does_not_contain' || operator === 'not_contains') {
+    return !String(rawValue ?? '')
+      .toLowerCase()
+      .includes(String(filterValue).toLowerCase())
+  }
+  if (operator === 'starts_with') {
+    return String(rawValue ?? '')
+      .toLowerCase()
+      .startsWith(String(filterValue).toLowerCase())
+  }
+  if (operator === 'ends_with') {
+    return String(rawValue ?? '')
+      .toLowerCase()
+      .endsWith(String(filterValue).toLowerCase())
+  }
+
+  // Numeric operators
+  if (operator === 'eq') {
+    return Number(rawValue) === Number(filterValue)
+  }
+  if (operator === 'neq') {
+    return Number(rawValue) !== Number(filterValue)
+  }
+  if (operator === 'gt' || operator === 'after') {
+    if (field.valueType === 'date') {
+      return String(rawValue ?? '') > String(filterValue)
+    }
+    return Number(rawValue) > Number(filterValue)
+  }
+  if (operator === 'lt' || operator === 'before') {
+    if (field.valueType === 'date') {
+      return String(rawValue ?? '') < String(filterValue)
+    }
+    return Number(rawValue) < Number(filterValue)
+  }
+  if (operator === 'gte') {
+    return Number(rawValue) >= Number(filterValue)
+  }
+  if (operator === 'lte') {
+    return Number(rawValue) <= Number(filterValue)
+  }
+
+  // Range operator
+  if (operator === 'between') {
+    const from = values[0]
+    const to = values[1]
+    if (from == null || to == null) return true
+    if (field.valueType === 'date') {
+      const v = String(rawValue ?? '')
+      return v >= String(from) && v <= String(to)
+    }
+    const v = Number(rawValue)
+    return v >= Number(from) && v <= Number(to)
+  }
+
+  return true
 }
 
-export function applyFilters<TField extends string, TRecord>(
+export function applyFilters<TRecord>(
   records: Array<TRecord>,
-  conditions: Array<FilterCondition<TField>>,
-  config: FilterConfig<TField>,
+  filters: Array<Filter>,
+  fields: Array<FieldDescriptor>,
 ): Array<TRecord> {
-  if (conditions.length === 0) return records
+  if (filters.length === 0) return records
   return records.filter((record) =>
-    conditions.every((condition) =>
-      evaluateCondition(
+    filters.every((filter) =>
+      evaluateFilter(
         record as unknown as Record<string, unknown>,
-        condition,
-        config,
+        filter,
+        fields,
       ),
     ),
   )

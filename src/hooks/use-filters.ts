@@ -1,85 +1,56 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import type { Filter } from '~/components/reui/filters'
 import { applyFilters } from '~/lib/filters/engine'
-import type { FilterCondition, FilterConfig } from '~/lib/filters/types'
+import type { FieldDescriptor } from '~/lib/filters/types'
 
-export interface UseFiltersOptions<TField extends string> {
-  initialConditions?: Array<FilterCondition<TField>>
-  onConditionsChange?: (conditions: Array<FilterCondition<TField>>) => void
+export interface UseFiltersOptions {
+  initialFilters?: Array<Filter>
+  onFiltersChange?: (filters: Array<Filter>) => void
 }
 
-export interface UseFiltersReturn<TField extends string, TRecord> {
-  conditions: Array<FilterCondition<TField>>
-  filteredData: Array<TRecord> | undefined
-  addCondition: (condition: FilterCondition<TField>) => void
-  updateCondition: (
-    id: string,
-    updates: Partial<Omit<FilterCondition<TField>, 'id'>>,
+export interface UseFiltersReturn<TRecord> {
+  filters: Array<Filter>
+  setFilters: (
+    filters: Array<Filter> | ((prev: Array<Filter>) => Array<Filter>),
   ) => void
-  removeCondition: (id: string) => void
-  clearAll: () => void
-  loadConditions: (conditions: Array<FilterCondition<TField>>) => void
+  filteredData: Array<TRecord> | undefined
   hasActiveFilters: boolean
 }
 
-export function useFilters<TField extends string, TRecord>(
+export function useFilters<TRecord>(
   data: Array<TRecord> | undefined,
-  config: FilterConfig<TField>,
-  options?: UseFiltersOptions<TField>,
-): UseFiltersReturn<TField, TRecord> {
-  const [conditions, setConditions] = useState<Array<FilterCondition<TField>>>(
-    () => options?.initialConditions ?? [],
+  fields: Array<FieldDescriptor>,
+  options?: UseFiltersOptions,
+): UseFiltersReturn<TRecord> {
+  const [filters, setFiltersState] = useState<Array<Filter>>(
+    () => options?.initialFilters ?? [],
   )
 
-  const onChangeRef = useRef(options?.onConditionsChange)
-  onChangeRef.current = options?.onConditionsChange
+  const onChangeRef = useRef(options?.onFiltersChange)
+  onChangeRef.current = options?.onFiltersChange
 
   useEffect(() => {
-    onChangeRef.current?.(conditions)
-  }, [conditions])
+    onChangeRef.current?.(filters)
+  }, [filters])
 
-  const addCondition = useCallback((condition: FilterCondition<TField>) => {
-    setConditions((prev) => [...prev, condition])
-  }, [])
-
-  const updateCondition = useCallback(
-    (id: string, updates: Partial<Omit<FilterCondition<TField>, 'id'>>) => {
-      setConditions((prev) =>
-        prev.map((c) => (c.id === id ? { ...c, ...updates } : c)),
-      )
-    },
-    [],
-  )
-
-  const removeCondition = useCallback((id: string) => {
-    setConditions((prev) => prev.filter((c) => c.id !== id))
-  }, [])
-
-  const clearAll = useCallback(() => {
-    setConditions([])
-  }, [])
-
-  const loadConditions = useCallback(
-    (newConditions: Array<FilterCondition<TField>>) => {
-      setConditions(newConditions)
+  const setFilters = useCallback(
+    (next: Array<Filter> | ((prev: Array<Filter>) => Array<Filter>)) => {
+      setFiltersState(next)
     },
     [],
   )
 
   const filteredData = useMemo(() => {
     if (!data) return undefined
-    return applyFilters(data, conditions, config)
-  }, [data, conditions, config])
+    return applyFilters(data, filters, fields)
+  }, [data, filters, fields])
 
-  const hasActiveFilters = conditions.length > 0
+  const hasActiveFilters = filters.length > 0
 
   return {
-    conditions,
+    filters,
+    setFilters,
     filteredData,
-    addCondition,
-    updateCondition,
-    removeCondition,
-    clearAll,
-    loadConditions,
     hasActiveFilters,
   }
 }

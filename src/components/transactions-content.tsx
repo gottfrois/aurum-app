@@ -1,15 +1,21 @@
 import { useQuery } from 'convex/react'
-import { ArrowLeftRight } from 'lucide-react'
+import { ArrowLeftRight, ListFilter, Sparkles } from 'lucide-react'
 import * as React from 'react'
 import type { CashFlowData } from '~/components/cash-flow-chart'
 import { CashFlowChart } from '~/components/cash-flow-chart'
 import { CategoryPieChart } from '~/components/category-pie-chart'
 import { useAIFilterListener } from '~/components/command-palette'
-import { ActiveFilters, FilterActions } from '~/components/filters/filter-bar'
 import { PeriodNavigator } from '~/components/period-navigator'
+import {
+  createFilter,
+  type Filter,
+  type FilterOption,
+  Filters,
+} from '~/components/reui/filters'
 import { SankeyChart } from '~/components/sankey-chart'
 import type { TransactionRow } from '~/components/transactions-list'
 import { TransactionsList } from '~/components/transactions-list'
+import { Button } from '~/components/ui/button'
 import { Card, CardContent, CardHeader } from '~/components/ui/card'
 import {
   Empty,
@@ -18,7 +24,13 @@ import {
   EmptyMedia,
   EmptyTitle,
 } from '~/components/ui/empty'
+import { Kbd } from '~/components/ui/kbd'
 import { Skeleton } from '~/components/ui/skeleton'
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from '~/components/ui/tooltip'
 import { useCommandDispatch } from '~/contexts/command-context'
 import { usePortfolio } from '~/contexts/portfolio-context'
 import { useCachedDecryptRecords } from '~/hooks/use-cached-decrypt'
@@ -26,12 +38,8 @@ import { useCommand } from '~/hooks/use-command'
 import { useDateRange } from '~/hooks/use-date-range'
 import { useFilters } from '~/hooks/use-filters'
 import { resolveTransactionCategoryKey, useCategories } from '~/lib/categories'
-import { createTransactionFilterConfig } from '~/lib/filters/transactions'
-import type {
-  EnumOption,
-  FilterCondition,
-  FilterConfig,
-} from '~/lib/filters/types'
+import { createTransactionFilterFields } from '~/lib/filters/transactions'
+import { toReUIFields } from '~/lib/filters/types'
 import { api } from '../../convex/_generated/api'
 
 type DecryptedBankAccount = NonNullable<
@@ -73,25 +81,20 @@ interface TransactionRecord {
 }
 
 export interface TransactionsContentProps {
-  initialConditions?: Array<FilterCondition>
-  onConditionsChange?: (conditions: Array<FilterCondition>) => void
+  initialFilters?: Array<Filter>
+  onFiltersChange?: (filters: Array<Filter>) => void
   onSaveView?: () => void
-  entityType?: string
-  /** Slot rendered after the period navigator and before the filter actions */
-  headerSlot?: React.ReactNode
   /** Slot rendered in the active filters bar area */
   filtersSlot?: (props: {
-    conditions: Array<FilterCondition>
+    filters: Array<Filter>
     hasChanges: boolean
   }) => React.ReactNode
 }
 
 export function TransactionsContent({
-  initialConditions: externalInitialConditions,
-  onConditionsChange,
+  initialFilters: externalInitialFilters,
+  onFiltersChange,
   onSaveView,
-  entityType = 'transactions',
-  headerSlot,
   filtersSlot,
 }: TransactionsContentProps) {
   const {
@@ -212,7 +215,7 @@ export function TransactionsContent({
     return map
   }, [bankAccounts])
 
-  const accountOptions = React.useMemo<Array<EnumOption>>(() => {
+  const accountOptions = React.useMemo<Array<FilterOption<string>>>(() => {
     if (!bankAccounts) return []
     return bankAccounts
       .filter((ba) => !ba.disabled && !ba.deleted)
@@ -222,27 +225,39 @@ export function TransactionsContent({
       }))
   }, [bankAccounts, accountNameMap])
 
-  const categoryOptions = React.useMemo<Array<EnumOption>>(
+  const categoryOptions = React.useMemo<Array<FilterOption<string>>>(
     () =>
       categories.map((c) => ({
         value: c.key,
         label: c.label,
-        color: c.color,
+        icon: (
+          <span
+            className="size-2.5 shrink-0 rounded-full"
+            style={{ backgroundColor: c.color }}
+          />
+        ),
       })),
     [categories],
   )
 
-  const labelOptions = React.useMemo<Array<EnumOption>>(
+  const labelOptions = React.useMemo<Array<FilterOption<string>>>(
     () =>
       labels.map((l) => ({
         value: l._id,
         label: l.name,
-        color: l.color,
+        icon: (
+          <span
+            className="size-2.5 shrink-0 rounded-full"
+            style={{ backgroundColor: l.color }}
+          />
+        ),
       })),
     [labels],
   )
 
-  const transactionTypeOptions = React.useMemo<Array<EnumOption>>(() => {
+  const transactionTypeOptions = React.useMemo<
+    Array<FilterOption<string>>
+  >(() => {
     if (!transactions) return []
     const types = new Set(
       transactions.map((t) => t.type).filter(Boolean) as Array<string>,
@@ -250,9 +265,9 @@ export function TransactionsContent({
     return [...types].sort().map((t) => ({ value: t, label: t }))
   }, [transactions])
 
-  const transactionConfig = React.useMemo(
+  const fieldDescriptors = React.useMemo(
     () =>
-      createTransactionFilterConfig({
+      createTransactionFilterFields({
         accountOptions,
         categoryOptions,
         labelOptions,
@@ -261,32 +276,33 @@ export function TransactionsContent({
     [accountOptions, categoryOptions, labelOptions, transactionTypeOptions],
   )
 
-  const stableInitialConditions = React.useMemo(
-    () => externalInitialConditions ?? [],
-    // Only compute once on mount
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+  const reuiFields = React.useMemo(
+    () => toReUIFields(fieldDescriptors),
+    [fieldDescriptors],
+  )
+
+  // biome-ignore lint/correctness/useExhaustiveDependencies: intentionally mount-only
+  const stableInitialFilters = React.useMemo(
+    () => externalInitialFilters ?? [],
     [],
   )
 
   const {
-    conditions,
+    filters,
+    setFilters,
     filteredData: filteredTransactions,
-    addCondition,
-    updateCondition,
-    removeCondition,
-    clearAll,
-    loadConditions,
     hasActiveFilters,
-  } = useFilters<string, TransactionRecord>(
-    transactions,
-    transactionConfig as FilterConfig<string>,
-    {
-      initialConditions: stableInitialConditions,
-      onConditionsChange,
-    },
+  } = useFilters<TransactionRecord>(transactions, fieldDescriptors, {
+    initialFilters: stableInitialFilters,
+    onFiltersChange,
+  })
+
+  const loadFilters = React.useCallback(
+    (newFilters: Array<Filter>) => setFilters(newFilters),
+    [setFilters],
   )
 
-  useAIFilterListener(loadConditions)
+  useAIFilterListener(loadFilters)
 
   const { setPaletteState } = useCommandDispatch()
   useCommand('ai.filter', {
@@ -300,7 +316,7 @@ export function TransactionsContent({
     const monthMap = new Map<string, { income: number; expenses: number }>()
     for (const t of filteredTransactions) {
       if (t.excludedFromBudget) continue
-      const month = t.date.slice(0, 7) // YYYY-MM
+      const month = t.date.slice(0, 7)
       const entry = monthMap.get(month) ?? { income: 0, expenses: 0 }
       if (t.value > 0) {
         entry.income += t.value
@@ -519,7 +535,7 @@ export function TransactionsContent({
   return (
     <>
       <div className="flex flex-col border-b">
-        <div className="flex flex-wrap items-center gap-3 px-4 py-3 lg:px-6">
+        <div className="px-4 py-3 lg:px-6">
           <PeriodNavigator
             start={start}
             end={end}
@@ -530,34 +546,57 @@ export function TransactionsContent({
             onPrev={goPrev}
             onNext={goNext}
           />
-          {headerSlot}
-          <FilterActions
-            config={transactionConfig}
-            conditions={conditions}
-            onAdd={addCondition}
-            onUpdate={updateCondition}
-            onRemove={removeCondition}
-            onLoadConditions={loadConditions}
-            entityType={entityType}
-          />
+        </div>
+        <div className="border-t px-4 py-2.5 lg:px-6">
+          <div className="flex items-start gap-2.5">
+            <div className="flex-1">
+              <Filters
+                filters={filters}
+                fields={reuiFields}
+                onChange={setFilters}
+                size="sm"
+                enableShortcut
+                menuHeader={
+                  <button
+                    type="button"
+                    className="flex w-full items-center gap-2 rounded-sm px-2 py-1.5 text-sm hover:bg-accent"
+                    onClick={() =>
+                      setPaletteState({ open: true, aiMode: true })
+                    }
+                  >
+                    <Sparkles className="size-4 text-muted-foreground" />
+                    Ask AI
+                  </button>
+                }
+                trigger={
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Button variant="ghost" size="icon" className="h-8 w-8">
+                        <ListFilter className="size-4" />
+                      </Button>
+                    </TooltipTrigger>
+                    <TooltipContent className="flex items-center gap-2">
+                      <span>Filter</span>
+                      <Kbd>F</Kbd>
+                    </TooltipContent>
+                  </Tooltip>
+                }
+              />
+            </div>
+            {filters.length > 0 && (
+              <Button variant="ghost" size="sm" onClick={() => setFilters([])}>
+                Clear
+              </Button>
+            )}
+            {onSaveView && filters.length > 0 && (
+              <Button variant="ghost" size="sm" onClick={onSaveView}>
+                Save view
+              </Button>
+            )}
+          </div>
+          {filtersSlot?.({ filters, hasChanges: false })}
         </div>
       </div>
-
-      {conditions.length > 0 && (
-        <div className="border-b px-4 py-3 lg:px-6">
-          <ActiveFilters
-            config={transactionConfig}
-            conditions={conditions}
-            onAdd={addCondition}
-            onUpdate={updateCondition}
-            onRemove={removeCondition}
-            onClearAll={clearAll}
-            onSaveView={onSaveView}
-            entityType={entityType}
-          />
-          {filtersSlot?.({ conditions, hasChanges: false })}
-        </div>
-      )}
 
       <div className="flex flex-col gap-4 p-4 md:gap-6 md:p-6">
         <div className="grid gap-4 lg:grid-cols-3 md:gap-6">
@@ -573,12 +612,10 @@ export function TransactionsContent({
             currency={currency}
             total={totalExpenses}
             onCategoryClick={(categoryKey) => {
-              addCondition({
-                id: crypto.randomUUID(),
-                field: 'category',
-                operator: 'is_any_of',
-                value: [categoryKey],
-              })
+              setFilters((prev) => [
+                ...prev,
+                createFilter('category', 'is_any_of', [categoryKey]),
+              ])
             }}
           />
         </div>
@@ -589,12 +626,10 @@ export function TransactionsContent({
             links={sankeyData.links}
             currency={currency}
             onLabelClick={(categoryKey) => {
-              addCondition({
-                id: crypto.randomUUID(),
-                field: 'category',
-                operator: 'is_any_of',
-                value: [categoryKey],
-              })
+              setFilters((prev) => [
+                ...prev,
+                createFilter('category', 'is_any_of', [categoryKey]),
+              ])
             }}
           />
         )}

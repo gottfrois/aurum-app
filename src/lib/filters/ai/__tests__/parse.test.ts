@@ -13,7 +13,7 @@ const enumField: SerializableField = {
   name: 'category',
   label: 'Category',
   valueType: 'enum',
-  operators: ['is_any_of', 'is_none_of', 'is_empty', 'is_not_empty'],
+  operators: ['is_any_of', 'is_not_any_of', 'empty', 'not_empty'],
   enumOptions: [
     { value: 'food', label: 'Food & Dining' },
     { value: 'transport', label: 'Transport' },
@@ -25,27 +25,20 @@ const stringField: SerializableField = {
   name: 'wording',
   label: 'Description',
   valueType: 'string',
-  operators: [
-    'contains',
-    'does_not_contain',
-    'is',
-    'is_not',
-    'is_empty',
-    'is_not_empty',
-  ],
+  operators: ['contains', 'not_contains', 'is', 'is_not', 'empty', 'not_empty'],
 }
 
 const dateField: SerializableField = {
   name: 'date',
   label: 'Date',
   valueType: 'date',
-  operators: ['is', 'gt', 'lt', 'between'],
+  operators: ['is', 'after', 'before', 'between'],
 }
 
 const fields = [numberField, enumField, stringField, dateField]
 
 describe('parseAIFilterResponse', () => {
-  it('valid number filter returns 1 condition', () => {
+  it('valid number filter returns 1 filter with values[]', () => {
     const result = parseAIFilterResponse(
       { filters: [{ field: 'amount', operator: 'gt', value: 50 }] },
       fields,
@@ -53,7 +46,7 @@ describe('parseAIFilterResponse', () => {
     expect(result).toHaveLength(1)
     expect(result[0].field).toBe('amount')
     expect(result[0].operator).toBe('gt')
-    expect(result[0].value).toBe(50)
+    expect(result[0].values).toEqual([50])
     expect(result[0].id).toBeDefined()
   })
 
@@ -87,7 +80,7 @@ describe('parseAIFilterResponse', () => {
       fields,
     )
     expect(result).toHaveLength(1)
-    expect(result[0].value).toEqual(['food', 'transport'])
+    expect(result[0].values).toEqual(['food', 'transport'])
   })
 
   it('enum fuzzy match by label', () => {
@@ -104,7 +97,7 @@ describe('parseAIFilterResponse', () => {
       fields,
     )
     expect(result).toHaveLength(1)
-    expect(result[0].value).toEqual(['food'])
+    expect(result[0].values).toEqual(['food'])
   })
 
   it('enum with mixed valid/invalid keeps only valid', () => {
@@ -121,10 +114,10 @@ describe('parseAIFilterResponse', () => {
       fields,
     )
     expect(result).toHaveLength(1)
-    expect(result[0].value).toEqual(['food', 'housing'])
+    expect(result[0].values).toEqual(['food', 'housing'])
   })
 
-  it('between with correct shape validates', () => {
+  it('between with correct shape produces values [from, to]', () => {
     const result = parseAIFilterResponse(
       {
         filters: [
@@ -138,7 +131,7 @@ describe('parseAIFilterResponse', () => {
       fields,
     )
     expect(result).toHaveLength(1)
-    expect(result[0].value).toEqual({ from: '2025-01-01', to: '2025-01-31' })
+    expect(result[0].values).toEqual(['2025-01-01', '2025-01-31'])
   })
 
   it('between with wrong shape is dropped', () => {
@@ -151,15 +144,15 @@ describe('parseAIFilterResponse', () => {
     expect(result).toHaveLength(0)
   })
 
-  it('valueless operator sets value to null', () => {
+  it('valueless operator produces empty values', () => {
     const result = parseAIFilterResponse(
       {
-        filters: [{ field: 'wording', operator: 'is_empty', value: undefined }],
+        filters: [{ field: 'wording', operator: 'empty', value: undefined }],
       },
       fields,
     )
     expect(result).toHaveLength(1)
-    expect(result[0].value).toBeNull()
+    expect(result[0].values).toEqual([])
   })
 
   it('mixed valid and invalid filters — only valid survive', () => {

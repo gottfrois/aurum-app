@@ -1,25 +1,26 @@
 import { describe, expect, it } from 'vitest'
-import type { FilterConfig, FilterFieldDescriptor } from '../../types'
-import { buildSystemPrompt, serializeFilterConfig } from '../prompt'
+import type { FieldDescriptor } from '../../types'
+import { toSerializableFields } from '../../types'
+import { buildSystemPrompt } from '../prompt'
 
-describe('serializeFilterConfig', () => {
+describe('toSerializableFields', () => {
   it('strips accessor and icon, keeps core fields', () => {
-    const config: FilterConfig = {
-      fields: [
-        {
-          name: 'amount',
-          label: 'Amount',
-          valueType: 'number',
-          operators: ['gt', 'lt'],
-          defaultOperator: 'gt',
-          accessor: (r) => r.value,
-          icon: (() => null) as unknown as FilterFieldDescriptor['icon'],
-        },
-      ],
-      fieldMap: new Map(),
-    }
+    const fields: Array<FieldDescriptor> = [
+      {
+        key: 'amount',
+        label: 'Amount',
+        type: 'custom',
+        valueType: 'number',
+        operators: [
+          { value: 'gt', label: 'greater than' },
+          { value: 'lt', label: 'less than' },
+        ],
+        defaultOperator: 'gt',
+        accessor: (r) => r.value,
+      },
+    ]
 
-    const result = serializeFilterConfig(config)
+    const result = toSerializableFields(fields)
     expect(result).toHaveLength(1)
     expect(result[0]).toEqual({
       name: 'amount',
@@ -32,26 +33,24 @@ describe('serializeFilterConfig', () => {
     expect(result[0]).not.toHaveProperty('defaultOperator')
   })
 
-  it('resolves function enumOptions', () => {
-    const config: FilterConfig = {
-      fields: [
-        {
-          name: 'status',
-          label: 'Status',
-          valueType: 'enum',
-          operators: ['is_any_of'],
-          defaultOperator: 'is_any_of',
-          enumOptions: () => [
-            { value: 'active', label: 'Active', color: '#00ff00' },
-            { value: 'inactive', label: 'Inactive' },
-          ],
-          accessor: (r) => r.status,
-        },
-      ],
-      fieldMap: new Map(),
-    }
+  it('extracts enum options from multiselect fields', () => {
+    const fields: Array<FieldDescriptor> = [
+      {
+        key: 'status',
+        label: 'Status',
+        type: 'multiselect',
+        valueType: 'enum',
+        operators: [{ value: 'is_any_of', label: 'is any of' }],
+        defaultOperator: 'is_any_of',
+        options: [
+          { value: 'active', label: 'Active' },
+          { value: 'inactive', label: 'Inactive' },
+        ],
+        accessor: (r) => r.status,
+      },
+    ]
 
-    const result = serializeFilterConfig(config)
+    const result = toSerializableFields(fields)
     expect(result[0].enumOptions).toEqual([
       { value: 'active', label: 'Active' },
       { value: 'inactive', label: 'Inactive' },
@@ -65,13 +64,13 @@ describe('buildSystemPrompt', () => {
       name: 'amount',
       label: 'Amount',
       valueType: 'number' as const,
-      operators: ['gt' as const, 'lt' as const],
+      operators: ['gt', 'lt'],
     },
     {
       name: 'category',
       label: 'Category',
       valueType: 'enum' as const,
-      operators: ['is_any_of' as const],
+      operators: ['is_any_of'],
       enumOptions: [
         { value: 'food', label: 'Food & Dining' },
         { value: 'transport', label: 'Transport' },

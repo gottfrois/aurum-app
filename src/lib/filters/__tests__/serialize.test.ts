@@ -1,22 +1,17 @@
 import { describe, expect, it } from 'vitest'
-import {
-  deserializeFilters,
-  filtersFromSearchParams,
-  filtersToSearchParams,
-  serializeFilters,
-} from '../serialize'
-import type { FilterCondition } from '../types'
+import type { Filter } from '~/components/reui/filters'
+import { deserializeFilters, serializeFilters } from '../serialize'
 
-const sampleConditions: Array<FilterCondition> = [
-  { id: 'f1', field: 'category', operator: 'is_any_of', value: ['food'] },
-  { id: 'f2', field: 'amount', operator: 'gt', value: 100 },
+const sampleFilters: Array<Filter> = [
+  { id: 'f1', field: 'category', operator: 'is_any_of', values: ['food'] },
+  { id: 'f2', field: 'amount', operator: 'gt', values: [100] },
 ]
 
 describe('serializeFilters / deserializeFilters', () => {
   it('round-trips correctly', () => {
-    const json = serializeFilters(sampleConditions)
+    const json = serializeFilters(sampleFilters)
     const result = deserializeFilters(json)
-    expect(result).toEqual(sampleConditions)
+    expect(result).toEqual(sampleFilters)
   })
 
   it('returns [] for invalid JSON', () => {
@@ -29,31 +24,11 @@ describe('serializeFilters / deserializeFilters', () => {
 
   it('filters out invalid items', () => {
     const json = JSON.stringify([
-      sampleConditions[0],
+      sampleFilters[0],
       { invalid: true },
-      sampleConditions[1],
+      sampleFilters[1],
     ])
     const result = deserializeFilters(json)
     expect(result).toHaveLength(2)
-  })
-})
-
-describe('filtersToSearchParams / filtersFromSearchParams', () => {
-  it('round-trips correctly', () => {
-    const param = filtersToSearchParams(sampleConditions)
-    const result = filtersFromSearchParams(param)
-    expect(result).toEqual(sampleConditions)
-  })
-
-  it('returns empty string for empty conditions', () => {
-    expect(filtersToSearchParams([])).toBe('')
-  })
-
-  it('returns [] for empty param', () => {
-    expect(filtersFromSearchParams('')).toEqual([])
-  })
-
-  it('returns [] for invalid param', () => {
-    expect(filtersFromSearchParams('%invalid')).toEqual([])
   })
 })

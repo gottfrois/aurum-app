@@ -1,14 +1,16 @@
 import { createFileRoute } from '@tanstack/react-router'
 import { useQuery } from 'convex/react'
+import { ListFilter } from 'lucide-react'
 import * as React from 'react'
 import { AllocationChart } from '~/components/allocation-chart'
 import { BalanceChart } from '~/components/balance-chart'
-import { ActiveFilters, FilterActions } from '~/components/filters/filter-bar'
 import type { Investment } from '~/components/holdings-table'
 import { HoldingsTable } from '~/components/holdings-table'
+import { type FilterOption, Filters } from '~/components/reui/filters'
 import { SiteHeader } from '~/components/site-header'
 import type { TransactionRow } from '~/components/transactions-list'
 import { TransactionsList } from '~/components/transactions-list'
+import { Button } from '~/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '~/components/ui/card'
 import { Skeleton } from '~/components/ui/skeleton'
 import { usePortfolio } from '~/contexts/portfolio-context'
@@ -23,8 +25,8 @@ import { useCategories } from '~/lib/categories'
 import type { Period } from '~/lib/chart-periods'
 import { getStartTimestamp } from '~/lib/chart-periods'
 import { fillMissingDates } from '~/lib/fill-missing-dates'
-import { createTransactionFilterConfig } from '~/lib/filters/transactions'
-import type { EnumOption, FilterConfig } from '~/lib/filters/types'
+import { createTransactionFilterFields } from '~/lib/filters/transactions'
+import { toReUIFields } from '~/lib/filters/types'
 import { api } from '../../../convex/_generated/api'
 import type { Id } from '../../../convex/_generated/dataModel'
 
@@ -138,27 +140,27 @@ function AccountDetailPage() {
 
   const isLoading = bankAccount === undefined || snapshots === undefined
 
-  const categoryOptions = React.useMemo<Array<EnumOption>>(
+  const categoryOptions = React.useMemo<Array<FilterOption<string>>>(
     () =>
       categories.map((c) => ({
         value: c.key,
         label: c.label,
-        color: c.color,
       })),
     [categories],
   )
 
-  const labelOptions = React.useMemo<Array<EnumOption>>(
+  const labelOptions = React.useMemo<Array<FilterOption<string>>>(
     () =>
       labels.map((l) => ({
         value: l._id,
         label: l.name,
-        color: l.color,
       })),
     [labels],
   )
 
-  const transactionTypeOptions = React.useMemo<Array<EnumOption>>(() => {
+  const transactionTypeOptions = React.useMemo<
+    Array<FilterOption<string>>
+  >(() => {
     if (!transactions) return []
     const types = new Set(
       transactions.map((t) => t.type).filter(Boolean) as Array<string>,
@@ -166,9 +168,9 @@ function AccountDetailPage() {
     return [...types].sort().map((t) => ({ value: t, label: t }))
   }, [transactions])
 
-  const transactionConfig = React.useMemo(
+  const fieldDescriptors = React.useMemo(
     () =>
-      createTransactionFilterConfig({
+      createTransactionFilterFields({
         accountOptions: [],
         categoryOptions,
         labelOptions,
@@ -178,18 +180,16 @@ function AccountDetailPage() {
     [categoryOptions, labelOptions, transactionTypeOptions],
   )
 
-  const {
-    conditions,
-    filteredData: filteredTransactions,
-    addCondition,
-    updateCondition,
-    removeCondition,
-    clearAll,
-    loadConditions,
-  } = useFilters<string, TransactionRecord>(
-    transactions,
-    transactionConfig as FilterConfig<string>,
+  const reuiFields = React.useMemo(
+    () => toReUIFields(fieldDescriptors),
+    [fieldDescriptors],
   )
+
+  const {
+    filters,
+    setFilters,
+    filteredData: filteredTransactions,
+  } = useFilters<TransactionRecord>(transactions, fieldDescriptors)
 
   const tableData = React.useMemo<Array<TransactionRow>>(() => {
     if (!filteredTransactions) return []
@@ -347,27 +347,40 @@ function AccountDetailPage() {
                 labels={labels}
                 workspaceId={workspaceId ?? undefined}
                 filterActions={
-                  <FilterActions
-                    config={transactionConfig}
-                    conditions={conditions}
-                    onAdd={addCondition}
-                    onUpdate={updateCondition}
-                    onRemove={removeCondition}
-                    onLoadConditions={loadConditions}
-                    entityType="transactions"
+                  <Filters
+                    filters={filters}
+                    fields={reuiFields}
+                    onChange={setFilters}
+                    size="sm"
+                    trigger={
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="rounded-full"
+                      >
+                        <ListFilter />
+                      </Button>
+                    }
                   />
                 }
                 activeFilters={
-                  conditions.length > 0 ? (
-                    <ActiveFilters
-                      config={transactionConfig}
-                      conditions={conditions}
-                      onAdd={addCondition}
-                      onUpdate={updateCondition}
-                      onRemove={removeCondition}
-                      onClearAll={clearAll}
-                      entityType="transactions"
-                    />
+                  filters.length > 0 ? (
+                    <div className="flex flex-wrap items-center gap-2">
+                      <Filters
+                        filters={filters}
+                        fields={reuiFields}
+                        onChange={setFilters}
+                      />
+                      <div className="ml-auto">
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => setFilters([])}
+                        >
+                          Clear
+                        </Button>
+                      </div>
+                    </div>
                   ) : undefined
                 }
               />

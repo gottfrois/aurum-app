@@ -2,6 +2,7 @@ import { useAction } from 'convex/react'
 import { Loader2, Sparkles } from 'lucide-react'
 import * as React from 'react'
 import { toast } from 'sonner'
+import type { Filter } from '~/components/reui/filters'
 import {
   CommandDialog,
   CommandEmpty,
@@ -14,24 +15,23 @@ import {
 import { HotkeyDisplay } from '~/components/ui/kbd'
 import type { CommandEntry } from '~/contexts/command-context'
 import { useCommandRegistry } from '~/contexts/command-context'
-import { serializeFilterConfig } from '~/lib/filters/ai/prompt'
-import { createTransactionFilterConfig } from '~/lib/filters/transactions'
-import type { FilterCondition } from '~/lib/filters/types'
+import { createTransactionFilterFields } from '~/lib/filters/transactions'
+import { toSerializableFields } from '~/lib/filters/types'
 import { api } from '../../convex/_generated/api'
 
 // Event for passing AI-generated filters to the transactions page
 const AI_FILTER_EVENT = 'bunkr:ai-filters'
 
-export function dispatchAIFilters(conditions: Array<FilterCondition>) {
+export function dispatchAIFilters(conditions: Array<Filter>) {
   window.dispatchEvent(new CustomEvent(AI_FILTER_EVENT, { detail: conditions }))
 }
 
 export function useAIFilterListener(
-  onLoadConditions: (conditions: Array<FilterCondition>) => void,
+  onLoadConditions: (conditions: Array<Filter>) => void,
 ) {
   React.useEffect(() => {
     const handler = (e: Event) => {
-      const conditions = (e as CustomEvent<Array<FilterCondition>>).detail
+      const conditions = (e as CustomEvent<Array<Filter>>).detail
       onLoadConditions(conditions)
     }
     window.addEventListener(AI_FILTER_EVENT, handler)
@@ -75,13 +75,13 @@ export function CommandPalette() {
 
     setLoading(true)
     try {
-      const config = createTransactionFilterConfig({
+      const fieldDescriptors = createTransactionFilterFields({
         accountOptions: [],
         categoryOptions: [],
         labelOptions: [],
         transactionTypeOptions: [],
       })
-      const fields = serializeFilterConfig(config)
+      const fields = toSerializableFields(fieldDescriptors)
       const conditions = await askAI({ query: trimmed, fields })
 
       if (conditions.length === 0) {

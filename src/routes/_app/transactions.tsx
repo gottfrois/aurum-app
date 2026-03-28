@@ -1,10 +1,10 @@
 import { createFileRoute, useNavigate } from '@tanstack/react-router'
 import * as React from 'react'
 import { CreateViewForm } from '~/components/create-view-form'
+import type { Filter } from '~/components/reui/filters'
 import { SiteHeader } from '~/components/site-header'
 import { TransactionsContent } from '~/components/transactions-content'
 import { deserializeFilters, serializeFilters } from '~/lib/filters/serialize'
-import type { FilterCondition } from '~/lib/filters/types'
 
 const STORAGE_KEY = 'bunkr:filters:transactions'
 
@@ -24,7 +24,7 @@ function TransactionsPage() {
   const { createView, viewScope } = Route.useSearch()
   const navigate = useNavigate()
 
-  const initialConditions = React.useMemo(() => {
+  const initialFilters = React.useMemo(() => {
     try {
       const stored = localStorage.getItem(STORAGE_KEY)
       return stored ? deserializeFilters(stored) : []
@@ -33,23 +33,20 @@ function TransactionsPage() {
     }
   }, [])
 
-  const conditionsRef = React.useRef<Array<FilterCondition>>(initialConditions)
+  const filtersRef = React.useRef<Array<Filter>>(initialFilters)
 
-  const handleConditionsChange = React.useCallback(
-    (next: Array<FilterCondition>) => {
-      conditionsRef.current = next
-      try {
-        if (next.length > 0) {
-          localStorage.setItem(STORAGE_KEY, serializeFilters(next))
-        } else {
-          localStorage.removeItem(STORAGE_KEY)
-        }
-      } catch {
-        // Storage full or unavailable
+  const handleFiltersChange = React.useCallback((next: Array<Filter>) => {
+    filtersRef.current = next
+    try {
+      if (next.length > 0) {
+        localStorage.setItem(STORAGE_KEY, serializeFilters(next))
+      } else {
+        localStorage.removeItem(STORAGE_KEY)
       }
-    },
-    [],
-  )
+    } catch {
+      // Storage full or unavailable
+    }
+  }, [])
 
   const handleCancelCreateView = React.useCallback(() => {
     navigate({ to: '/transactions', search: {} })
@@ -61,15 +58,15 @@ function TransactionsPage() {
       <div className="flex flex-1 flex-col">
         {createView && (
           <CreateViewForm
-            getConditions={() => conditionsRef.current}
+            getFilters={() => filtersRef.current}
             entityType="transactions"
             defaultScope={viewScope}
             onCancel={handleCancelCreateView}
           />
         )}
         <TransactionsContent
-          initialConditions={initialConditions}
-          onConditionsChange={handleConditionsChange}
+          initialFilters={initialFilters}
+          onFiltersChange={handleFiltersChange}
         />
       </div>
     </>

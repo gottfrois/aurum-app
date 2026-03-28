@@ -13,7 +13,10 @@
       "!**/public",
       "!convex/_generated",
       "!**/routeTree.gen.ts",
-      "!**/*.css"
+      "!**/*.css",
+      "!src/components/reui",
+      "!src/components/ui/button-group.tsx",
+      "!src/components/ui/input-group.tsx"
     ]
   },
   "formatter": {

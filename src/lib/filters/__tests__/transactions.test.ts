@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
+import type { Filter } from '~/components/reui/filters'
 import { applyFilters } from '../engine'
-import { createTransactionFilterConfig } from '../transactions'
-import type { FilterCondition } from '../types'
+import { createTransactionFilterFields } from '../transactions'
 
 const deps = {
   accountOptions: [
@@ -19,7 +19,7 @@ const deps = {
   ],
 }
 
-const config = createTransactionFilterConfig(deps)
+const fields = createTransactionFilterFields(deps)
 
 const sampleTransactions = [
   {
@@ -62,34 +62,26 @@ const sampleTransactions = [
   },
 ]
 
-function cond(
-  field: string,
-  operator: string,
-  value: unknown,
-): FilterCondition {
-  return {
-    id: '1',
-    field,
-    operator: operator as FilterCondition['operator'],
-    value,
-  }
+function filter(field: string, operator: string, values: unknown[]): Filter {
+  return { id: '1', field, operator, values }
 }
 
-describe('createTransactionFilterConfig', () => {
+describe('createTransactionFilterFields', () => {
   it('produces correct number of fields', () => {
-    expect(config.fields).toHaveLength(11)
+    expect(fields).toHaveLength(11)
   })
 
-  it('has all fields in fieldMap', () => {
-    for (const f of config.fields) {
-      expect(config.fieldMap.get(f.name)).toBe(f)
+  it('all fields have key and accessor', () => {
+    for (const f of fields) {
+      expect(f.key).toBeDefined()
+      expect(f.accessor).toBeTypeOf('function')
     }
   })
 })
 
 describe('virtual field accessors', () => {
   it('flow: derives income/expense from value', () => {
-    const flowField = config.fieldMap.get('flow')
+    const flowField = fields.find((f) => f.key === 'flow')
     expect(flowField).toBeDefined()
     expect(
       flowField?.accessor(
@@ -104,7 +96,7 @@ describe('virtual field accessors', () => {
   })
 
   it('status: derives pending/completed from coming', () => {
-    const statusField = config.fieldMap.get('status')
+    const statusField = fields.find((f) => f.key === 'status')
     expect(statusField).toBeDefined()
     expect(
       statusField?.accessor(
@@ -123,8 +115,8 @@ describe('integration: filtering transactions', () => {
   it('filters by account', () => {
     const result = applyFilters(
       sampleTransactions,
-      [cond('account', 'is_any_of', ['acc1'])],
-      config,
+      [filter('account', 'is_any_of', ['acc1'])],
+      fields,
     )
     expect(result).toHaveLength(2)
   })
@@ -132,8 +124,8 @@ describe('integration: filtering transactions', () => {
   it('filters by flow', () => {
     const result = applyFilters(
       sampleTransactions,
-      [cond('flow', 'is_any_of', ['income'])],
-      config,
+      [filter('flow', 'is_any_of', ['income'])],
+      fields,
     )
     expect(result).toHaveLength(1)
     expect((result[0] as Record<string, unknown>).wording).toBe('Salary March')
@@ -142,8 +134,8 @@ describe('integration: filtering transactions', () => {
   it('filters by amount range', () => {
     const result = applyFilters(
       sampleTransactions,
-      [cond('amount', 'between', { from: -100, to: 0 })],
-      config,
+      [filter('amount', 'between', [-100, 0])],
+      fields,
     )
     expect(result).toHaveLength(1)
   })
@@ -152,10 +144,10 @@ describe('integration: filtering transactions', () => {
     const result = applyFilters(
       sampleTransactions,
       [
-        cond('account', 'is_any_of', ['acc1']),
-        cond('status', 'is_any_of', ['pending']),
+        filter('account', 'is_any_of', ['acc1']),
+        filter('status', 'is_any_of', ['pending']),
       ],
-      config,
+      fields,
     )
     expect(result).toHaveLength(1)
     expect((result[0] as Record<string, unknown>).wording).toBe('Rent payment')

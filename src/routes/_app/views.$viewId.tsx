@@ -6,6 +6,7 @@ import * as React from 'react'
 import { toast } from 'sonner'
 import { ConfirmDialog } from '~/components/confirm-dialog'
 import { DialogFormFooter } from '~/components/dialog-form-footer'
+import type { Filter } from '~/components/reui/filters'
 import { SiteHeader } from '~/components/site-header'
 import { TransactionsContent } from '~/components/transactions-content'
 import { Button } from '~/components/ui/button'
@@ -33,7 +34,6 @@ import {
 } from '~/components/ui/tooltip'
 import { useCommand } from '~/hooks/use-command'
 import { deserializeFilters, serializeFilters } from '~/lib/filters/serialize'
-import type { FilterCondition } from '~/lib/filters/types'
 import { api } from '../../../convex/_generated/api'
 import type { Id } from '../../../convex/_generated/dataModel'
 
@@ -52,7 +52,7 @@ function ViewDetailPage() {
   const updateView = useMutation(api.filterViews.update)
   const removeView = useMutation(api.filterViews.remove)
 
-  const conditionsRef = React.useRef<Array<FilterCondition>>([])
+  const filtersRef = React.useRef<Array<Filter>>([])
 
   const [deleteOpen, setDeleteOpen] = React.useState(false)
   const [deleting, setDeleting] = React.useState(false)
@@ -63,23 +63,20 @@ function ViewDetailPage() {
     [favorites, viewId],
   )
 
-  const initialConditions = React.useMemo(() => {
+  const initialFilters = React.useMemo(() => {
     if (!view) return []
     return deserializeFilters(view.filters)
   }, [view])
 
-  const handleConditionsChange = React.useCallback(
-    (conditions: Array<FilterCondition>) => {
-      conditionsRef.current = conditions
-    },
-    [],
-  )
+  const handleFiltersChange = React.useCallback((filters: Array<Filter>) => {
+    filtersRef.current = filters
+  }, [])
 
   const handleSaveView = React.useCallback(async () => {
     try {
       await updateView({
         viewId,
-        filters: serializeFilters(conditionsRef.current),
+        filters: serializeFilters(filtersRef.current),
       })
       toast.success('View filters saved')
     } catch {
@@ -205,10 +202,9 @@ function ViewDetailPage() {
       <div className="flex flex-1 flex-col">
         <TransactionsContent
           key={viewId}
-          initialConditions={initialConditions}
-          onConditionsChange={handleConditionsChange}
+          initialFilters={initialFilters}
+          onFiltersChange={handleFiltersChange}
           onSaveView={handleSaveView}
-          entityType="transactions"
         />
       </div>
 

@@ -5,6 +5,7 @@ import * as React from 'react'
 import { useHotkeys } from 'react-hotkeys-hook'
 import { toast } from 'sonner'
 import { PortfolioAvatar } from '~/components/portfolio-avatar'
+import type { Filter } from '~/components/reui/filters'
 import { Button } from '~/components/ui/button'
 import { ColorDot } from '~/components/ui/color-picker'
 import { HotkeyDisplay, Kbd } from '~/components/ui/kbd'
@@ -20,19 +21,18 @@ import {
 } from '~/components/ui/select'
 import { usePortfolio } from '~/contexts/portfolio-context'
 import { serializeFilters } from '~/lib/filters/serialize'
-import type { FilterCondition } from '~/lib/filters/types'
 import { api } from '../../convex/_generated/api'
 import type { Id } from '../../convex/_generated/dataModel'
 
 interface CreateViewFormProps {
-  getConditions: () => Array<FilterCondition>
+  getFilters: () => Array<Filter>
   entityType: string
   defaultScope?: string
   onCancel: () => void
 }
 
 export function CreateViewForm({
-  getConditions,
+  getFilters,
   entityType,
   defaultScope,
   onCancel,
@@ -62,7 +62,7 @@ export function CreateViewForm({
         name: name.trim(),
         description: description.trim() || undefined,
         color,
-        filters: serializeFilters(getConditions()),
+        filters: serializeFilters(getFilters()),
         visibility: isPortfolio ? 'portfolio' : visibility,
         portfolioId: isPortfolio ? (visibility as Id<'portfolios'>) : undefined,
       })
@@ -79,7 +79,7 @@ export function CreateViewForm({
     name,
     description,
     color,
-    getConditions,
+    getFilters,
     visibility,
     navigate,
   ])

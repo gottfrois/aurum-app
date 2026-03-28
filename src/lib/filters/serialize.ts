@@ -1,37 +1,23 @@
-import type { FilterCondition } from './types'
+import type { Filter } from '~/components/reui/filters'
 
-export function serializeFilters(conditions: Array<FilterCondition>): string {
-  return JSON.stringify(conditions)
+export function serializeFilters(filters: Array<Filter>): string {
+  return JSON.stringify(filters)
 }
 
-export function deserializeFilters(json: string): Array<FilterCondition> {
+export function deserializeFilters(json: string): Array<Filter> {
   try {
     const parsed: unknown = JSON.parse(json)
     if (!Array.isArray(parsed)) return []
     return parsed.filter(
-      (item): item is FilterCondition =>
+      (item): item is Filter =>
         typeof item === 'object' &&
         item !== null &&
         'id' in item &&
         'field' in item &&
-        'operator' in item,
+        'operator' in item &&
+        'values' in item &&
+        Array.isArray(item.values),
     )
-  } catch {
-    return []
-  }
-}
-
-export function filtersToSearchParams(
-  conditions: Array<FilterCondition>,
-): string {
-  if (conditions.length === 0) return ''
-  return encodeURIComponent(serializeFilters(conditions))
-}
-
-export function filtersFromSearchParams(param: string): Array<FilterCondition> {
-  if (!param) return []
-  try {
-    return deserializeFilters(decodeURIComponent(param))
   } catch {
     return []
   }
