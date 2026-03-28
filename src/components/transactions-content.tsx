@@ -4,7 +4,10 @@ import * as React from 'react'
 import type { CashFlowData } from '~/components/cash-flow-chart'
 import { CashFlowChart } from '~/components/cash-flow-chart'
 import { CategoryPieChart } from '~/components/category-pie-chart'
-import { useAIFilterListener } from '~/components/command-palette'
+import {
+  useAIFilterListener,
+  useRegisterFilterFields,
+} from '~/components/command-palette'
 import { PeriodNavigator } from '~/components/period-navigator'
 import {
   createFilter,
@@ -39,7 +42,7 @@ import { useDateRange } from '~/hooks/use-date-range'
 import { useFilters } from '~/hooks/use-filters'
 import { resolveTransactionCategoryKey, useCategories } from '~/lib/categories'
 import { createTransactionFilterFields } from '~/lib/filters/transactions'
-import { toReUIFields } from '~/lib/filters/types'
+import { toReUIFields, toSerializableFields } from '~/lib/filters/types'
 import { api } from '../../convex/_generated/api'
 
 type DecryptedBankAccount = NonNullable<
@@ -280,6 +283,12 @@ export function TransactionsContent({
     () => toReUIFields(fieldDescriptors),
     [fieldDescriptors],
   )
+
+  const serializableFields = React.useMemo(
+    () => toSerializableFields(fieldDescriptors),
+    [fieldDescriptors],
+  )
+  useRegisterFilterFields(serializableFields)
 
   // biome-ignore lint/correctness/useExhaustiveDependencies: intentionally mount-only
   const stableInitialFilters = React.useMemo(

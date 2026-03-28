@@ -22,6 +22,19 @@ import { api } from '../../convex/_generated/api'
 // Event for passing AI-generated filters to the transactions page
 const AI_FILTER_EVENT = 'bunkr:ai-filters'
 
+// Registry for serializable fields so the command palette can use them
+type SerializableField = ReturnType<typeof toSerializableFields>[number]
+let registeredFields: Array<SerializableField> = []
+
+export function useRegisterFilterFields(fields: Array<SerializableField>) {
+  React.useEffect(() => {
+    registeredFields = fields
+    return () => {
+      registeredFields = []
+    }
+  }, [fields])
+}
+
 export function dispatchAIFilters(conditions: Array<Filter>) {
   window.dispatchEvent(new CustomEvent(AI_FILTER_EVENT, { detail: conditions }))
 }
@@ -75,13 +88,17 @@ export function CommandPalette() {
 
     setLoading(true)
     try {
-      const fieldDescriptors = createTransactionFilterFields({
-        accountOptions: [],
-        categoryOptions: [],
-        labelOptions: [],
-        transactionTypeOptions: [],
-      })
-      const fields = toSerializableFields(fieldDescriptors)
+      const fields =
+        registeredFields.length > 0
+          ? registeredFields
+          : toSerializableFields(
+              createTransactionFilterFields({
+                accountOptions: [],
+                categoryOptions: [],
+                labelOptions: [],
+                transactionTypeOptions: [],
+              }),
+            )
       const conditions = await askAI({ query: trimmed, fields })
 
       if (conditions.length === 0) {
@@ -148,6 +165,7 @@ export function CommandPalette() {
           <div className="flex items-center gap-2 border-b px-3 h-12">
             <Sparkles className="size-4 shrink-0 text-muted-foreground" />
             <input
+              autoFocus
               value={aiQuery}
               onChange={(e) => setAIQuery(e.target.value)}
               onKeyDown={(e) => {
