@@ -27,13 +27,7 @@ import {
   EmptyMedia,
   EmptyTitle,
 } from '~/components/ui/empty'
-import { Kbd } from '~/components/ui/kbd'
 import { Skeleton } from '~/components/ui/skeleton'
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipTrigger,
-} from '~/components/ui/tooltip'
 import { useCommandDispatch } from '~/contexts/command-context'
 import { usePortfolio } from '~/contexts/portfolio-context'
 import { useCachedDecryptRecords } from '~/hooks/use-cached-decrypt'
@@ -578,17 +572,9 @@ export function TransactionsContent({
                   </button>
                 }
                 trigger={
-                  <Tooltip>
-                    <TooltipTrigger asChild>
-                      <Button variant="ghost" size="icon" className="h-8 w-8">
-                        <ListFilter className="size-4" />
-                      </Button>
-                    </TooltipTrigger>
-                    <TooltipContent className="flex items-center gap-2">
-                      <span>Filter</span>
-                      <Kbd>F</Kbd>
-                    </TooltipContent>
-                  </Tooltip>
+                  <Button variant="ghost" size="icon" className="h-8 w-8">
+                    <ListFilter className="size-4" />
+                  </Button>
                 }
               />
             </div>
