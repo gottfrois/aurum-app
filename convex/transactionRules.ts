@@ -64,8 +64,11 @@ export const createRule = mutation({
       .query('workspaceMembers')
       .withIndex('by_userId', (q) => q.eq('userId', userId))
       .first()
-    if (!member || member.role !== 'owner') {
-      throw new Error('Only workspace owners can create rules')
+    if (!member) {
+      throw new Error('Not authorized')
+    }
+    if (!args.portfolioId && member.role !== 'owner') {
+      throw new Error('Only workspace owners can create workspace rules')
     }
 
     if (
@@ -186,13 +189,16 @@ export const updateRule = mutation({
       .query('workspaceMembers')
       .withIndex('by_userId', (q) => q.eq('userId', userId))
       .first()
-    if (!member || member.role !== 'owner') {
-      throw new Error('Only workspace owners can update rules')
+    if (!member) {
+      throw new Error('Not authorized')
     }
 
     const rule = await ctx.db.get(args.ruleId)
     if (!rule || rule.workspaceId !== member.workspaceId) {
       throw new Error('Rule not found')
+    }
+    if (!rule.portfolioId && member.role !== 'owner') {
+      throw new Error('Only workspace owners can update workspace rules')
     }
 
     // Validate accountIds belong to the correct scope
@@ -301,13 +307,16 @@ export const toggleRule = mutation({
       .query('workspaceMembers')
       .withIndex('by_userId', (q) => q.eq('userId', userId))
       .first()
-    if (!member || member.role !== 'owner') {
-      throw new Error('Only workspace owners can toggle rules')
+    if (!member) {
+      throw new Error('Not authorized')
     }
 
     const rule = await ctx.db.get(args.ruleId)
     if (!rule || rule.workspaceId !== member.workspaceId) {
       throw new Error('Rule not found')
+    }
+    if (!rule.portfolioId && member.role !== 'owner') {
+      throw new Error('Only workspace owners can toggle workspace rules')
     }
 
     await ctx.db.patch(args.ruleId, { enabled: args.enabled })
@@ -339,13 +348,16 @@ export const deleteRule = mutation({
       .query('workspaceMembers')
       .withIndex('by_userId', (q) => q.eq('userId', userId))
       .first()
-    if (!member || member.role !== 'owner') {
-      throw new Error('Only workspace owners can delete rules')
+    if (!member) {
+      throw new Error('Not authorized')
     }
 
     const rule = await ctx.db.get(args.ruleId)
     if (!rule || rule.workspaceId !== member.workspaceId) {
       throw new Error('Rule not found')
+    }
+    if (!rule.portfolioId && member.role !== 'owner') {
+      throw new Error('Only workspace owners can delete workspace rules')
     }
 
     await ctx.db.delete(args.ruleId)
@@ -376,14 +388,17 @@ export const batchDeleteRules = mutation({
       .query('workspaceMembers')
       .withIndex('by_userId', (q) => q.eq('userId', userId))
       .first()
-    if (!member || member.role !== 'owner') {
-      throw new Error('Only workspace owners can delete rules')
+    if (!member) {
+      throw new Error('Not authorized')
     }
 
     let deletedCount = 0
     for (const ruleId of args.ruleIds) {
       const rule = await ctx.db.get(ruleId)
       if (rule && rule.workspaceId === member.workspaceId) {
+        if (!rule.portfolioId && member.role !== 'owner') {
+          throw new Error('Only workspace owners can delete workspace rules')
+        }
         await ctx.db.delete(ruleId)
         deletedCount++
       }
@@ -419,8 +434,11 @@ export const reorderRules = mutation({
       .query('workspaceMembers')
       .withIndex('by_userId', (q) => q.eq('userId', userId))
       .first()
-    if (!member || member.role !== 'owner') {
-      throw new Error('Only workspace owners can reorder rules')
+    if (!member) {
+      throw new Error('Not authorized')
+    }
+    if (!args.portfolioId && member.role !== 'owner') {
+      throw new Error('Only workspace owners can reorder workspace rules')
     }
 
     for (let i = 0; i < args.orderedRuleIds.length; i++) {
