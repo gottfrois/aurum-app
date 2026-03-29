@@ -375,6 +375,7 @@ export function TransactionsContent({
     if (!filteredTransactions) return { nodes: [], links: [] }
 
     let totalIncome = 0
+    let totalExpenses = 0
     const categoryExpenses = new Map<string, number>()
 
     for (const t of filteredTransactions) {
@@ -382,11 +383,10 @@ export function TransactionsContent({
       if (t.value > 0) {
         totalIncome += t.value
       } else {
+        const absValue = Math.abs(t.value)
+        totalExpenses += absValue
         const key = resolveTransactionCategoryKey(t)
-        categoryExpenses.set(
-          key,
-          (categoryExpenses.get(key) ?? 0) + Math.abs(t.value),
-        )
+        categoryExpenses.set(key, (categoryExpenses.get(key) ?? 0) + absValue)
       }
     }
 
@@ -394,33 +394,54 @@ export function TransactionsContent({
       return { nodes: [], links: [] }
     }
 
-    const nodes = [
-      { name: 'Income', color: 'hsl(142 71% 45%)' },
-      ...[...categoryExpenses.entries()]
-        .sort(([, a], [, b]) => b - a)
-        .map(([key]) => {
-          const cat = getCategory(key)
-          return {
-            name: cat.label,
-            color: cat.color,
-            categoryKey: key,
-          }
-        }),
-    ]
+    // When expenses exceed income, scale expense links proportionally
+    // so the total outflow matches actual income
+    const scale = totalExpenses > totalIncome ? totalIncome / totalExpenses : 1
 
     const sortedEntries = [...categoryExpenses.entries()].sort(
       ([, a], [, b]) => b - a,
     )
+
+    const nodes: Array<{
+      name: string
+      color: string
+      categoryKey?: string
+    }> = [
+      { name: 'Income', color: 'hsl(142 71% 45%)' },
+      ...sortedEntries.map(([key]) => {
+        const cat = getCategory(key)
+        return {
+          name: cat.label,
+          color: cat.color,
+          categoryKey: key,
+        }
+      }),
+    ]
+
+    // If income exceeds expenses, add a Savings node
+    const savings = totalIncome - totalExpenses
+    if (savings > 0) {
+      nodes.push({ name: 'Savings', color: 'hsl(142 71% 45%)' })
+    }
 
     const links = sortedEntries.map(([key, value], i) => {
       const cat = getCategory(key)
       return {
         source: 0,
         target: i + 1,
-        value: Math.round(value * 100) / 100,
+        value: Math.round(value * scale * 100) / 100,
         stroke: cat.color,
       }
     })
+
+    if (savings > 0) {
+      links.push({
+        source: 0,
+        target: nodes.length - 1,
+        value: Math.round(savings * 100) / 100,
+        stroke: 'hsl(142 71% 45%)',
+      })
+    }
 
     return { nodes, links }
   }, [filteredTransactions, getCategory])
