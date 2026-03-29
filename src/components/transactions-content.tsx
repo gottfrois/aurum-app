@@ -394,53 +394,88 @@ export function TransactionsContent({
       return { nodes: [], links: [] }
     }
 
-    // When expenses exceed income, scale expense links proportionally
-    // so the total outflow matches actual income
-    const scale = totalExpenses > totalIncome ? totalIncome / totalExpenses : 1
-
     const sortedEntries = [...categoryExpenses.entries()].sort(
       ([, a], [, b]) => b - a,
     )
 
+    const round = (n: number) => Math.round(n * 100) / 100
+    const deficit = round(totalExpenses - totalIncome)
+    const savings = round(totalIncome - totalExpenses)
+
+    // Source nodes on the left
     const nodes: Array<{
       name: string
       color: string
       categoryKey?: string
-    }> = [
-      { name: 'Income', color: 'hsl(142 71% 45%)' },
-      ...sortedEntries.map(([key]) => {
-        const cat = getCategory(key)
-        return {
-          name: cat.label,
-          color: cat.color,
-          categoryKey: key,
-        }
-      }),
-    ]
+    }> = [{ name: 'Income', color: 'hsl(142 71% 45%)' }]
 
-    // If income exceeds expenses, add a Savings node
-    const savings = totalIncome - totalExpenses
+    if (deficit > 0) {
+      nodes.push({ name: 'Deficit', color: 'hsl(0 84% 60%)' })
+    }
+
+    // Target nodes on the right (expense categories + optional Savings)
+    const targetOffset = nodes.length
+    for (const [key] of sortedEntries) {
+      const cat = getCategory(key)
+      nodes.push({ name: cat.label, color: cat.color, categoryKey: key })
+    }
+
     if (savings > 0) {
       nodes.push({ name: 'Savings', color: 'hsl(142 71% 45%)' })
     }
 
-    const links = sortedEntries.map(([key, value], i) => {
-      const cat = getCategory(key)
-      return {
-        source: 0,
-        target: i + 1,
-        value: Math.round(value * scale * 100) / 100,
-        stroke: cat.color,
-      }
-    })
+    const links: Array<{
+      source: number
+      target: number
+      value: number
+      stroke: string
+    }> = []
 
-    if (savings > 0) {
-      links.push({
-        source: 0,
-        target: nodes.length - 1,
-        value: Math.round(savings * 100) / 100,
-        stroke: 'hsl(142 71% 45%)',
-      })
+    if (deficit > 0) {
+      // Expenses exceed income: split each category between Income and Deficit
+      const incomeRatio = totalIncome / totalExpenses
+      const deficitRatio = deficit / totalExpenses
+
+      for (let i = 0; i < sortedEntries.length; i++) {
+        const [key, value] = sortedEntries[i]
+        const cat = getCategory(key)
+        const targetIndex = targetOffset + i
+
+        links.push({
+          source: 0,
+          target: targetIndex,
+          value: round(value * incomeRatio),
+          stroke: cat.color,
+        })
+        links.push({
+          source: 1,
+          target: targetIndex,
+          value: round(value * deficitRatio),
+          stroke: 'hsl(0 84% 60%)',
+        })
+      }
+    } else {
+      // Income covers expenses: link each category from Income
+      for (let i = 0; i < sortedEntries.length; i++) {
+        const [key, value] = sortedEntries[i]
+        const cat = getCategory(key)
+        links.push({
+          source: 0,
+          target: targetOffset + i,
+          value: round(value),
+          stroke: cat.color,
+        })
+      }
+
+      // Surplus flows to Savings
+      if (savings > 0) {
+        links.push({
+          source: 0,
+          target: nodes.length - 1,
+          value: savings,
+          stroke: 'hsl(142 71% 45%)',
+        })
+      }
     }
 
     return { nodes, links }
