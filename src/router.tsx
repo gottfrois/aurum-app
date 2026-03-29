@@ -44,6 +44,16 @@ export function getRouter() {
       dsn: 'https://9d9f322ee58a91426f41fc85b7da3792@o4511128509349888.ingest.de.sentry.io/4511128517607504',
       sendDefaultPii: true,
       tunnel: '/api/tunnel',
+      beforeSend(event) {
+        const message = event.exception?.values?.[0]?.value ?? ''
+        if (
+          message.includes('failed_to_load_clerk_js') ||
+          message.includes('Failed to load Clerk JS')
+        ) {
+          return null
+        }
+        return event
+      },
     })
   }
 
