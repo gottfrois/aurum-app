@@ -6,15 +6,24 @@ import { ChatConversationTab } from '~/components/chat/chat-conversation-tab'
 import { Button } from '~/components/ui/button'
 import {
   useChatDispatch,
-  useMinimizedConversations,
+  useMinimizedThreads,
+  useMockMinimizedConversations,
+  useMockState,
 } from '~/contexts/chat-context'
 import { api } from '../../convex/_generated/api'
 
 export function SiteFooter() {
   const agentStatus = useQuery(api.agent.getAgentStatus)
   const [activateDialogOpen, setActivateDialogOpen] = useState(false)
-  const minimized = useMinimizedConversations()
   const dispatch = useChatDispatch()
+  const mockState = useMockState()
+
+  // Use mock or Convex minimized threads
+  const minimizedThreads = useMinimizedThreads()
+  const mockMinimized = useMockMinimizedConversations()
+  const minimized = mockState
+    ? mockMinimized.map((c) => ({ threadId: c.id, title: c.title }))
+    : minimizedThreads
 
   // Still loading or not authenticated
   if (agentStatus === undefined || agentStatus === null) return null
@@ -36,12 +45,15 @@ export function SiteFooter() {
     <>
       <footer className="flex h-(--header-height) shrink-0 items-center border-t">
         <div className="flex w-full items-center justify-end gap-1 px-4 lg:gap-2 lg:px-6">
-          {minimized.map((conv) => (
+          {minimized.map((thread) => (
             <ChatConversationTab
-              key={conv.id}
-              conversation={conv}
-              onOpen={() => dispatch.openConversation(conv.id)}
-              onClose={() => dispatch.closeConversation(conv.id)}
+              key={thread.threadId}
+              conversation={{
+                id: thread.threadId,
+                title: thread.title ?? 'New chat',
+              }}
+              onOpen={() => dispatch.openThread(thread.threadId)}
+              onClose={() => dispatch.closeThread(thread.threadId)}
             />
           ))}
           <Button variant="ghost" size="sm" onClick={handleAskBunkr}>

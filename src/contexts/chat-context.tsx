@@ -1,40 +1,43 @@
+import { optimisticallySendMessage } from '@convex-dev/agent/react'
+import { useMutation, useQuery } from 'convex/react'
 import * as React from 'react'
+import { api } from '../../convex/_generated/api'
 
 // --- Types ---
 
-export interface ChatMessage {
+export type ChatPanelMode = 'closed' | 'popover' | 'expanded'
+
+interface ChatState {
+  activeThreadId: string | null
+  panelMode: ChatPanelMode
+  minimizedThreadIds: string[]
+}
+
+interface ChatDispatch {
+  openNewChat: () => void
+  openThread: (threadId: string) => void
+  minimizeChat: () => void
+  expandChat: () => void
+  collapseChat: () => void
+  closeChat: () => void
+  closeThread: (threadId: string) => void
+  sendMessage: (content: string) => void
+}
+
+// --- Mock types (for Storybook) ---
+
+export interface MockChatMessage {
   id: string
   role: 'user' | 'assistant'
   content: string
   createdAt: number
 }
 
-export interface ChatConversation {
+export interface MockChatConversation {
   id: string
   title: string
-  messages: ChatMessage[]
+  messages: MockChatMessage[]
   createdAt: number
-}
-
-export type ChatPanelMode = 'closed' | 'popover' | 'expanded'
-
-interface ChatState {
-  conversations: ChatConversation[]
-  activeConversationId: string | null
-  panelMode: ChatPanelMode
-  minimizedConversationIds: string[]
-  isThinking: boolean
-}
-
-interface ChatDispatch {
-  openNewChat: () => void
-  openConversation: (id: string) => void
-  minimizeChat: () => void
-  expandChat: () => void
-  collapseChat: () => void
-  closeChat: () => void
-  closeConversation: (id: string) => void
-  sendMessage: (content: string) => void
 }
 
 // --- Contexts ---
@@ -42,11 +45,11 @@ interface ChatDispatch {
 const StateContext = React.createContext<ChatState | null>(null)
 const DispatchContext = React.createContext<ChatDispatch | null>(null)
 
-// --- Mock responses ---
+// --- Mock helpers ---
 
 const MOCK_RESPONSES = [
-  'Based on your recent transactions, your total spending this month is approximately €3,240. The largest categories are Housing (€1,200), Groceries (€480), and Transportation (€320).',
-  'Your net worth across all portfolios is currently €47,830, up 2.3% from last month. Your investment portfolio has grown by €1,120 this quarter.',
+  'Based on your recent transactions, your total spending this month is approximately \u20ac3,240. The largest categories are Housing (\u20ac1,200), Groceries (\u20ac480), and Transportation (\u20ac320).',
+  'Your net worth across all portfolios is currently \u20ac47,830, up 2.3% from last month. Your investment portfolio has grown by \u20ac1,120 this quarter.',
   "Looking at your spending patterns, you've been spending about 15% more on dining out compared to last month. You might want to review your restaurant expenses.",
   "Your savings rate this month is 22%, which is above your 3-month average of 18%. Great job! At this rate, you'll reach your emergency fund goal in about 4 months.",
   'I can see you have 3 active bank connections. All are syncing correctly. Your last transaction was recorded 2 hours ago.',
@@ -56,25 +59,52 @@ function getMockResponse(): string {
   return MOCK_RESPONSES[Math.floor(Math.random() * MOCK_RESPONSES.length)]
 }
 
-function generateId(): string {
-  return crypto.randomUUID()
+function generateMockTitle(content: string): string {
+  return content.length > 40 ? `${content.slice(0, 40)}...` : content
 }
 
-function generateTitle(content: string): string {
-  return content.length > 40 ? `${content.slice(0, 40)}...` : content
+// --- Mock State (for Storybook) ---
+
+interface MockState extends ChatState {
+  conversations: MockChatConversation[]
+  isThinking: boolean
 }
 
 // --- Provider ---
 
 const DEFAULT_STATE: ChatState = {
-  conversations: [],
-  activeConversationId: null,
+  activeThreadId: null,
   panelMode: 'closed',
-  minimizedConversationIds: [],
-  isThinking: false,
+  minimizedThreadIds: [],
 }
 
 export function ChatProvider({
+  children,
+  initialState,
+  mockMode = false,
+}: {
+  children: React.ReactNode
+  initialState?: Partial<MockState>
+  mockMode?: boolean
+}) {
+  if (mockMode) {
+    return (
+      <MockChatProvider initialState={initialState}>
+        {children}
+      </MockChatProvider>
+    )
+  }
+
+  return (
+    <ConvexChatProvider initialState={initialState}>
+      {children}
+    </ConvexChatProvider>
+  )
+}
+
+// --- Convex Provider (production) ---
+
+function ConvexChatProvider({
   children,
   initialState,
 }: {
@@ -86,58 +116,49 @@ export function ChatProvider({
     ...initialState,
   })
 
+  const createThreadMutation = useMutation(api.agentChatQueries.createThread)
+  const sendMessageMutation = useMutation(
+    api.agentChatQueries.sendMessage,
+  ).withOptimisticUpdate(
+    optimisticallySendMessage(api.agentChatQueries.listThreadMessages),
+  )
+  const deleteThreadMutation = useMutation(api.agentChatQueries.deleteThread)
+
   const dispatch = React.useMemo<ChatDispatch>(() => {
     const openNewChat = () => {
-      const id = generateId()
-      const conversation: ChatConversation = {
-        id,
-        title: 'New chat',
-        messages: [],
-        createdAt: Date.now(),
-      }
-      setState((prev) => ({
-        ...prev,
-        conversations: [...prev.conversations, conversation],
-        activeConversationId: id,
-        panelMode: 'popover',
-      }))
+      void createThreadMutation({}).then(({ threadId }) => {
+        setState((prev) => ({
+          ...prev,
+          activeThreadId: threadId,
+          panelMode: 'popover',
+        }))
+      })
     }
 
-    const openConversation = (id: string) => {
+    const openThread = (threadId: string) => {
       setState((prev) => ({
         ...prev,
-        activeConversationId: id,
+        activeThreadId: threadId,
         panelMode: 'popover',
-        minimizedConversationIds: prev.minimizedConversationIds.filter(
-          (cid) => cid !== id,
+        minimizedThreadIds: prev.minimizedThreadIds.filter(
+          (id) => id !== threadId,
         ),
       }))
     }
 
     const minimizeChat = () => {
       setState((prev) => {
-        const active = prev.conversations.find(
-          (c) => c.id === prev.activeConversationId,
-        )
-        const shouldMinimize = active && active.messages.length > 0
+        if (!prev.activeThreadId) return { ...prev, panelMode: 'closed' }
         return {
           ...prev,
           panelMode: 'closed',
-          activeConversationId: null,
-          minimizedConversationIds: shouldMinimize
-            ? [
-                ...prev.minimizedConversationIds.filter(
-                  (id) => id !== active.id,
-                ),
-                active.id,
-              ]
-            : prev.minimizedConversationIds,
-          // Remove empty conversations when minimizing
-          conversations: shouldMinimize
-            ? prev.conversations
-            : prev.conversations.filter(
-                (c) => c.id !== prev.activeConversationId,
-              ),
+          activeThreadId: null,
+          minimizedThreadIds: [
+            ...prev.minimizedThreadIds.filter(
+              (id) => id !== prev.activeThreadId,
+            ),
+            prev.activeThreadId,
+          ],
         }
       })
     }
@@ -151,72 +172,205 @@ export function ChatProvider({
     }
 
     const closeChat = () => {
-      setState((prev) => {
-        // Remove the active conversation if it has no messages
+      setState((prev) => ({
+        ...prev,
+        panelMode: 'closed',
+        activeThreadId: null,
+      }))
+    }
+
+    const closeThread = (threadId: string) => {
+      void deleteThreadMutation({ threadId })
+      setState((prev) => ({
+        ...prev,
+        minimizedThreadIds: prev.minimizedThreadIds.filter(
+          (id) => id !== threadId,
+        ),
+        activeThreadId:
+          prev.activeThreadId === threadId ? null : prev.activeThreadId,
+      }))
+    }
+
+    const sendMessage = (content: string) => {
+      const threadId = state.activeThreadId
+      if (!threadId) return
+      void sendMessageMutation({ threadId, prompt: content })
+    }
+
+    return {
+      openNewChat,
+      openThread,
+      minimizeChat,
+      expandChat,
+      collapseChat,
+      closeChat,
+      closeThread,
+      sendMessage,
+    }
+  }, [
+    createThreadMutation,
+    sendMessageMutation,
+    deleteThreadMutation,
+    state.activeThreadId,
+  ])
+
+  return (
+    <StateContext value={state}>
+      <DispatchContext value={dispatch}>{children}</DispatchContext>
+    </StateContext>
+  )
+}
+
+// --- Mock Provider (Storybook) ---
+
+const DEFAULT_MOCK_STATE: MockState = {
+  ...DEFAULT_STATE,
+  conversations: [],
+  isThinking: false,
+}
+
+const MockStateContext = React.createContext<MockState | null>(null)
+
+function MockChatProvider({
+  children,
+  initialState,
+}: {
+  children: React.ReactNode
+  initialState?: Partial<MockState>
+}) {
+  const [mockState, setMockState] = React.useState<MockState>({
+    ...DEFAULT_MOCK_STATE,
+    ...initialState,
+  })
+
+  const state: ChatState = {
+    activeThreadId: mockState.activeThreadId,
+    panelMode: mockState.panelMode,
+    minimizedThreadIds: mockState.minimizedThreadIds,
+  }
+
+  const dispatch = React.useMemo<ChatDispatch>(() => {
+    const openNewChat = () => {
+      const id = crypto.randomUUID()
+      const conversation: MockChatConversation = {
+        id,
+        title: 'New chat',
+        messages: [],
+        createdAt: Date.now(),
+      }
+      setMockState((prev) => ({
+        ...prev,
+        conversations: [...prev.conversations, conversation],
+        activeThreadId: id,
+        panelMode: 'popover',
+      }))
+    }
+
+    const openThread = (threadId: string) => {
+      setMockState((prev) => ({
+        ...prev,
+        activeThreadId: threadId,
+        panelMode: 'popover',
+        minimizedThreadIds: prev.minimizedThreadIds.filter(
+          (id) => id !== threadId,
+        ),
+      }))
+    }
+
+    const minimizeChat = () => {
+      setMockState((prev) => {
         const active = prev.conversations.find(
-          (c) => c.id === prev.activeConversationId,
+          (c) => c.id === prev.activeThreadId,
+        )
+        const shouldMinimize = active && active.messages.length > 0
+        return {
+          ...prev,
+          panelMode: 'closed',
+          activeThreadId: null,
+          minimizedThreadIds: shouldMinimize
+            ? [
+                ...prev.minimizedThreadIds.filter((id) => id !== active.id),
+                active.id,
+              ]
+            : prev.minimizedThreadIds,
+          conversations: shouldMinimize
+            ? prev.conversations
+            : prev.conversations.filter((c) => c.id !== prev.activeThreadId),
+        }
+      })
+    }
+
+    const expandChat = () => {
+      setMockState((prev) => ({ ...prev, panelMode: 'expanded' }))
+    }
+
+    const collapseChat = () => {
+      setMockState((prev) => ({ ...prev, panelMode: 'popover' }))
+    }
+
+    const closeChat = () => {
+      setMockState((prev) => {
+        const active = prev.conversations.find(
+          (c) => c.id === prev.activeThreadId,
         )
         const shouldRemove = active && active.messages.length === 0
         return {
           ...prev,
           panelMode: 'closed',
-          activeConversationId: null,
+          activeThreadId: null,
           conversations: shouldRemove
-            ? prev.conversations.filter(
-                (c) => c.id !== prev.activeConversationId,
-              )
+            ? prev.conversations.filter((c) => c.id !== prev.activeThreadId)
             : prev.conversations,
         }
       })
     }
 
-    const closeConversation = (id: string) => {
-      setState((prev) => ({
+    const closeThread = (threadId: string) => {
+      setMockState((prev) => ({
         ...prev,
-        conversations: prev.conversations.filter((c) => c.id !== id),
-        minimizedConversationIds: prev.minimizedConversationIds.filter(
-          (cid) => cid !== id,
+        conversations: prev.conversations.filter((c) => c.id !== threadId),
+        minimizedThreadIds: prev.minimizedThreadIds.filter(
+          (id) => id !== threadId,
         ),
-        activeConversationId:
-          prev.activeConversationId === id ? null : prev.activeConversationId,
+        activeThreadId:
+          prev.activeThreadId === threadId ? null : prev.activeThreadId,
       }))
     }
 
     const sendMessage = (content: string) => {
-      const userMessage: ChatMessage = {
-        id: generateId(),
+      const userMessage: MockChatMessage = {
+        id: crypto.randomUUID(),
         role: 'user',
         content,
         createdAt: Date.now(),
       }
 
-      setState((prev) => ({
+      setMockState((prev) => ({
         ...prev,
         isThinking: true,
         conversations: prev.conversations.map((c) => {
-          if (c.id !== prev.activeConversationId) return c
+          if (c.id !== prev.activeThreadId) return c
           const isFirstMessage = c.messages.length === 0
           return {
             ...c,
-            title: isFirstMessage ? generateTitle(content) : c.title,
+            title: isFirstMessage ? generateMockTitle(content) : c.title,
             messages: [...c.messages, userMessage],
           }
         }),
       }))
 
-      // Mock assistant response after delay
       setTimeout(() => {
-        const assistantMessage: ChatMessage = {
-          id: generateId(),
+        const assistantMessage: MockChatMessage = {
+          id: crypto.randomUUID(),
           role: 'assistant',
           content: getMockResponse(),
           createdAt: Date.now(),
         }
-        setState((prev) => ({
+        setMockState((prev) => ({
           ...prev,
           isThinking: false,
           conversations: prev.conversations.map((c) => {
-            if (c.id !== prev.activeConversationId) return c
+            if (c.id !== prev.activeThreadId) return c
             return { ...c, messages: [...c.messages, assistantMessage] }
           }),
         }))
@@ -225,20 +379,22 @@ export function ChatProvider({
 
     return {
       openNewChat,
-      openConversation,
+      openThread,
       minimizeChat,
       expandChat,
       collapseChat,
       closeChat,
-      closeConversation,
+      closeThread,
       sendMessage,
     }
   }, [])
 
   return (
-    <StateContext value={state}>
-      <DispatchContext value={dispatch}>{children}</DispatchContext>
-    </StateContext>
+    <MockStateContext value={mockState}>
+      <StateContext value={state}>
+        <DispatchContext value={dispatch}>{children}</DispatchContext>
+      </StateContext>
+    </MockStateContext>
   )
 }
 
@@ -256,15 +412,55 @@ export function useChatDispatch(): ChatDispatch {
   return ctx
 }
 
-export function useActiveConversation(): ChatConversation | null {
-  const { conversations, activeConversationId } = useChatState()
-  if (!activeConversationId) return null
-  return conversations.find((c) => c.id === activeConversationId) ?? null
+/** Get active thread metadata (title) from Convex. Returns null if no active thread. */
+export function useActiveThread(): {
+  threadId: string
+  title: string | null
+} | null {
+  const { activeThreadId } = useChatState()
+  const thread = useQuery(
+    api.agentChatQueries.getThread,
+    activeThreadId ? { threadId: activeThreadId } : 'skip',
+  )
+  if (!activeThreadId) return null
+  return thread ?? { threadId: activeThreadId, title: null }
 }
 
-export function useMinimizedConversations(): ChatConversation[] {
-  const { conversations, minimizedConversationIds } = useChatState()
-  return minimizedConversationIds
-    .map((id) => conversations.find((c) => c.id === id))
-    .filter((c): c is ChatConversation => c !== undefined)
+/** Get minimized threads metadata from Convex. */
+export function useMinimizedThreads(): Array<{
+  threadId: string
+  title: string | null
+}> {
+  const { minimizedThreadIds } = useChatState()
+  const threads = useQuery(api.agentChatQueries.listThreads)
+  if (!threads) return []
+  return minimizedThreadIds
+    .map((id) => threads.find((t) => t.threadId === id))
+    .filter(
+      (t): t is { threadId: string; title: string | null; createdAt: number } =>
+        t !== undefined,
+    )
+}
+
+// --- Mock hooks (for Storybook) ---
+
+export function useMockState(): MockState | null {
+  return React.useContext(MockStateContext)
+}
+
+export function useMockActiveConversation(): MockChatConversation | null {
+  const mockState = useMockState()
+  if (!mockState?.activeThreadId) return null
+  return (
+    mockState.conversations.find((c) => c.id === mockState.activeThreadId) ??
+    null
+  )
+}
+
+export function useMockMinimizedConversations(): MockChatConversation[] {
+  const mockState = useMockState()
+  if (!mockState) return []
+  return mockState.minimizedThreadIds
+    .map((id) => mockState.conversations.find((c) => c.id === id))
+    .filter((c): c is MockChatConversation => c !== undefined)
 }

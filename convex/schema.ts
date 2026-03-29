@@ -285,6 +285,14 @@ export default defineSchema({
     .index('by_workspaceId_status', ['workspaceId', 'status'])
     .index('by_retainUntil', ['retainUntil']),
 
+  agentThreadMetadata: defineTable({
+    workspaceId: v.id('workspaces'),
+    threadId: v.string(),
+    createdAt: v.number(),
+  })
+    .index('by_threadId', ['threadId'])
+    .index('by_workspaceId', ['workspaceId']),
+
   auditLogs: defineTable({
     timestamp: v.number(),
     retainUntil: v.optional(v.number()),

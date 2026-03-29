@@ -1,12 +1,12 @@
 import type { Meta, StoryObj } from '@storybook/react-vite'
 import { BotMessageSquare } from 'lucide-react'
 import {
-  type ChatConversation,
-  type ChatMessage,
   ChatProvider,
+  type MockChatConversation,
+  type MockChatMessage,
   useChatDispatch,
   useChatState,
-  useMinimizedConversations,
+  useMockMinimizedConversations,
 } from '../../contexts/chat-context'
 import { ChatConversationTab } from '../chat/chat-conversation-tab'
 import { ChatPanel } from '../chat/chat-panel'
@@ -16,7 +16,7 @@ import { Button } from '../ui/button'
 
 const NOW = Date.now()
 
-const mockMessages: ChatMessage[] = [
+const mockMessages: MockChatMessage[] = [
   {
     id: '1',
     role: 'user',
@@ -27,7 +27,7 @@ const mockMessages: ChatMessage[] = [
     id: '2',
     role: 'assistant',
     content:
-      'Your net worth across all portfolios is currently €47,830, up 2.3% from last month.',
+      'Your net worth across all portfolios is currently \u20ac47,830, up 2.3% from last month.',
     createdAt: NOW - 55000,
   },
   {
@@ -40,26 +40,26 @@ const mockMessages: ChatMessage[] = [
     id: '4',
     role: 'assistant',
     content:
-      'Your total spending this month is approximately €3,240. The largest categories are Housing (€1,200), Groceries (€480), and Transportation (€320).',
+      'Your total spending this month is approximately \u20ac3,240. The largest categories are Housing (\u20ac1,200), Groceries (\u20ac480), and Transportation (\u20ac320).',
     createdAt: NOW - 25000,
   },
 ]
 
-const mockConversation: ChatConversation = {
+const mockConversation: MockChatConversation = {
   id: 'conv-1',
   title: "What's my net worth?",
   messages: mockMessages,
   createdAt: NOW - 60000,
 }
 
-const emptyConversation: ChatConversation = {
+const emptyConversation: MockChatConversation = {
   id: 'conv-empty',
   title: 'New chat',
   messages: [],
   createdAt: NOW,
 }
 
-const mockMinimizedConversations: ChatConversation[] = [
+const mockMinimizedConversations: MockChatConversation[] = [
   {
     id: 'conv-min-1',
     title: 'Spending analysis',
@@ -102,11 +102,12 @@ export const EmptyState: Story = {
   decorators: [
     (Story) => (
       <ChatProvider
+        mockMode
         initialState={{
           conversations: [emptyConversation],
-          activeConversationId: 'conv-empty',
+          activeThreadId: 'conv-empty',
           panelMode: 'popover',
-          minimizedConversationIds: [],
+          minimizedThreadIds: [],
         }}
       >
         <div className="relative h-[700px] w-[500px]">
@@ -121,11 +122,12 @@ export const WithMessages: Story = {
   decorators: [
     (Story) => (
       <ChatProvider
+        mockMode
         initialState={{
           conversations: [mockConversation],
-          activeConversationId: 'conv-1',
+          activeThreadId: 'conv-1',
           panelMode: 'popover',
-          minimizedConversationIds: [],
+          minimizedThreadIds: [],
         }}
       >
         <div className="relative h-[700px] w-[500px]">
@@ -140,11 +142,12 @@ export const ExpandedEmpty: Story = {
   decorators: [
     (Story) => (
       <ChatProvider
+        mockMode
         initialState={{
           conversations: [emptyConversation],
-          activeConversationId: 'conv-empty',
+          activeThreadId: 'conv-empty',
           panelMode: 'expanded',
-          minimizedConversationIds: [],
+          minimizedThreadIds: [],
         }}
       >
         <div className="flex h-[600px] w-full">
@@ -159,11 +162,12 @@ export const ExpandedWithMessages: Story = {
   decorators: [
     (Story) => (
       <ChatProvider
+        mockMode
         initialState={{
           conversations: [mockConversation],
-          activeConversationId: 'conv-1',
+          activeThreadId: 'conv-1',
           panelMode: 'expanded',
-          minimizedConversationIds: [],
+          minimizedThreadIds: [],
         }}
       >
         <div className="flex h-[600px] w-full">
@@ -177,7 +181,7 @@ export const ExpandedWithMessages: Story = {
 // --- Conversation Tabs story ---
 
 function ConversationTabsDemo() {
-  const minimized = useMinimizedConversations()
+  const minimized = useMockMinimizedConversations()
   const dispatch = useChatDispatch()
 
   return (
@@ -187,8 +191,8 @@ function ConversationTabsDemo() {
           <ChatConversationTab
             key={conv.id}
             conversation={conv}
-            onOpen={() => dispatch.openConversation(conv.id)}
-            onClose={() => dispatch.closeConversation(conv.id)}
+            onOpen={() => dispatch.openThread(conv.id)}
+            onClose={() => dispatch.closeThread(conv.id)}
           />
         ))}
         <Button variant="ghost" size="sm" onClick={dispatch.openNewChat}>
@@ -205,11 +209,12 @@ export const ConversationTabs: Story = {
   decorators: [
     (Story) => (
       <ChatProvider
+        mockMode
         initialState={{
           conversations: mockMinimizedConversations,
-          activeConversationId: null,
+          activeThreadId: null,
           panelMode: 'closed',
-          minimizedConversationIds: ['conv-min-1', 'conv-min-2'],
+          minimizedThreadIds: ['conv-min-1', 'conv-min-2'],
         }}
       >
         <Story />
@@ -222,7 +227,7 @@ export const ConversationTabs: Story = {
 
 function InteractiveDemo() {
   const { panelMode } = useChatState()
-  const minimized = useMinimizedConversations()
+  const minimized = useMockMinimizedConversations()
   const dispatch = useChatDispatch()
 
   return (
@@ -236,8 +241,8 @@ function InteractiveDemo() {
             <ChatConversationTab
               key={conv.id}
               conversation={conv}
-              onOpen={() => dispatch.openConversation(conv.id)}
-              onClose={() => dispatch.closeConversation(conv.id)}
+              onOpen={() => dispatch.openThread(conv.id)}
+              onClose={() => dispatch.closeThread(conv.id)}
             />
           ))}
           <Button variant="ghost" size="sm" onClick={dispatch.openNewChat}>
@@ -255,7 +260,7 @@ export const Interactive: Story = {
   render: () => <InteractiveDemo />,
   decorators: [
     (Story) => (
-      <ChatProvider>
+      <ChatProvider mockMode>
         <Story />
       </ChatProvider>
     ),

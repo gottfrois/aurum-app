@@ -1,10 +1,10 @@
 import { BotMessageSquare, User } from 'lucide-react'
 import { Message, MessageContent } from '~/components/ui/message'
-import type { ChatMessage as ChatMessageType } from '~/contexts/chat-context'
+import type { MockChatMessage } from '~/contexts/chat-context'
 import { cn } from '~/lib/utils'
 
 interface ChatMessageProps {
-  message: ChatMessageType
+  message: MockChatMessage
 }
 
 export function ChatMessage({ message }: ChatMessageProps) {

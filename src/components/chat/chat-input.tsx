@@ -47,6 +47,7 @@ export function ChatInput({
         )}
       >
         <PromptInputTextarea
+          autoFocus
           placeholder="Ask anything..."
           className="dark:bg-transparent"
         />
