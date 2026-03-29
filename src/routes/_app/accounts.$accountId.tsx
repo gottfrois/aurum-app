@@ -132,7 +132,12 @@ function AccountDetailPage() {
 
   const labelsData = useQuery(
     api.transactionLabels.listLabels,
-    workspaceId ? { workspaceId } : 'skip',
+    workspaceId
+      ? {
+          workspaceId,
+          portfolioId: bankAccount?.portfolioId as Id<'portfolios'> | undefined,
+        }
+      : 'skip',
   )
   const labels = labelsData ?? []
 

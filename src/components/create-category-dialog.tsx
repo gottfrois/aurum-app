@@ -1,5 +1,6 @@
 import { useMutation, useQuery } from 'convex/react'
 import { ConvexError } from 'convex/values'
+import { Info } from 'lucide-react'
 import * as React from 'react'
 import { toast } from 'sonner'
 import { DialogFormFooter } from '~/components/dialog-form-footer'
@@ -23,6 +24,11 @@ import {
   SelectValue,
 } from '~/components/ui/select'
 import { Textarea } from '~/components/ui/textarea'
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from '~/components/ui/tooltip'
 import { usePortfolio } from '~/contexts/portfolio-context'
 import { CATEGORY_PALETTE, deriveCategoryKey } from '~/lib/categories'
 import { api } from '../../convex/_generated/api'
@@ -188,7 +194,18 @@ export function CreateCategoryDialog({
             <ColorPicker color={color} onChange={setColor} />
           </div>
           <div className="space-y-2">
-            <Label>Scope</Label>
+            <Label className="flex items-center gap-1.5">
+              Visibility
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Info className="size-3.5 text-muted-foreground" />
+                </TooltipTrigger>
+                <TooltipContent side="right" className="max-w-[200px]">
+                  Choose whether this category is available in a single
+                  portfolio or shared across all portfolios in your workspace.
+                </TooltipContent>
+              </Tooltip>
+            </Label>
             <Select
               value={scope}
               onValueChange={(v) => {

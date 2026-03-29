@@ -184,7 +184,14 @@ export function TransactionsContent({
 
   const labelsData = useQuery(
     api.transactionLabels.listLabels,
-    workspaceId ? { workspaceId } : 'skip',
+    workspaceId
+      ? {
+          workspaceId,
+          portfolioId: singlePortfolioId ?? undefined,
+          includeAllPortfolios:
+            isAllPortfolios || isTeamView ? true : undefined,
+        }
+      : 'skip',
   )
   const labels = labelsData ?? []
 

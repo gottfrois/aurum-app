@@ -1,8 +1,5 @@
-import * as Sentry from '@sentry/tanstackstart-react'
-import { useMutation } from 'convex/react'
 import { ChevronsUpDown, Plus } from 'lucide-react'
 import * as React from 'react'
-import { toast } from 'sonner'
 import { Badge } from '~/components/ui/badge'
 import { Button } from '~/components/ui/button'
 import { Checkbox } from '~/components/ui/checkbox'
@@ -19,19 +16,6 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from '~/components/ui/popover'
-import { api } from '../../convex/_generated/api'
-import type { Id } from '../../convex/_generated/dataModel'
-
-const LABEL_COLORS = [
-  '#ef4444',
-  '#f97316',
-  '#eab308',
-  '#22c55e',
-  '#06b6d4',
-  '#3b82f6',
-  '#8b5cf6',
-  '#ec4899',
-]
 
 export interface LabelData {
   _id: string
@@ -42,17 +26,15 @@ export interface LabelData {
 interface LabelPickerProps {
   labels: Array<LabelData>
   selectedLabelIds: Array<string>
-  workspaceId: string
-  portfolioId?: string
   onToggle: (labelIds: Array<string>) => void
+  onCreateLabel?: (name: string) => void
 }
 
 export function LabelPicker({
   labels,
   selectedLabelIds,
-  workspaceId,
-  portfolioId,
   onToggle,
+  onCreateLabel,
 }: LabelPickerProps) {
   const [open, setOpen] = React.useState(false)
   const [search, setSearch] = React.useState('')
@@ -60,7 +42,6 @@ export function LabelPicker({
   const [optimistic, setOptimistic] = React.useState<Map<string, boolean>>(
     new Map(),
   )
-  const createLabel = useMutation(api.transactionLabels.createLabel)
 
   // Sync: clear optimistic overrides once server state catches up
   React.useEffect(() => {
@@ -95,28 +76,11 @@ export function LabelPicker({
     onToggle(next)
   }
 
-  const handleCreate = async () => {
+  const handleCreate = () => {
     const name = search.trim()
-    if (!name) return
-
-    try {
-      const color = LABEL_COLORS[labels.length % LABEL_COLORS.length]
-      const labelId = await createLabel({
-        workspaceId: workspaceId as Id<'workspaces'>,
-        portfolioId: portfolioId
-          ? (portfolioId as Id<'portfolios'>)
-          : undefined,
-        name,
-        color,
-      })
-      setSearch('')
-      setOptimistic((prev) => new Map(prev).set(labelId, true))
-      onToggle([...effectiveIds, labelId])
-      toast.success(`Label "${name}" created`)
-    } catch (error) {
-      Sentry.captureException(error)
-      toast.error('Failed to create label')
-    }
+    if (!name || !onCreateLabel) return
+    onCreateLabel(name)
+    setSearch('')
   }
 
   const exactMatch = labels.some(
@@ -169,7 +133,7 @@ export function LabelPicker({
           />
           <CommandList>
             <CommandEmpty>
-              {search.trim() ? (
+              {search.trim() && onCreateLabel ? (
                 <button
                   type="button"
                   className="flex w-full items-center gap-2 px-2 py-1.5 text-sm hover:bg-accent"
@@ -204,14 +168,17 @@ export function LabelPicker({
                 ))}
               </CommandGroup>
             )}
-            {search.trim() && !exactMatch && labels.length > 0 && (
-              <CommandGroup>
-                <CommandItem onSelect={handleCreate}>
-                  <Plus className="size-3" />
-                  Create &ldquo;{search.trim()}&rdquo;
-                </CommandItem>
-              </CommandGroup>
-            )}
+            {search.trim() &&
+              !exactMatch &&
+              labels.length > 0 &&
+              onCreateLabel && (
+                <CommandGroup>
+                  <CommandItem onSelect={handleCreate}>
+                    <Plus className="size-3" />
+                    Create &ldquo;{search.trim()}&rdquo;
+                  </CommandItem>
+                </CommandGroup>
+              )}
           </CommandList>
         </Command>
       </PopoverContent>

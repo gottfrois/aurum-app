@@ -6,6 +6,7 @@ export const listLabels = query({
   args: {
     workspaceId: v.id('workspaces'),
     portfolioId: v.optional(v.id('portfolios')),
+    includeAllPortfolios: v.optional(v.boolean()),
   },
   handler: async (ctx, args) => {
     const userId = await getAuthUserId(ctx)
@@ -15,6 +16,10 @@ export const listLabels = query({
       .query('transactionLabels')
       .withIndex('by_workspaceId', (q) => q.eq('workspaceId', args.workspaceId))
       .collect()
+
+    if (args.includeAllPortfolios) {
+      return workspaceLabels
+    }
 
     if (!args.portfolioId) {
       return workspaceLabels.filter((l) => !l.portfolioId)
