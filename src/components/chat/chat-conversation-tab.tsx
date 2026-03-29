@@ -1,6 +1,5 @@
 import { X } from 'lucide-react'
 import { Button } from '~/components/ui/button'
-import { ButtonGroup, ButtonGroupText } from '~/components/ui/button-group'
 
 interface ChatConversationTabProps {
   conversation: { id: string; title: string }
@@ -14,23 +13,24 @@ export function ChatConversationTab({
   onClose,
 }: ChatConversationTabProps) {
   return (
-    <ButtonGroup>
-      <ButtonGroupText
-        className="max-w-40 cursor-pointer text-xs"
+    <div className="group flex h-8 items-center gap-1 rounded-md bg-secondary px-2.5 text-secondary-foreground">
+      <button
+        type="button"
+        title={conversation.title}
+        className="max-w-40 cursor-pointer truncate"
         onClick={onOpen}
       >
-        <span className="truncate">{conversation.title}</span>
-      </ButtonGroupText>
+        {conversation.title}
+      </button>
       <Button
-        variant="outline"
+        variant="ghost"
         size="icon-sm"
-        onClick={(e) => {
-          e.stopPropagation()
-          onClose()
-        }}
+        aria-label="Close"
+        className="size-5 opacity-0 transition-opacity group-hover:opacity-100"
+        onClick={onClose}
       >
-        <X className="size-3" />
+        <X className="size-4" />
       </Button>
-    </ButtonGroup>
+    </div>
   )
 }
