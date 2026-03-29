@@ -469,7 +469,7 @@ export function TransactionsList({
     getSortedRowModel: getSortedRowModel(),
     getFilteredRowModel: getFilteredRowModel(),
     getPaginationRowModel: getPaginationRowModel(),
-    autoResetPageIndex: false,
+    autoResetPageIndex: true,
     initialState: { pagination: { pageSize: 25 } },
     globalFilterFn: (row, _columnId, filterValue: string) => {
       const wording = row.original.wording.toLowerCase()
