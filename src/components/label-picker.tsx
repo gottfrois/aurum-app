@@ -43,6 +43,7 @@ interface LabelPickerProps {
   labels: Array<LabelData>
   selectedLabelIds: Array<string>
   workspaceId: string
+  portfolioId?: string
   onToggle: (labelIds: Array<string>) => void
 }
 
@@ -50,6 +51,7 @@ export function LabelPicker({
   labels,
   selectedLabelIds,
   workspaceId,
+  portfolioId,
   onToggle,
 }: LabelPickerProps) {
   const [open, setOpen] = React.useState(false)
@@ -101,6 +103,9 @@ export function LabelPicker({
       const color = LABEL_COLORS[labels.length % LABEL_COLORS.length]
       const labelId = await createLabel({
         workspaceId: workspaceId as Id<'workspaces'>,
+        portfolioId: portfolioId
+          ? (portfolioId as Id<'portfolios'>)
+          : undefined,
         name,
         color,
       })

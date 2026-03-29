@@ -1417,6 +1417,7 @@ function TransactionDetailSheet({
                     labels={labels}
                     selectedLabelIds={transaction.labelIds ?? []}
                     workspaceId={workspaceId}
+                    portfolioId={transaction.portfolioId}
                     onToggle={(labelIds) =>
                       onLabelToggle(transaction._id, labelIds)
                     }
