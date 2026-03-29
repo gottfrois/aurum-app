@@ -34,6 +34,7 @@ export function ChatPanel() {
   if (panelMode === 'closed' || !activeThreadId) return null
 
   const title = thread?.title ?? 'New chat'
+  const hasMessages = !!thread?.title
 
   if (panelMode === 'expanded') {
     return (
@@ -41,7 +42,6 @@ export function ChatPanel() {
         <ChatHeader
           title={title}
           mode={panelMode}
-          onNewChat={dispatch.openNewChat}
           onMinimize={dispatch.minimizeChat}
           onExpand={dispatch.expandChat}
           onCollapse={dispatch.collapseChat}
@@ -52,7 +52,11 @@ export function ChatPanel() {
           onSuggestionClick={dispatch.sendMessage}
         />
         <div className="mx-auto w-full max-w-3xl">
-          <ChatInput onSend={dispatch.sendMessage} variant="secondary" />
+          <ChatInput
+            onSend={dispatch.sendMessage}
+            variant="secondary"
+            hasMessages={hasMessages}
+          />
         </div>
       </div>
     )
@@ -61,7 +65,7 @@ export function ChatPanel() {
   return (
     <div
       className={cn(
-        'fixed bottom-[calc(var(--header-height)+0.5rem)] right-4 z-40',
+        'fixed bottom-[calc(var(--header-height)+1rem)] right-4 z-40',
         'flex h-[calc(100dvh-6rem)] w-[420px] flex-col overflow-hidden',
         'rounded-lg border bg-popover shadow-lg',
         'animate-in fade-in-0 slide-in-from-bottom-2',
@@ -70,7 +74,6 @@ export function ChatPanel() {
       <ChatHeader
         title={title}
         mode={panelMode}
-        onNewChat={dispatch.openNewChat}
         onMinimize={dispatch.minimizeChat}
         onExpand={dispatch.expandChat}
         onCollapse={dispatch.collapseChat}
@@ -80,7 +83,7 @@ export function ChatPanel() {
         threadId={activeThreadId}
         onSuggestionClick={dispatch.sendMessage}
       />
-      <ChatInput onSend={dispatch.sendMessage} />
+      <ChatInput onSend={dispatch.sendMessage} hasMessages={hasMessages} />
     </div>
   )
 }
@@ -105,7 +108,6 @@ function MockChatPanel({
         <ChatHeader
           title={conversation.title}
           mode="expanded"
-          onNewChat={dispatch.openNewChat}
           onMinimize={dispatch.minimizeChat}
           onExpand={dispatch.expandChat}
           onCollapse={dispatch.collapseChat}
@@ -130,7 +132,7 @@ function MockChatPanel({
   return (
     <div
       className={cn(
-        'fixed bottom-[calc(var(--header-height)+0.5rem)] right-4 z-40',
+        'fixed bottom-[calc(var(--header-height)+1rem)] right-4 z-40',
         'flex h-[calc(100dvh-6rem)] w-[420px] flex-col overflow-hidden',
         'rounded-lg border bg-popover shadow-lg',
         'animate-in fade-in-0 slide-in-from-bottom-2',
@@ -139,7 +141,6 @@ function MockChatPanel({
       <ChatHeader
         title={conversation.title}
         mode="popover"
-        onNewChat={dispatch.openNewChat}
         onMinimize={dispatch.minimizeChat}
         onExpand={dispatch.expandChat}
         onCollapse={dispatch.collapseChat}

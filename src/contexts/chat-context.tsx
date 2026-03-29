@@ -161,6 +161,9 @@ function ConvexChatProvider({
       setState((prev) => ({
         ...prev,
         panelMode: 'closed',
+        minimizedThreadIds: prev.activeThreadId
+          ? prev.minimizedThreadIds.filter((id) => id !== prev.activeThreadId)
+          : prev.minimizedThreadIds,
         activeThreadId: null,
       }))
     }

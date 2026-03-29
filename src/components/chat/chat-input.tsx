@@ -13,6 +13,7 @@ interface ChatInputProps {
   isLoading?: boolean
   disabled?: boolean
   variant?: 'default' | 'secondary'
+  hasMessages?: boolean
 }
 
 export function ChatInput({
@@ -20,6 +21,7 @@ export function ChatInput({
   isLoading,
   disabled,
   variant = 'default',
+  hasMessages = false,
 }: ChatInputProps) {
   const [value, setValue] = useState('')
 
@@ -48,7 +50,7 @@ export function ChatInput({
       >
         <PromptInputTextarea
           autoFocus
-          placeholder="Ask anything..."
+          placeholder={hasMessages ? 'Reply...' : 'Ask Bunkr...'}
           className="dark:bg-transparent"
         />
         <PromptInputActions className="justify-end px-2 pb-2">

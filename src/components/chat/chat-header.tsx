@@ -1,13 +1,20 @@
-import { Maximize2, Minimize2, Minus, Plus, X } from 'lucide-react'
+import { Maximize2, Minimize2, Minus, X } from 'lucide-react'
+import { useHotkeys } from 'react-hotkeys-hook'
 import { Badge } from '~/components/ui/badge'
 import { Button } from '~/components/ui/button'
+import { Kbd } from '~/components/ui/kbd'
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from '~/components/ui/tooltip'
 import type { ChatPanelMode } from '~/contexts/chat-context'
 import { cn } from '~/lib/utils'
 
 interface ChatHeaderProps {
   title: string
   mode: ChatPanelMode
-  onNewChat: () => void
   onMinimize: () => void
   onExpand: () => void
   onCollapse: () => void
@@ -17,12 +24,16 @@ interface ChatHeaderProps {
 export function ChatHeader({
   title,
   mode,
-  onNewChat,
   onMinimize,
   onExpand,
   onCollapse,
   onClose,
 }: ChatHeaderProps) {
+  useHotkeys('escape', onMinimize, {
+    enableOnFormTags: true,
+    preventDefault: true,
+  })
+
   return (
     <div
       data-slot="chat-header"
@@ -33,26 +44,47 @@ export function ChatHeader({
     >
       <Badge variant="secondary">Beta</Badge>
       <span className="flex-1 truncate text-sm font-medium">{title}</span>
-      <div className="flex items-center gap-0.5">
-        <Button variant="ghost" size="icon-sm" onClick={onNewChat}>
-          <Plus className="size-4" />
-        </Button>
-        <Button variant="ghost" size="icon-sm" onClick={onMinimize}>
-          <Minus className="size-4" />
-        </Button>
-        {mode === 'popover' ? (
-          <Button variant="ghost" size="icon-sm" onClick={onExpand}>
-            <Maximize2 className="size-4" />
-          </Button>
-        ) : (
-          <Button variant="ghost" size="icon-sm" onClick={onCollapse}>
-            <Minimize2 className="size-4" />
-          </Button>
-        )}
-        <Button variant="ghost" size="icon-sm" onClick={onClose}>
-          <X className="size-4" />
-        </Button>
-      </div>
+      <TooltipProvider delayDuration={300}>
+        <div className="flex items-center gap-0.5">
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button variant="ghost" size="icon-sm" onClick={onMinimize}>
+                <Minus className="size-4" />
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent side="bottom">
+              Minimize <Kbd>Esc</Kbd>
+            </TooltipContent>
+          </Tooltip>
+          {mode === 'popover' ? (
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button variant="ghost" size="icon-sm" onClick={onExpand}>
+                  <Maximize2 className="size-4" />
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent side="bottom">Move to fullscreen</TooltipContent>
+            </Tooltip>
+          ) : (
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button variant="ghost" size="icon-sm" onClick={onCollapse}>
+                  <Minimize2 className="size-4" />
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent side="bottom">Exit fullscreen</TooltipContent>
+            </Tooltip>
+          )}
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button variant="ghost" size="icon-sm" onClick={onClose}>
+                <X className="size-4" />
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent side="bottom">Close</TooltipContent>
+          </Tooltip>
+        </div>
+      </TooltipProvider>
     </div>
   )
 }

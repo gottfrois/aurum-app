@@ -3,18 +3,24 @@ import {
   useSmoothText,
   useUIMessages,
 } from '@convex-dev/agent/react'
-import { BotMessageSquare, ShieldAlert, User } from 'lucide-react'
+import { Check, Copy, ShieldAlert } from 'lucide-react'
+import { useState } from 'react'
 import { ChatEmptyState } from '~/components/chat/chat-empty-state'
+import { Button } from '~/components/ui/button'
 import {
   ChatContainerContent,
   ChatContainerRoot,
   ChatContainerScrollAnchor,
 } from '~/components/ui/chat-container'
 import { Loader } from '~/components/ui/loader'
-import { Message, MessageContent } from '~/components/ui/message'
+import {
+  Message,
+  MessageAction,
+  MessageActions,
+  MessageContent,
+} from '~/components/ui/message'
 import { ScrollButton } from '~/components/ui/scroll-button'
 import { SystemMessage } from '~/components/ui/system-message'
-import { cn } from '~/lib/utils'
 import { api } from '../../../convex/_generated/api'
 
 interface ChatMessagesProps {
@@ -85,31 +91,52 @@ function ChatMessageBubble({ message }: { message: UIMessage }) {
   // Skip empty assistant messages (pending before any text arrives)
   if (!isUser && !visibleText) return null
 
+  if (isUser) {
+    return (
+      <Message className="flex-row-reverse">
+        <MessageContent className="max-w-[80%] bg-primary text-primary-foreground">
+          {visibleText}
+        </MessageContent>
+      </Message>
+    )
+  }
+
+  const showActions = visibleText && message.status !== 'streaming'
+
   return (
-    <Message className={cn(isUser && 'flex-row-reverse')}>
-      <div
-        className={cn(
-          'flex size-6 shrink-0 items-center justify-center rounded-full',
-          isUser ? 'bg-primary text-primary-foreground' : 'bg-muted',
-        )}
-      >
-        {isUser ? (
-          <User className="size-3.5" />
-        ) : (
-          <BotMessageSquare className="size-3.5" />
+    <Message className="group/message">
+      <div className="flex w-full flex-col gap-2">
+        <MessageContent
+          markdown
+          className="max-w-[80%] bg-muted text-foreground"
+        >
+          {visibleText}
+        </MessageContent>
+        {showActions && (
+          <MessageActions className="opacity-0 transition-opacity group-hover/message:opacity-100">
+            <CopyAction text={message.text} />
+          </MessageActions>
         )}
       </div>
-      <MessageContent
-        markdown={!isUser}
-        className={cn(
-          'max-w-[80%] text-sm',
-          isUser
-            ? 'bg-primary text-primary-foreground'
-            : 'bg-muted text-foreground',
-        )}
-      >
-        {visibleText}
-      </MessageContent>
     </Message>
+  )
+}
+
+function CopyAction({ text }: { text: string }) {
+  const [copied, setCopied] = useState(false)
+
+  function handleCopy() {
+    void navigator.clipboard.writeText(text).then(() => {
+      setCopied(true)
+      setTimeout(() => setCopied(false), 2000)
+    })
+  }
+
+  return (
+    <MessageAction tooltip={copied ? 'Copied' : 'Copy'}>
+      <Button variant="ghost" size="icon-sm" onClick={handleCopy}>
+        {copied ? <Check /> : <Copy />}
+      </Button>
+    </MessageAction>
   )
 }
