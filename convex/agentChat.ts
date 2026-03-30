@@ -9,6 +9,7 @@ import type { ActionCtx } from './_generated/server'
 import { action, internalAction } from './_generated/server'
 import { getWorkspaceDecryptionKey } from './lib/agentDecrypt'
 import {
+  getBalanceHistory,
   getCashFlow,
   getSpendingSummary,
   listAccounts,
@@ -41,6 +42,7 @@ You have access to tools that can query the user's real financial data. Use them
 - Call searchTransactions to find specific transactions by text or category
 - Call listAccounts to see bank account names and balances
 - Call listInvestments to see investment holdings and performance
+- Call getBalanceHistory for net worth trends over time
 
 Always use YYYY-MM-DD format for dates.`
 }
@@ -56,6 +58,7 @@ const chatAgent = new Agent(components.agent, {
 const baseTools = {
   getSpendingSummary,
   getCashFlow,
+  getBalanceHistory,
   searchTransactions,
   searchCategories,
   searchLabels,

@@ -319,3 +319,27 @@ export const listInvestmentsByPortfolios = internalQuery({
     return results.flat().filter((inv) => !inv.deleted)
   },
 })
+
+export const listSnapshotsByPortfolios = internalQuery({
+  args: {
+    portfolioIds: v.array(v.id('portfolios')),
+    startTimestamp: v.number(),
+    endTimestamp: v.number(),
+  },
+  handler: async (ctx, { portfolioIds, startTimestamp, endTimestamp }) => {
+    const results = await Promise.all(
+      portfolioIds.map((portfolioId) =>
+        ctx.db
+          .query('balanceSnapshots')
+          .withIndex('by_portfolioId_timestamp', (q) =>
+            q
+              .eq('portfolioId', portfolioId)
+              .gte('timestamp', startTimestamp)
+              .lte('timestamp', endTimestamp),
+          )
+          .collect(),
+      ),
+    )
+    return results.flat()
+  },
+})

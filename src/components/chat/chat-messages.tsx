@@ -34,6 +34,7 @@ const TOOL_LABELS: Record<string, string> = {
   searchLabels: 'Searching labels',
   listAccounts: 'Loading accounts',
   listInvestments: 'Loading investments',
+  getBalanceHistory: 'Loading balance history',
   web_search: 'Searching the web',
 }
 

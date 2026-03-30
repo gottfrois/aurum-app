@@ -799,3 +799,172 @@ export const listInvestments = createTool({
     }
   },
 })
+
+export const getBalanceHistory = createTool({
+  title: 'Get Balance History',
+  description:
+    'Get net worth / balance trend over a time period. Returns aggregated data points (weekly for ranges up to 3 months, monthly for longer). Useful for tracking net worth evolution.',
+  inputSchema: z.object({
+    startDate: z
+      .string()
+      .describe('Start date in YYYY-MM-DD format (inclusive)'),
+    endDate: z.string().describe('End date in YYYY-MM-DD format (inclusive)'),
+    portfolioId: z
+      .string()
+      .optional()
+      .describe(
+        'Specific portfolio ID. If omitted, uses active portfolio context or all.',
+      ),
+  }),
+  execute: async (
+    ctx,
+    input,
+  ): Promise<
+    | {
+        startDate: string
+        endDate: string
+        startBalance: number
+        endBalance: number
+        change: number
+        changePercent: number
+        dataPoints: Array<{ date: string; balance: number }>
+      }
+    | { error: string }
+  > => {
+    const threadCtx = await resolveContext(ctx)
+    const wsKey = await getWorkspaceDecryptionKey(ctx, threadCtx.workspaceId)
+    if (!wsKey) return { error: 'Unable to access encrypted data' }
+
+    const portfolioIds = await resolvePortfolioIds(
+      ctx,
+      threadCtx,
+      input.portfolioId,
+    )
+
+    const startTimestamp = new Date(input.startDate).getTime()
+    const endTimestamp = new Date(input.endDate).getTime() + 86400000 // inclusive end
+
+    const snapshots = await ctx.runQuery(
+      internal.agentChatQueries.listSnapshotsByPortfolios,
+      { portfolioIds, startTimestamp, endTimestamp },
+    )
+
+    // Decrypt all snapshots, grouped by account
+    const byAccount = new Map<
+      string,
+      Array<{ date: string; balance: number }>
+    >()
+    for (const snap of snapshots) {
+      if (!snap.encryptedData) continue
+      const data = await decryptForProfile(
+        snap.encryptedData,
+        wsKey,
+        snap._id as string,
+      )
+      const accountId = snap.bankAccountId as string
+      if (!byAccount.has(accountId)) {
+        byAccount.set(accountId, [])
+      }
+      byAccount.get(accountId)!.push({
+        date: snap.date,
+        balance: Number(data.balance) || 0,
+      })
+    }
+
+    // Sort each account's snapshots chronologically
+    for (const entries of byAccount.values()) {
+      entries.sort((a, b) => a.date.localeCompare(b.date))
+    }
+
+    // Collect all unique dates
+    const allDates = new Set<string>()
+    for (const entries of byAccount.values()) {
+      for (const e of entries) {
+        allDates.add(e.date)
+      }
+    }
+    const sortedDates = [...allDates].sort()
+
+    // For each date, carry forward last known balance per account and sum
+    const sorted: Array<{ date: string; balance: number }> = []
+    const lastKnown = new Map<string, number>()
+    for (const date of sortedDates) {
+      for (const [accountId, entries] of byAccount) {
+        const entry = entries.find((e) => e.date === date)
+        if (entry) {
+          lastKnown.set(accountId, entry.balance)
+        }
+      }
+      let total = 0
+      for (const bal of lastKnown.values()) {
+        total += bal
+      }
+      sorted.push({ date, balance: total })
+    }
+
+    if (sorted.length === 0) {
+      return {
+        startDate: input.startDate,
+        endDate: input.endDate,
+        startBalance: 0,
+        endBalance: 0,
+        change: 0,
+        changePercent: 0,
+        dataPoints: [],
+      }
+    }
+
+    // Smart bucketing: weekly for <=3 months, monthly for longer
+    const daySpan = (endTimestamp - startTimestamp) / (1000 * 60 * 60 * 24)
+    const useMonthly = daySpan > 93
+
+    const bucketed: Array<{ date: string; balance: number }> = []
+    if (useMonthly) {
+      // Take last data point per month
+      const byMonth = new Map<string, { date: string; balance: number }>()
+      for (const point of sorted) {
+        const month = point.date.slice(0, 7)
+        byMonth.set(month, point)
+      }
+      bucketed.push(
+        ...[...byMonth.values()].sort((a, b) => a.date.localeCompare(b.date)),
+      )
+    } else {
+      // Take last data point per week (ISO week start = Monday)
+      const byWeek = new Map<string, { date: string; balance: number }>()
+      for (const point of sorted) {
+        const d = new Date(point.date)
+        const day = d.getDay()
+        const mondayOffset = day === 0 ? -6 : 1 - day
+        const monday = new Date(d)
+        monday.setDate(d.getDate() + mondayOffset)
+        const weekKey = monday.toISOString().slice(0, 10)
+        byWeek.set(weekKey, point)
+      }
+      bucketed.push(
+        ...[...byWeek.values()].sort((a, b) => a.date.localeCompare(b.date)),
+      )
+    }
+
+    const startBalance = bucketed[0].balance
+    const endBalance = bucketed[bucketed.length - 1].balance
+    const change = endBalance - startBalance
+    const changePercent =
+      startBalance !== 0
+        ? Math.round((change / Math.abs(startBalance)) * 10000) / 100
+        : 0
+
+    return {
+      startDate: input.startDate,
+      endDate: input.endDate,
+      startBalance: Math.round(startBalance * 100) / 100,
+      endBalance: Math.round(endBalance * 100) / 100,
+      change: Math.round(change * 100) / 100,
+      changePercent,
+      dataPoints: bucketed.map((p) => ({
+        date: p.date,
+        balance: Math.round(p.balance * 100) / 100,
+      })),
+    }
+  },
+})
