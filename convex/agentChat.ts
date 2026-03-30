@@ -1,5 +1,6 @@
 'use node'
 
+import { anthropic } from '@ai-sdk/anthropic'
 import { Agent } from '@convex-dev/agent'
 import { v } from 'convex/values'
 import { components, internal } from './_generated/api'
@@ -43,14 +44,16 @@ const chatAgent = new Agent(components.agent, {
   name: 'bunkr-assistant',
   languageModel: chatModel(),
   instructions: buildBaseInstructions(),
-  tools: {
-    getSpendingSummary,
-    searchTransactions,
-    searchCategories,
-    listAccounts,
-  },
   maxSteps: 5,
 })
+
+/** Base tools always available to the agent. */
+const baseTools = {
+  getSpendingSummary,
+  searchTransactions,
+  searchCategories,
+  listAccounts,
+}
 
 const titleAgent = new Agent(components.agent, {
   name: 'bunkr-title',
@@ -77,6 +80,7 @@ export const streamResponse = action({
   handler: async (ctx, { threadId, promptMessageId, workspaceId }) => {
     // Build system prompt with portfolio context and custom instructions
     const systemParts: string[] = [buildBaseInstructions()]
+    let webSearchEnabled = false
 
     if (workspaceId) {
       // Add portfolio context
@@ -104,11 +108,12 @@ export const streamResponse = action({
         )
       }
 
-      // Add custom instructions
+      // Load agent settings for custom instructions and web search
       const settings = await ctx.runQuery(
         internal.agent.getAgentSettingsInternal,
         { workspaceId },
       )
+      webSearchEnabled = settings?.webSearchEnabled === true
       if (settings?.encryptedInstructions) {
         try {
           const customInstructions = await decryptInstructions(
@@ -131,8 +136,19 @@ export const streamResponse = action({
 
     const { thread } = await chatAgent.continueThread(ctx, { threadId })
 
+    const tools = webSearchEnabled
+      ? {
+          ...baseTools,
+          web_search: anthropic.tools.webSearch_20250305({ maxUses: 5 }),
+        }
+      : baseTools
+
     const result = await thread.streamText(
-      { promptMessageId, ...(system ? { system } : {}) },
+      {
+        promptMessageId,
+        ...(system ? { system } : {}),
+        tools: tools as typeof baseTools,
+      },
       { saveStreamDeltas: { chunking: 'word', throttleMs: 100 } },
     )
 

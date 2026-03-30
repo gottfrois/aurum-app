@@ -31,6 +31,7 @@ const TOOL_LABELS: Record<string, string> = {
   searchTransactions: 'Searching transactions',
   searchCategories: 'Searching categories',
   listAccounts: 'Loading accounts',
+  web_search: 'Searching the web',
 }
 
 interface ChatMessagesProps {
@@ -164,7 +165,7 @@ function ChatMessageBubble({ message }: { message: UIMessage }) {
         {visibleText && (
           <MessageContent
             markdown
-            className="max-w-[80%] bg-muted text-foreground"
+            className="max-w-[80%] bg-muted text-foreground prose prose-sm dark:prose-invert"
           >
             {visibleText}
           </MessageContent>

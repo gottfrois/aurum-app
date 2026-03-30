@@ -23,11 +23,6 @@ async function resolveContext(ctx: ActionCtx & { threadId?: string }): Promise<{
   )
   if (!metadata) throw new Error('Thread metadata not found')
 
-  console.log('[resolveContext] threadId:', ctx.threadId, {
-    workspaceId: metadata.workspaceId,
-    portfolioId: metadata.portfolioId ?? null,
-  })
-
   return {
     workspaceId: metadata.workspaceId,
     portfolioId: metadata.portfolioId ?? null,
@@ -90,10 +85,6 @@ export const getSpendingSummary = createTool({
       portfolioId,
       input.portfolioId,
     )
-    console.log('[getSpendingSummary] portfolios:', portfolioIds, {
-      threadPortfolioId: portfolioId,
-    })
-
     // Load workspace categories for label resolution
     const wsCategories = await ctx.runQuery(
       internal.agentChatQueries.listCategoriesByWorkspace,
@@ -114,10 +105,6 @@ export const getSpendingSummary = createTool({
       ),
     )
     const transactions = allTransactions.flat()
-    console.log(
-      '[getSpendingSummary] transactions in range:',
-      transactions.length,
-    )
 
     // Decrypt and aggregate
     let totalSpending = 0
@@ -189,13 +176,6 @@ export const getSpendingSummary = createTool({
       byCategory[resolvedKey].amount += value
       byCategory[resolvedKey].count++
     }
-
-    console.log(
-      '[getSpendingSummary] matched:',
-      transactionCount,
-      'categories:',
-      Object.keys(byCategory),
-    )
 
     // Sort by absolute amount descending
     const categorySummary = Object.values(byCategory).sort(
