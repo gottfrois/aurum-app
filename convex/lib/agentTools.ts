@@ -2060,3 +2060,210 @@ export const getTransactionRules = createTool({
     }
   },
 })
+
+export const comparePeriodSpending = createTool({
+  title: 'Compare Period Spending',
+  description:
+    'Compare spending between two arbitrary periods side-by-side, aligned by category with deltas. Returns pre-computed differences so the LLM can focus on narrative insight rather than data wrangling.',
+  inputSchema: z.object({
+    period1Start: z.string().describe('Period 1 start date (YYYY-MM-DD)'),
+    period1End: z.string().describe('Period 1 end date (YYYY-MM-DD)'),
+    period2Start: z.string().describe('Period 2 start date (YYYY-MM-DD)'),
+    period2End: z.string().describe('Period 2 end date (YYYY-MM-DD)'),
+    portfolioId: z
+      .string()
+      .optional()
+      .describe(
+        'Specific portfolio ID. If omitted, uses active portfolio context or all.',
+      ),
+  }),
+  execute: async (
+    ctx,
+    input,
+  ): Promise<
+    | {
+        period1: { start: string; end: string; total: number; count: number }
+        period2: { start: string; end: string; total: number; count: number }
+        totalDelta: number
+        totalDeltaPercent: number
+        byCategory: Array<{
+          category: string
+          label: string
+          period1Amount: number
+          period2Amount: number
+          delta: number
+          deltaPercent: number
+        }>
+        newInPeriod2: Array<{ category: string; label: string; amount: number }>
+        goneInPeriod2: Array<{
+          category: string
+          label: string
+          amount: number
+        }>
+      }
+    | { error: string }
+  > => {
+    const threadCtx = await resolveContext(ctx)
+    const wsKeyOrNull = await getWorkspaceDecryptionKey(
+      ctx,
+      threadCtx.workspaceId,
+    )
+    if (!wsKeyOrNull) return { error: 'Unable to access encrypted data' }
+    const wsKey = wsKeyOrNull
+
+    const portfolioIds = await resolvePortfolioIds(
+      ctx,
+      threadCtx,
+      input.portfolioId,
+    )
+
+    // Load categories for label resolution
+    const wsCategories = await ctx.runQuery(
+      internal.agentChatQueries.listCategoriesByWorkspace,
+      { workspaceId: threadCtx.workspaceId },
+    )
+    const categoryLabelMap = new Map<string, string>(
+      wsCategories.map((c: { key: string; label: string }) => [c.key, c.label]),
+    )
+
+    // Helper: aggregate spending by category for a date range
+    async function aggregatePeriod(startDate: string, endDate: string) {
+      const allTx = await Promise.all(
+        portfolioIds.map((pid) =>
+          ctx.runQuery(internal.agentChatQueries.listTransactionsByDateRange, {
+            portfolioId: pid,
+            startDate,
+            endDate,
+          }),
+        ),
+      )
+      const transactions = allTx.flat()
+
+      let total = 0
+      const byCategory = new Map<string, number>()
+
+      for (const tx of transactions) {
+        const financials = await decryptForProfile(
+          tx.encryptedFinancials,
+          wsKey,
+          tx._id,
+          'encryptedFinancials',
+        )
+        const categories = await decryptForProfile(
+          tx.encryptedCategories,
+          wsKey,
+          tx._id,
+          'encryptedCategories',
+        )
+
+        const value = Number(financials.value) || 0
+        if (value >= 0) continue // expenses only
+
+        const resolvedKey = (
+          (categories.userCategoryKey as string) ||
+          (categories.categoryParent as string) ||
+          (categories.category as string) ||
+          'others'
+        ).toLowerCase()
+
+        total += value
+        byCategory.set(resolvedKey, (byCategory.get(resolvedKey) ?? 0) + value)
+      }
+
+      return { total, count: transactions.length, byCategory }
+    }
+
+    const p1 = await aggregatePeriod(input.period1Start, input.period1End)
+    const p2 = await aggregatePeriod(input.period2Start, input.period2End)
+
+    // Align categories across both periods
+    const allCategories = new Set([
+      ...p1.byCategory.keys(),
+      ...p2.byCategory.keys(),
+    ])
+
+    const byCategory: Array<{
+      category: string
+      label: string
+      period1Amount: number
+      period2Amount: number
+      delta: number
+      deltaPercent: number
+    }> = []
+    const newInPeriod2: Array<{
+      category: string
+      label: string
+      amount: number
+    }> = []
+    const goneInPeriod2: Array<{
+      category: string
+      label: string
+      amount: number
+    }> = []
+
+    for (const cat of allCategories) {
+      const p1Amount = Math.abs(p1.byCategory.get(cat) ?? 0)
+      const p2Amount = Math.abs(p2.byCategory.get(cat) ?? 0)
+      const label = categoryLabelMap.get(cat) ?? cat
+
+      if (p1Amount === 0 && p2Amount > 0) {
+        newInPeriod2.push({
+          category: cat,
+          label,
+          amount: Math.round(p2Amount * 100) / 100,
+        })
+        continue
+      }
+      if (p1Amount > 0 && p2Amount === 0) {
+        goneInPeriod2.push({
+          category: cat,
+          label,
+          amount: Math.round(p1Amount * 100) / 100,
+        })
+        continue
+      }
+
+      const delta = p2Amount - p1Amount
+      const deltaPercent =
+        p1Amount > 0 ? Math.round((delta / p1Amount) * 10000) / 100 : 0
+
+      byCategory.push({
+        category: cat,
+        label,
+        period1Amount: Math.round(p1Amount * 100) / 100,
+        period2Amount: Math.round(p2Amount * 100) / 100,
+        delta: Math.round(delta * 100) / 100,
+        deltaPercent,
+      })
+    }
+
+    // Sort by absolute delta descending
+    byCategory.sort((a, b) => Math.abs(b.delta) - Math.abs(a.delta))
+
+    const totalP1 = Math.abs(p1.total)
+    const totalP2 = Math.abs(p2.total)
+    const totalDelta = totalP2 - totalP1
+    const totalDeltaPercent =
+      totalP1 > 0 ? Math.round((totalDelta / totalP1) * 10000) / 100 : 0
+
+    return {
+      period1: {
+        start: input.period1Start,
+        end: input.period1End,
+        total: Math.round(totalP1 * 100) / 100,
+        count: p1.count,
+      },
+      period2: {
+        start: input.period2Start,
+        end: input.period2End,
+        total: Math.round(totalP2 * 100) / 100,
+        count: p2.count,
+      },
+      totalDelta: Math.round(totalDelta * 100) / 100,
+      totalDeltaPercent,
+      byCategory,
+      newInPeriod2,
+      goneInPeriod2,
+    }
+  },
+})

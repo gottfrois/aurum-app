@@ -43,6 +43,7 @@ const TOOL_LABELS: Record<string, string> = {
   getRecurringExpenses: 'Finding recurring expenses',
   listUncategorizedTransactions: 'Finding uncategorized transactions',
   getTransactionRules: 'Loading transaction rules',
+  comparePeriodSpending: 'Comparing spending periods',
   findSavingsOpportunities: 'Finding savings opportunities',
   web_search: 'Searching the web',
 }
