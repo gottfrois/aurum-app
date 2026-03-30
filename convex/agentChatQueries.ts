@@ -167,6 +167,7 @@ export const sendMessage = mutation({
     await ctx.scheduler.runAfter(0, api.agentChat.streamResponse, {
       threadId,
       promptMessageId: messageId,
+      workspaceId: metadata.workspaceId,
     })
 
     // Schedule title generation

@@ -265,6 +265,123 @@ export const deactivateAgent = mutation({
   },
 })
 
+// --- Agent settings ---
+
+export const getAgentSettings = query({
+  args: {},
+  handler: async (ctx) => {
+    const userId = await getAuthUserId(ctx)
+    if (!userId) return null
+
+    const membership = await ctx.db
+      .query('workspaceMembers')
+      .withIndex('by_userId', (q) => q.eq('userId', userId))
+      .first()
+    if (!membership) return null
+
+    const workspace = await ctx.db.get('workspaces', membership.workspaceId)
+    if (!workspace) return null
+
+    const settings = await ctx.db
+      .query('agentSettings')
+      .withIndex('by_workspaceId', (q) =>
+        q.eq('workspaceId', membership.workspaceId),
+      )
+      .first()
+
+    const agentId = agentUserId(membership.workspaceId)
+    const keySlot = await ctx.db
+      .query('workspaceKeySlots')
+      .withIndex('by_workspaceId_userId', (q) =>
+        q.eq('workspaceId', membership.workspaceId).eq('userId', agentId),
+      )
+      .first()
+
+    return {
+      agentEnabled: workspace.agentEnabled === true,
+      webSearchEnabled: settings?.webSearchEnabled ?? false,
+      encryptedInstructions: settings?.encryptedInstructions ?? null,
+      hasKeySlot: !!keySlot,
+    }
+  },
+})
+
+export const updateAgentSettings = mutation({
+  args: {
+    webSearchEnabled: v.optional(v.boolean()),
+    encryptedInstructions: v.optional(v.string()),
+  },
+  handler: async (ctx, args) => {
+    const userId = await requireAuthUserId(ctx)
+
+    const membership = await ctx.db
+      .query('workspaceMembers')
+      .withIndex('by_userId', (q) => q.eq('userId', userId))
+      .first()
+    if (!membership || membership.role !== 'owner') {
+      throw new Error('Only workspace owners can update agent settings')
+    }
+
+    const workspace = await ctx.db.get('workspaces', membership.workspaceId)
+    if (!workspace) throw new Error('Workspace not found')
+
+    // Upsert agentSettings row
+    const existing = await ctx.db
+      .query('agentSettings')
+      .withIndex('by_workspaceId', (q) =>
+        q.eq('workspaceId', membership.workspaceId),
+      )
+      .first()
+
+    const patch: {
+      webSearchEnabled?: boolean
+      encryptedInstructions?: string
+    } = {}
+    if (args.webSearchEnabled !== undefined) {
+      patch.webSearchEnabled = args.webSearchEnabled
+    }
+    if (args.encryptedInstructions !== undefined) {
+      patch.encryptedInstructions = args.encryptedInstructions
+    }
+
+    if (existing) {
+      await ctx.db.patch(existing._id, patch)
+    } else {
+      await ctx.db.insert('agentSettings', {
+        workspaceId: membership.workspaceId,
+        webSearchEnabled: args.webSearchEnabled ?? false,
+        encryptedInstructions: args.encryptedInstructions,
+      })
+    }
+
+    // Audit log
+    const identity = await ctx.auth.getUserIdentity()
+    await insertAuditLogDirect(ctx.db, {
+      workspaceId: membership.workspaceId,
+      workspaceName: workspace.name,
+      actorType: 'user',
+      ...getActorInfo(identity),
+      event: 'workspace.agent_settings_updated',
+      resourceType: 'workspace',
+      resourceId: membership.workspaceId,
+      metadata: JSON.stringify({
+        webSearchEnabled: args.webSearchEnabled,
+        instructionsUpdated: args.encryptedInstructions !== undefined,
+      }),
+    })
+  },
+})
+
+export const getAgentSettingsInternal = internalQuery({
+  args: { workspaceId: v.id('workspaces') },
+  handler: async (ctx, args) => {
+    return ctx.db
+      .query('agentSettings')
+      .withIndex('by_workspaceId', (q) => q.eq('workspaceId', args.workspaceId))
+      .first()
+  },
+})
+
 // --- Internal queries (used by agent actions) ---
 
 export const getAgentEncryptionKey = internalQuery({

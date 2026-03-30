@@ -11,6 +11,7 @@ import {
   Settings,
   Shield,
   ShieldCheck,
+  Sparkles,
   SquareUserRound,
   Sticker,
   Tag,
@@ -184,6 +185,14 @@ export function SettingsSidebar({
                     <Link to="/settings/workspace/rules">
                       <Workflow />
                       <span>Rules</span>
+                    </Link>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
+                <SidebarMenuItem>
+                  <SidebarMenuButton asChild>
+                    <Link to="/settings/workspace/agent">
+                      <Sparkles />
+                      <span>AI & Agents</span>
                     </Link>
                   </SidebarMenuButton>
                 </SidebarMenuItem>

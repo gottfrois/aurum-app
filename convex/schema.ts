@@ -285,6 +285,12 @@ export default defineSchema({
     .index('by_workspaceId_status', ['workspaceId', 'status'])
     .index('by_retainUntil', ['retainUntil']),
 
+  agentSettings: defineTable({
+    workspaceId: v.id('workspaces'),
+    webSearchEnabled: v.boolean(),
+    encryptedInstructions: v.optional(v.string()),
+  }).index('by_workspaceId', ['workspaceId']),
+
   agentThreadMetadata: defineTable({
     workspaceId: v.id('workspaces'),
     threadId: v.string(),

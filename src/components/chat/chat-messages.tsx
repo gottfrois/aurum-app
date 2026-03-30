@@ -63,7 +63,9 @@ export function ChatMessages({
           variant="warning"
           icon={<ShieldAlert className="size-4" />}
         >
-          Conversations are stored unencrypted on our servers.
+          Conversations are stored unencrypted on our servers. Responses may
+          contain mistakes and are for informational purposes only — not
+          financial advice.
         </SystemMessage>
         {messages.map((msg) => (
           <ChatMessageBubble key={msg.key} message={msg} />
