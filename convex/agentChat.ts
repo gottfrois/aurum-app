@@ -9,6 +9,7 @@ import type { ActionCtx } from './_generated/server'
 import { action, internalAction } from './_generated/server'
 import { getWorkspaceDecryptionKey } from './lib/agentDecrypt'
 import {
+  getCashFlow,
   getSpendingSummary,
   listAccounts,
   searchCategories,
@@ -35,6 +36,7 @@ Be concise and helpful. Format currency amounts with the appropriate symbol. Whe
 You have access to tools that can query the user's real financial data. Use them proactively:
 - ALWAYS call searchCategories FIRST before using getSpendingSummary or searchTransactions with a category filter. Pass the user's term (e.g. "restaurants") to find matching category keys (e.g. "food_and_restaurants"). Use the returned key for filtering.
 - Call getSpendingSummary for spending/income questions with date ranges
+- Call getCashFlow for income vs expenses, savings rate, and monthly cash flow breakdown
 - Call searchTransactions to find specific transactions by text or category
 - Call listAccounts to see bank account names and balances
 
@@ -51,6 +53,7 @@ const chatAgent = new Agent(components.agent, {
 /** Base tools always available to the agent. */
 const baseTools = {
   getSpendingSummary,
+  getCashFlow,
   searchTransactions,
   searchCategories,
   searchLabels,

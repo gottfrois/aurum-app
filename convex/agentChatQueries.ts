@@ -260,7 +260,9 @@ export const listTransactionsByDateRange = internalQuery({
           .lte('date', endDate),
       )
       .collect()
-    return results.filter((t) => !t.deleted)
+    return results.filter(
+      (t) => !t.deleted && !t.coming && !t.excludedFromBudget,
+    )
   },
 })
 

@@ -28,6 +28,7 @@ import { api } from '../../../convex/_generated/api'
 /** Map tool names to human-readable labels. */
 const TOOL_LABELS: Record<string, string> = {
   getSpendingSummary: 'Analyzing spending',
+  getCashFlow: 'Analyzing cash flow',
   searchTransactions: 'Searching transactions',
   searchCategories: 'Searching categories',
   searchLabels: 'Searching labels',

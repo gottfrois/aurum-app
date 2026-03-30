@@ -102,7 +102,7 @@ export const getSpendingSummary = createTool({
       internal.agentChatQueries.listCategoriesByWorkspace,
       { workspaceId: threadCtx.workspaceId },
     )
-    const categoryLabelMap = new Map(
+    const categoryLabelMap = new Map<string, string>(
       wsCategories.map((c: { key: string; label: string }) => [c.key, c.label]),
     )
 
@@ -569,5 +569,120 @@ export const listAccounts = createTool({
     )
 
     return { accounts: results }
+  },
+})
+
+export const getCashFlow = createTool({
+  title: 'Get Cash Flow',
+  description:
+    'Get income vs expenses summary for a date range, broken down by month. Returns totals, net cash flow, savings rate, and monthly breakdown. Useful for understanding spending habits and savings trends.',
+  inputSchema: z.object({
+    startDate: z
+      .string()
+      .describe('Start date in YYYY-MM-DD format (inclusive)'),
+    endDate: z.string().describe('End date in YYYY-MM-DD format (inclusive)'),
+    portfolioId: z
+      .string()
+      .optional()
+      .describe(
+        'Specific portfolio ID. If omitted, uses active portfolio context or all.',
+      ),
+  }),
+  execute: async (
+    ctx,
+    input,
+  ): Promise<
+    | {
+        startDate: string
+        endDate: string
+        totalIncome: number
+        totalExpenses: number
+        netCashFlow: number
+        savingsRate: number
+        transactionCount: number
+        byMonth: Array<{
+          month: string
+          income: number
+          expenses: number
+          net: number
+        }>
+      }
+    | { error: string }
+  > => {
+    const threadCtx = await resolveContext(ctx)
+    const wsKey = await getWorkspaceDecryptionKey(ctx, threadCtx.workspaceId)
+    if (!wsKey) return { error: 'Unable to access encrypted data' }
+
+    const portfolioIds = await resolvePortfolioIds(
+      ctx,
+      threadCtx,
+      input.portfolioId,
+    )
+
+    const allTransactions = await Promise.all(
+      portfolioIds.map((pid) =>
+        ctx.runQuery(internal.agentChatQueries.listTransactionsByDateRange, {
+          portfolioId: pid,
+          startDate: input.startDate,
+          endDate: input.endDate,
+        }),
+      ),
+    )
+    const transactions = allTransactions.flat()
+
+    let totalIncome = 0
+    let totalExpenses = 0
+    const byMonth: Record<string, { income: number; expenses: number }> = {}
+
+    for (const tx of transactions) {
+      const financials = await decryptForProfile(
+        tx.encryptedFinancials,
+        wsKey,
+        tx._id,
+        'encryptedFinancials',
+      )
+
+      const value = Number(financials.value) || 0
+      const month = tx.date.slice(0, 7)
+
+      if (!byMonth[month]) {
+        byMonth[month] = { income: 0, expenses: 0 }
+      }
+
+      if (value >= 0) {
+        totalIncome += value
+        byMonth[month].income += value
+      } else {
+        totalExpenses += value
+        byMonth[month].expenses += value
+      }
+    }
+
+    const netCashFlow = totalIncome + totalExpenses
+    const savingsRate =
+      totalIncome > 0
+        ? Math.round((netCashFlow / totalIncome) * 10000) / 100
+        : 0
+
+    // Sort months chronologically
+    const monthlyBreakdown = Object.entries(byMonth)
+      .sort(([a], [b]) => a.localeCompare(b))
+      .map(([month, data]) => ({
+        month,
+        income: Math.round(data.income * 100) / 100,
+        expenses: Math.round(data.expenses * 100) / 100,
+        net: Math.round((data.income + data.expenses) * 100) / 100,
+      }))
+
+    return {
+      startDate: input.startDate,
+      endDate: input.endDate,
+      totalIncome: Math.round(totalIncome * 100) / 100,
+      totalExpenses: Math.round(totalExpenses * 100) / 100,
+      netCashFlow: Math.round(netCashFlow * 100) / 100,
+      savingsRate,
+      transactionCount: transactions.length,
+      byMonth: monthlyBreakdown,
+    }
   },
 })
