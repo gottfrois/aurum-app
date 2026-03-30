@@ -73,6 +73,7 @@ Take inspiration from best-in-class web apps like **Linear** as a general rule. 
 ## Agent Behavior
 
 - Browse the codebase to understand existing patterns before making changes. Don't assume — read the code first.
+- Always use `npm run` scripts (e.g. `npm run check`, `npm run format`) instead of invoking tools directly via `npx` (e.g. `npx biome check`).
 
 ## Conventions
 
