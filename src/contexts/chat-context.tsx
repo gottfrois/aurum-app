@@ -12,6 +12,7 @@ interface ChatState {
   activeThreadId: string | null
   panelMode: ChatPanelMode
   minimizedThreadIds: string[]
+  isCreatingThread: boolean
 }
 
 interface ChatDispatch {
@@ -77,6 +78,7 @@ const DEFAULT_STATE: ChatState = {
   activeThreadId: null,
   panelMode: 'closed',
   minimizedThreadIds: [],
+  isCreatingThread: false,
 }
 
 export function ChatProvider({
@@ -126,6 +128,11 @@ function ConvexChatProvider({
   )
   const dispatch = React.useMemo<ChatDispatch>(() => {
     const openNewChat = () => {
+      setState((prev) => ({
+        ...prev,
+        panelMode: 'popover',
+        isCreatingThread: true,
+      }))
       const portfolioScope = singlePortfolioId
         ? ('portfolio' as const)
         : activePortfolioId === 'team'
@@ -138,7 +145,7 @@ function ConvexChatProvider({
         setState((prev) => ({
           ...prev,
           activeThreadId: threadId,
-          panelMode: 'popover',
+          isCreatingThread: false,
         }))
       })
     }
@@ -257,6 +264,7 @@ function MockChatProvider({
     activeThreadId: mockState.activeThreadId,
     panelMode: mockState.panelMode,
     minimizedThreadIds: mockState.minimizedThreadIds,
+    isCreatingThread: false,
   }
 
   const dispatch = React.useMemo<ChatDispatch>(() => {

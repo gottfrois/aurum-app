@@ -2,6 +2,7 @@ import { ChatHeader } from '~/components/chat/chat-header'
 import { ChatInput } from '~/components/chat/chat-input'
 import { ChatMessages } from '~/components/chat/chat-messages'
 import { MockChatMessages } from '~/components/chat/mock-chat-messages'
+import { Skeleton } from '~/components/ui/skeleton'
 import {
   useActiveThread,
   useChatDispatch,
@@ -12,7 +13,7 @@ import {
 import { cn } from '~/lib/utils'
 
 export function ChatPanel() {
-  const { panelMode, activeThreadId } = useChatState()
+  const { panelMode, activeThreadId, isCreatingThread } = useChatState()
   const dispatch = useChatDispatch()
   const mockState = useMockState()
   const thread = useActiveThread()
@@ -31,10 +32,13 @@ export function ChatPanel() {
   }
 
   // Convex mode
-  if (panelMode === 'closed' || !activeThreadId) return null
+  if (panelMode === 'closed') return null
+  if (!activeThreadId && !isCreatingThread) return null
 
   const title = thread?.title ?? 'New chat'
   const hasMessages = !!thread?.title
+
+  const loadingContent = isCreatingThread && !activeThreadId
 
   if (panelMode === 'expanded') {
     return (
@@ -47,15 +51,20 @@ export function ChatPanel() {
           onCollapse={dispatch.collapseChat}
           onClose={dispatch.closeChat}
         />
-        <ChatMessages
-          threadId={activeThreadId}
-          onSuggestionClick={dispatch.sendMessage}
-        />
+        {loadingContent ? (
+          <ChatPanelSkeleton />
+        ) : (
+          <ChatMessages
+            threadId={activeThreadId!}
+            onSuggestionClick={dispatch.sendMessage}
+          />
+        )}
         <div className="mx-auto w-full max-w-3xl">
           <ChatInput
             onSend={dispatch.sendMessage}
             variant="secondary"
             hasMessages={hasMessages}
+            disabled={loadingContent}
           />
         </div>
       </div>
@@ -79,11 +88,36 @@ export function ChatPanel() {
         onCollapse={dispatch.collapseChat}
         onClose={dispatch.closeChat}
       />
-      <ChatMessages
-        threadId={activeThreadId}
-        onSuggestionClick={dispatch.sendMessage}
+      {loadingContent ? (
+        <ChatPanelSkeleton />
+      ) : (
+        <ChatMessages
+          threadId={activeThreadId!}
+          onSuggestionClick={dispatch.sendMessage}
+        />
+      )}
+      <ChatInput
+        onSend={dispatch.sendMessage}
+        hasMessages={hasMessages}
+        disabled={loadingContent}
       />
-      <ChatInput onSend={dispatch.sendMessage} hasMessages={hasMessages} />
+    </div>
+  )
+}
+
+function ChatPanelSkeleton() {
+  return (
+    <div className="flex flex-1 flex-col items-center justify-center gap-4 p-4">
+      <div className="flex flex-col items-center gap-3">
+        <Skeleton className="size-10 rounded-full" />
+        <Skeleton className="h-5 w-48" />
+        <Skeleton className="h-4 w-36" />
+      </div>
+      <div className="flex flex-wrap justify-center gap-2">
+        <Skeleton className="h-8 w-36 rounded-md" />
+        <Skeleton className="h-8 w-44 rounded-md" />
+        <Skeleton className="h-8 w-40 rounded-md" />
+      </div>
     </div>
   )
 }
