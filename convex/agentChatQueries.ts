@@ -557,6 +557,22 @@ export const deleteThreadMetadata = internalMutation({
   },
 })
 
+export const listAllMetadataThreadIds = internalQuery({
+  args: {},
+  handler: async (ctx) => {
+    const all = await ctx.db.query('agentThreadMetadata').collect()
+    return all.map((meta) => meta.threadId)
+  },
+})
+
+export const listAllMemberUserIds = internalQuery({
+  args: {},
+  handler: async (ctx) => {
+    const members = await ctx.db.query('workspaceMembers').collect()
+    return [...new Set(members.map((m) => m.userId))]
+  },
+})
+
 export const purgeExpiredThreadsForAllWorkspaces = internalAction({
   args: {},
   handler: async (ctx) => {
@@ -579,6 +595,38 @@ export const purgeExpiredThreadsForAllWorkspaces = internalAction({
           id,
         })
       }
+    }
+
+    // Clean up orphaned agent threads (metadata already deleted but agent data remains)
+    const metadataThreadIds = await ctx.runQuery(
+      internal.agentChatQueries.listAllMetadataThreadIds,
+    )
+    const knownThreadIds = new Set(metadataThreadIds)
+
+    const userIds = await ctx.runQuery(
+      internal.agentChatQueries.listAllMemberUserIds,
+    )
+    for (const userId of userIds) {
+      let cursor: string | null = null
+      do {
+        const page: {
+          page: Array<{ _id: string }>
+          continueCursor: string
+          isDone: boolean
+        } = await ctx.runQuery(components.agent.threads.listThreadsByUserId, {
+          userId,
+          paginationOpts: { cursor, numItems: 100 },
+        })
+        for (const thread of page.page) {
+          if (!knownThreadIds.has(thread._id)) {
+            await ctx.runAction(
+              components.agent.threads.deleteAllForThreadIdSync,
+              { threadId: thread._id },
+            )
+          }
+        }
+        cursor = page.isDone ? null : page.continueCursor
+      } while (cursor !== null)
     }
   },
 })
