@@ -82,19 +82,9 @@ export function ChatMessages({
 
   // When all approvals are resolved, trigger continuation
   useEffect(() => {
-    console.log(
-      '[ChatMessages] hasPendingApprovals:',
-      hasPendingApprovals,
-      'ref:',
-      lastApprovalMessageIdRef.current,
-    )
     if (!hasPendingApprovals && lastApprovalMessageIdRef.current) {
       const messageId = lastApprovalMessageIdRef.current
       lastApprovalMessageIdRef.current = null
-      console.log(
-        '[ChatMessages] triggering continuation with messageId:',
-        messageId,
-      )
       void triggerContinuation({ threadId, lastApprovalMessageId: messageId })
     }
   }, [hasPendingApprovals, threadId, triggerContinuation])
@@ -200,26 +190,6 @@ function ChatMessageBubble({
     void navigate({ to: '/transactions' }).then(() => {
       setTimeout(() => dispatchAIFilters(filters), 100)
     })
-  }
-
-  // Debug: log parts structure
-  if (!isUser && parts.length > 0) {
-    console.log(
-      '[ChatMessageBubble] parts:',
-      JSON.stringify(
-        parts.map((p, i) => ({
-          i,
-          type: p.type,
-          ...(p.type === 'text' && 'text' in p
-            ? { text: (p.text as string).slice(0, 80) }
-            : {}),
-          ...('state' in p ? { state: p.state } : {}),
-          ...('toolName' in p ? { toolName: p.toolName } : {}),
-        })),
-        null,
-        2,
-      ),
-    )
   }
 
   // Render parts in chronological order
