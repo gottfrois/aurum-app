@@ -22,12 +22,14 @@ export function useBatchOperationSync() {
   const deleteBatchOp = useMutation(api.batchOperations.deleteBatchOperation)
 
   const syncedOpRef = useRef<Id<'batchOperations'> | null>(null)
+  const handledTerminalRef = useRef<Id<'batchOperations'> | null>(null)
   const deleteTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   useEffect(() => {
     // No active server operation
     if (!activeBatchOp) {
       syncedOpRef.current = null
+      handledTerminalRef.current = null
       return
     }
 
@@ -37,6 +39,11 @@ export function useBatchOperationSync() {
       state.source === 'client' &&
       syncedOpRef.current !== activeBatchOp._id
     ) {
+      return
+    }
+
+    // Already handled this operation's terminal state — don't re-trigger
+    if (handledTerminalRef.current === activeBatchOp._id) {
       return
     }
 
@@ -57,7 +64,7 @@ export function useBatchOperationSync() {
 
     if (activeBatchOp.status === 'complete') {
       complete(activeBatchOp.processed)
-      syncedOpRef.current = null
+      handledTerminalRef.current = activeBatchOp._id
 
       // Clean up the record after the Dynamic Island auto-dismisses
       if (deleteTimerRef.current) clearTimeout(deleteTimerRef.current)
@@ -69,7 +76,7 @@ export function useBatchOperationSync() {
 
     if (activeBatchOp.status === 'error') {
       setError(activeBatchOp.error ?? 'Batch operation failed')
-      syncedOpRef.current = null
+      handledTerminalRef.current = activeBatchOp._id
 
       if (deleteTimerRef.current) clearTimeout(deleteTimerRef.current)
       deleteTimerRef.current = setTimeout(() => {
