@@ -1977,6 +1977,7 @@ export const getTransactionRules = createTool({
     input,
   ): Promise<{
     rules: Array<{
+      id: string
       pattern: string
       matchType: 'contains' | 'regex'
       categoryKey: string | null
@@ -2034,6 +2035,7 @@ export const getTransactionRules = createTool({
 
     const rules = sorted.map(
       (r: {
+        _id: string
         pattern: string
         matchType: 'contains' | 'regex'
         categoryKey?: string
@@ -2045,6 +2047,7 @@ export const getTransactionRules = createTool({
         sortOrder?: number
         createdAt: number
       }) => ({
+        id: r._id,
         pattern: r.pattern,
         matchType: r.matchType,
         categoryKey: r.categoryKey ?? null,
@@ -2595,6 +2598,92 @@ export const createLabel = createTool({
       return {
         error:
           error instanceof Error ? error.message : 'Failed to create label',
+      }
+    }
+  },
+})
+
+export const excludeFromBudget = createTool({
+  title: 'Exclude from Budget',
+  description:
+    'Mark or unmark one or more transactions as excluded from budget calculations. Use searchTransactions first to find the transaction IDs. Useful for internal transfers, reimbursements, or one-off transactions that distort spending analysis.',
+  needsApproval: true,
+  inputSchema: z.object({
+    transactionIds: z
+      .array(z.string())
+      .min(1)
+      .describe('Transaction IDs to update (from searchTransactions results).'),
+    exclude: z
+      .boolean()
+      .describe('true to exclude from budget, false to re-include in budget.'),
+  }),
+  execute: async (
+    ctx,
+    input,
+  ): Promise<{ updated: number; summary: string } | { error: string }> => {
+    // Validate thread context
+    await resolveContext(ctx)
+
+    try {
+      await ctx.runMutation(
+        internal.agentChatQueries.updateTransactionExclusionInternal,
+        {
+          updates: input.transactionIds.map((id) => ({
+            transactionId: id as Id<'transactions'>,
+            excludedFromBudget: input.exclude,
+          })),
+        },
+      )
+
+      const action = input.exclude ? 'excluded from' : 're-included in'
+      return {
+        updated: input.transactionIds.length,
+        summary: `${input.transactionIds.length} transaction${input.transactionIds.length !== 1 ? 's' : ''} ${action} budget.`,
+      }
+    } catch (error) {
+      return {
+        error:
+          error instanceof Error
+            ? error.message
+            : 'Failed to update budget exclusion',
+      }
+    }
+  },
+})
+
+export const deleteTransactionRule = createTool({
+  title: 'Delete Transaction Rule',
+  description:
+    'Delete one or more auto-categorization or labeling rules. Use getTransactionRules first to find the rule IDs. Removing a rule does not undo its past effects on already-categorized transactions.',
+  needsApproval: true,
+  inputSchema: z.object({
+    ruleIds: z
+      .array(z.string())
+      .min(1)
+      .describe('Rule IDs to delete (from getTransactionRules results).'),
+  }),
+  execute: async (
+    ctx,
+    input,
+  ): Promise<{ deleted: number; summary: string } | { error: string }> => {
+    await resolveContext(ctx)
+
+    try {
+      await ctx.runMutation(
+        internal.agentChatQueries.deleteTransactionRulesInternal,
+        {
+          ruleIds: input.ruleIds as Id<'transactionRules'>[],
+        },
+      )
+
+      return {
+        deleted: input.ruleIds.length,
+        summary: `Deleted ${input.ruleIds.length} rule${input.ruleIds.length !== 1 ? 's' : ''}. Previously categorized transactions are not affected.`,
+      }
+    } catch (error) {
+      return {
+        error:
+          error instanceof Error ? error.message : 'Failed to delete rules',
       }
     }
   },

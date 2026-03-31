@@ -475,6 +475,34 @@ export const updateTransactionLabelsInternal = internalMutation({
   },
 })
 
+export const deleteTransactionRulesInternal = internalMutation({
+  args: {
+    ruleIds: v.array(v.id('transactionRules')),
+  },
+  handler: async (ctx, { ruleIds }) => {
+    for (const ruleId of ruleIds) {
+      const rule = await ctx.db.get(ruleId)
+      if (rule) await ctx.db.delete(ruleId)
+    }
+  },
+})
+
+export const updateTransactionExclusionInternal = internalMutation({
+  args: {
+    updates: v.array(
+      v.object({
+        transactionId: v.id('transactions'),
+        excludedFromBudget: v.boolean(),
+      }),
+    ),
+  },
+  handler: async (ctx, { updates }) => {
+    for (const { transactionId, excludedFromBudget } of updates) {
+      await ctx.db.patch(transactionId, { excludedFromBudget })
+    }
+  },
+})
+
 export const createLabelInternal = internalMutation({
   args: {
     workspaceId: v.id('workspaces'),

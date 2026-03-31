@@ -51,6 +51,8 @@ const TOOL_LABELS: Record<string, string> = {
   updateTransactionCategory: 'Updating transaction categories',
   updateTransactionLabels: 'Updating transaction labels',
   createLabel: 'Creating label',
+  deleteTransactionRule: 'Deleting transaction rule',
+  excludeFromBudget: 'Updating budget exclusion',
   findSavingsOpportunities: 'Finding savings opportunities',
   web_search: 'Searching the web',
 }

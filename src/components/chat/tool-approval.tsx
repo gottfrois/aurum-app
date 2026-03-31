@@ -48,6 +48,14 @@ function formatCreateLabelSummary(input: Record<string, unknown>): string {
   return `Create label "${name ?? 'unknown'}"${scope ? ` (${scope})` : ''}`
 }
 
+function formatExclusionSummary(input: Record<string, unknown>): string {
+  const ids = input.transactionIds as string[] | undefined
+  const count = ids?.length ?? 0
+  const exclude = input.exclude as boolean
+  const action = exclude ? 'Exclude' : 'Re-include'
+  return `${action} ${count} transaction${count !== 1 ? 's' : ''} ${exclude ? 'from' : 'in'} budget`
+}
+
 const TOOL_SUMMARIES: Record<
   string,
   (input: Record<string, unknown>) => string
@@ -56,6 +64,11 @@ const TOOL_SUMMARIES: Record<
   updateTransactionCategory: formatCategorySummary,
   updateTransactionLabels: formatLabelSummary,
   createLabel: formatCreateLabelSummary,
+  deleteTransactionRule: (input) => {
+    const count = (input.ruleIds as string[] | undefined)?.length ?? 0
+    return `Delete ${count} transaction rule${count !== 1 ? 's' : ''}`
+  },
+  excludeFromBudget: formatExclusionSummary,
 }
 
 interface ToolApprovalProps {
