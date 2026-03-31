@@ -2709,3 +2709,38 @@ export const deleteTransactionRule = createTool({
     }
   },
 })
+
+export const deleteLabel = createTool({
+  title: 'Delete Label',
+  description:
+    'Delete one or more transaction labels by their IDs. Use searchLabels first to find the label IDs. Removing a label also removes it from any transactions that have it.',
+  needsApproval: true,
+  inputSchema: z.object({
+    labelIds: z
+      .array(z.string())
+      .min(1)
+      .describe('Label IDs to delete (from searchLabels results).'),
+  }),
+  execute: async (
+    ctx,
+    input,
+  ): Promise<{ deleted: number; summary: string } | { error: string }> => {
+    await resolveContext(ctx)
+
+    try {
+      await ctx.runMutation(internal.agentChatQueries.deleteLabelsInternal, {
+        labelIds: input.labelIds as Id<'transactionLabels'>[],
+      })
+
+      return {
+        deleted: input.labelIds.length,
+        summary: `Deleted ${input.labelIds.length} label${input.labelIds.length !== 1 ? 's' : ''}.`,
+      }
+    } catch (error) {
+      return {
+        error:
+          error instanceof Error ? error.message : 'Failed to delete labels',
+      }
+    }
+  },
+})

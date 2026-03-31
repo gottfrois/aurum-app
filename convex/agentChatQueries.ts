@@ -498,6 +498,18 @@ export const deleteTransactionRulesInternal = internalMutation({
   },
 })
 
+export const deleteLabelsInternal = internalMutation({
+  args: {
+    labelIds: v.array(v.id('transactionLabels')),
+  },
+  handler: async (ctx, { labelIds }) => {
+    for (const labelId of labelIds) {
+      const label = await ctx.db.get(labelId)
+      if (label) await ctx.db.delete(labelId)
+    }
+  },
+})
+
 export const createLabelInternal = internalMutation({
   args: {
     workspaceId: v.id('workspaces'),
@@ -520,30 +532,28 @@ export const createLabelInternal = internalMutation({
 
 // --- Thread cleanup ---
 
-export const purgeExpiredThreads = internalMutation({
+export const listExpiredThreads = internalQuery({
   args: {
     workspaceId: v.id('workspaces'),
     retentionDays: v.number(),
   },
   handler: async (ctx, { workspaceId, retentionDays }) => {
     const cutoff = Date.now() - retentionDays * 24 * 60 * 60 * 1000
-    const expired = await ctx.db
+    const all = await ctx.db
       .query('agentThreadMetadata')
       .withIndex('by_workspaceId', (q) => q.eq('workspaceId', workspaceId))
       .collect()
 
-    let deleted = 0
-    for (const meta of expired) {
-      if (meta.createdAt < cutoff) {
-        await ctx.db.delete(meta._id)
-        await ctx.runMutation(
-          components.agent.threads.deleteAllForThreadIdAsync,
-          { threadId: meta.threadId },
-        )
-        deleted++
-      }
-    }
-    return { deleted }
+    return all
+      .filter((meta) => meta.createdAt < cutoff)
+      .map((meta) => ({ id: meta._id, threadId: meta.threadId }))
+  },
+})
+
+export const deleteThreadMetadata = internalMutation({
+  args: { id: v.id('agentThreadMetadata') },
+  handler: async (ctx, { id }) => {
+    await ctx.db.delete(id)
   },
 })
 
@@ -554,10 +564,21 @@ export const purgeExpiredThreadsForAllWorkspaces = internalAction({
       internal.agentChatQueries.listWorkspacesWithAgent,
     )
     for (const ws of workspaces) {
-      await ctx.runMutation(internal.agentChatQueries.purgeExpiredThreads, {
-        workspaceId: ws.workspaceId,
-        retentionDays: ws.retentionDays,
-      })
+      const expired = await ctx.runQuery(
+        internal.agentChatQueries.listExpiredThreads,
+        {
+          workspaceId: ws.workspaceId,
+          retentionDays: ws.retentionDays,
+        },
+      )
+      for (const { id, threadId } of expired) {
+        await ctx.runAction(components.agent.threads.deleteAllForThreadIdSync, {
+          threadId,
+        })
+        await ctx.runMutation(internal.agentChatQueries.deleteThreadMetadata, {
+          id,
+        })
+      }
     }
   },
 })

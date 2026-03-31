@@ -12,6 +12,7 @@ import {
   comparePeriodSpending,
   createLabel,
   createTransactionRule,
+  deleteLabel,
   deleteTransactionRule,
   findAnomalies,
   findSavingsOpportunities,
@@ -66,6 +67,7 @@ You have access to tools that can query the user's real financial data. Use them
 - Call updateTransactionLabels to add or remove labels on transactions. Use searchTransactions first to find IDs (results include current labelIds), then searchLabels to resolve label IDs. This tool has approval UI — call it directly.
 - Call createLabel to create a new transaction label. Use searchLabels first to check for duplicates. The label is scoped to the active portfolio or workspace based on context. This tool has approval UI — call it directly.
 - Call deleteTransactionRule to remove rules by ID. Use getTransactionRules first to find rule IDs. This tool has approval UI — call it directly.
+- Call deleteLabel to remove labels by ID. Use searchLabels first to find label IDs. This tool has approval UI — call it directly.
 - After presenting analysis results, call viewTransactions to offer the user a clickable link to see the matching transactions with pre-filled filters. Do NOT add any text about clicking the button — the UI renders it automatically.
 
 Always use YYYY-MM-DD format for dates. For write tools with approval, call the tool directly — do NOT ask "shall I proceed?" or similar. The approval UI handles confirmation.`
@@ -91,6 +93,7 @@ const baseTools = {
   comparePeriodSpending,
   createLabel,
   createTransactionRule,
+  deleteLabel,
   deleteTransactionRule,
   saveTransaction,
   updateTransactionLabels,

@@ -64,6 +64,10 @@ const TOOL_SUMMARIES: Record<
   updateTransactionCategory: formatCategorySummary,
   updateTransactionLabels: formatLabelSummary,
   createLabel: formatCreateLabelSummary,
+  deleteLabel: (input) => {
+    const count = (input.labelIds as string[] | undefined)?.length ?? 0
+    return `Delete ${count} label${count !== 1 ? 's' : ''}`
+  },
   deleteTransactionRule: (input) => {
     const count = (input.ruleIds as string[] | undefined)?.length ?? 0
     return `Delete ${count} transaction rule${count !== 1 ? 's' : ''}`
