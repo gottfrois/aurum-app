@@ -23,6 +23,9 @@ export type ToolPart = {
     | 'input-available'
     | 'output-available'
     | 'output-error'
+    | 'output-denied'
+    | 'approval-requested'
+    | 'approval-responded'
   input?: Record<string, unknown>
   output?: Record<string, unknown>
   toolCallId?: string
@@ -50,6 +53,8 @@ const Tool = ({ toolPart, defaultOpen = false, className }: ToolProps) => {
         return <CheckCircle className="h-4 w-4 text-green-500" />
       case 'output-error':
         return <XCircle className="h-4 w-4 text-red-500" />
+      case 'output-denied':
+        return <XCircle className="h-4 w-4 text-orange-500" />
       default:
         return <Settings className="text-muted-foreground h-4 w-4" />
     }
@@ -100,6 +105,17 @@ const Tool = ({ toolPart, defaultOpen = false, className }: ToolProps) => {
             )}
           >
             Error
+          </span>
+        )
+      case 'output-denied':
+        return (
+          <span
+            className={cn(
+              baseClasses,
+              'bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-400',
+            )}
+          >
+            Rejected
           </span>
         )
       default:
