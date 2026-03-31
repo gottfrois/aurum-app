@@ -21,11 +21,19 @@ function formatRuleSummary(input: Record<string, unknown>): string {
   return parts.join(' → ')
 }
 
+function formatCategorySummary(input: Record<string, unknown>): string {
+  const ids = input.transactionIds as string[] | undefined
+  const count = ids?.length ?? 0
+  const category = input.categoryKey as string | undefined
+  return `Recategorize ${count} transaction${count !== 1 ? 's' : ''} as "${category ?? 'unknown'}"`
+}
+
 const TOOL_SUMMARIES: Record<
   string,
   (input: Record<string, unknown>) => string
 > = {
   createTransactionRule: formatRuleSummary,
+  updateTransactionCategory: formatCategorySummary,
 }
 
 interface ToolApprovalProps {

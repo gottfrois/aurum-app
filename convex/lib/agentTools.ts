@@ -6,7 +6,11 @@ import { internal } from '../_generated/api'
 import type { Id } from '../_generated/dataModel'
 import type { ActionCtx } from '../_generated/server'
 import { getWorkspaceDecryptionKey } from './agentDecrypt'
-import { decryptFieldGroups, decryptForProfile } from './serverCrypto'
+import {
+  decryptFieldGroups,
+  decryptForProfile,
+  encryptForProfile,
+} from './serverCrypto'
 
 // --- Helpers ---
 
@@ -332,6 +336,7 @@ export const searchTransactions = createTool({
 
     const maxResults = Math.min(input.limit ?? 20, 50)
     const results: Array<{
+      id: string
       date: string
       description: string
       amount: number
@@ -393,6 +398,7 @@ export const searchTransactions = createTool({
       }
 
       results.push({
+        id: tx._id,
         date: tx.date,
         description:
           (decrypted.customDescription as string) ||
@@ -2338,6 +2344,97 @@ export const createTransactionRule = createTool({
     } catch (error) {
       return {
         error: error instanceof Error ? error.message : 'Failed to create rule',
+      }
+    }
+  },
+})
+
+export const updateTransactionCategory = createTool({
+  title: 'Update Transaction Category',
+  description:
+    'Recategorize one or more transactions by their IDs. Use searchTransactions first to find the transaction IDs, then searchCategories to resolve the correct category key. Enables bulk recategorization like "mark all Carrefour transactions as groceries".',
+  needsApproval: true,
+  inputSchema: z.object({
+    transactionIds: z
+      .array(z.string())
+      .min(1)
+      .describe(
+        'Transaction IDs to recategorize (from searchTransactions results).',
+      ),
+    categoryKey: z
+      .string()
+      .describe(
+        'New category key to assign (from searchCategories). Required.',
+      ),
+  }),
+  execute: async (
+    ctx,
+    input,
+  ): Promise<{ updated: number; summary: string } | { error: string }> => {
+    const threadCtx = await resolveContext(ctx)
+    const wsKey = await getWorkspaceDecryptionKey(ctx, threadCtx.workspaceId)
+    if (!wsKey) return { error: 'Unable to access encrypted data' }
+
+    const publicKey = (await ctx.runQuery(
+      internal.agentChatQueries.getWorkspacePublicKey,
+      { workspaceId: threadCtx.workspaceId },
+    )) as string | null
+    if (!publicKey) return { error: 'Workspace encryption not configured' }
+
+    try {
+      const updates: Array<{
+        transactionId: Id<'transactions'>
+        encryptedCategories: string
+      }> = []
+
+      for (const txId of input.transactionIds) {
+        const transactions = await ctx.runQuery(
+          internal.agentChatQueries.getTransactionById,
+          { transactionId: txId as Id<'transactions'> },
+        )
+        if (!transactions) continue
+
+        // Decrypt current categories, update userCategoryKey, re-encrypt
+        const categories = await decryptForProfile(
+          transactions.encryptedCategories,
+          wsKey,
+          txId,
+          'encryptedCategories',
+        )
+        categories.userCategoryKey = input.categoryKey
+
+        const encrypted = await encryptForProfile(
+          categories,
+          publicKey,
+          txId,
+          'encryptedCategories',
+        )
+
+        updates.push({
+          transactionId: txId as Id<'transactions'>,
+          encryptedCategories: encrypted,
+        })
+      }
+
+      if (updates.length === 0) {
+        return { error: 'No valid transactions found for the given IDs' }
+      }
+
+      await ctx.runMutation(
+        internal.agentChatQueries.updateTransactionCategoriesInternal,
+        { updates },
+      )
+
+      return {
+        updated: updates.length,
+        summary: `Updated ${updates.length} transaction${updates.length > 1 ? 's' : ''} to category "${input.categoryKey}".`,
+      }
+    } catch (error) {
+      return {
+        error:
+          error instanceof Error
+            ? error.message
+            : 'Failed to update categories',
       }
     }
   },

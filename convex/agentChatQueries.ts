@@ -425,6 +425,40 @@ export const listRulesByWorkspace = internalQuery({
   },
 })
 
+export const getTransactionById = internalQuery({
+  args: { transactionId: v.id('transactions') },
+  handler: async (ctx, { transactionId }) => {
+    return ctx.db.get(transactionId)
+  },
+})
+
+export const getWorkspacePublicKey = internalQuery({
+  args: { workspaceId: v.id('workspaces') },
+  handler: async (ctx, { workspaceId }) => {
+    const wsEnc = await ctx.db
+      .query('workspaceEncryption')
+      .withIndex('by_workspaceId', (q) => q.eq('workspaceId', workspaceId))
+      .first()
+    return wsEnc?.publicKey ?? null
+  },
+})
+
+export const updateTransactionCategoriesInternal = internalMutation({
+  args: {
+    updates: v.array(
+      v.object({
+        transactionId: v.id('transactions'),
+        encryptedCategories: v.string(),
+      }),
+    ),
+  },
+  handler: async (ctx, { updates }) => {
+    for (const { transactionId, encryptedCategories } of updates) {
+      await ctx.db.patch(transactionId, { encryptedCategories })
+    }
+  },
+})
+
 // --- Thread cleanup ---
 
 export const purgeExpiredThreads = internalMutation({
