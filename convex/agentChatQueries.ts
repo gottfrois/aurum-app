@@ -443,18 +443,29 @@ export const getWorkspacePublicKey = internalQuery({
   },
 })
 
-export const updateTransactionCategoriesInternal = internalMutation({
+export const saveTransactionInternal = internalMutation({
   args: {
     updates: v.array(
       v.object({
         transactionId: v.id('transactions'),
-        encryptedCategories: v.string(),
+        encryptedCategories: v.optional(v.string()),
+        encryptedDetails: v.optional(v.string()),
+        excludedFromBudget: v.optional(v.boolean()),
       }),
     ),
   },
   handler: async (ctx, { updates }) => {
-    for (const { transactionId, encryptedCategories } of updates) {
-      await ctx.db.patch(transactionId, { encryptedCategories })
+    for (const { transactionId, ...fields } of updates) {
+      const patch: Record<string, unknown> = {}
+      if (fields.encryptedCategories !== undefined)
+        patch.encryptedCategories = fields.encryptedCategories
+      if (fields.encryptedDetails !== undefined)
+        patch.encryptedDetails = fields.encryptedDetails
+      if (fields.excludedFromBudget !== undefined)
+        patch.excludedFromBudget = fields.excludedFromBudget
+      if (Object.keys(patch).length > 0) {
+        await ctx.db.patch(transactionId, patch)
+      }
     }
   },
 })
@@ -483,22 +494,6 @@ export const deleteTransactionRulesInternal = internalMutation({
     for (const ruleId of ruleIds) {
       const rule = await ctx.db.get(ruleId)
       if (rule) await ctx.db.delete(ruleId)
-    }
-  },
-})
-
-export const updateTransactionExclusionInternal = internalMutation({
-  args: {
-    updates: v.array(
-      v.object({
-        transactionId: v.id('transactions'),
-        excludedFromBudget: v.boolean(),
-      }),
-    ),
-  },
-  handler: async (ctx, { updates }) => {
-    for (const { transactionId, excludedFromBudget } of updates) {
-      await ctx.db.patch(transactionId, { excludedFromBudget })
     }
   },
 })

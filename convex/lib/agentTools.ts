@@ -2354,92 +2354,161 @@ export const createTransactionRule = createTool({
   },
 })
 
-export const updateTransactionCategory = createTool({
-  title: 'Update Transaction Category',
+export const saveTransaction = createTool({
+  title: 'Save Transaction',
   description:
-    'Recategorize one or more transactions by their IDs. Use searchTransactions first to find the transaction IDs, then searchCategories to resolve the correct category key. Enables bulk recategorization like "mark all Carrefour transactions as groceries".',
+    'Update one or more transactions by their IDs. Supports changing category, custom name, and budget exclusion in a single call. Use searchTransactions first to find IDs, and searchCategories to resolve category keys. This tool has approval UI — call it directly without asking for confirmation.',
   needsApproval: true,
   inputSchema: z.object({
     transactionIds: z
       .array(z.string())
       .min(1)
-      .describe(
-        'Transaction IDs to recategorize (from searchTransactions results).',
-      ),
+      .describe('Transaction IDs to update (from searchTransactions results).'),
     categoryKey: z
       .string()
+      .optional()
       .describe(
-        'New category key to assign (from searchCategories). Required.',
+        'New category key to assign (from searchCategories). Call searchCategories first to resolve the correct key.',
+      ),
+    customName: z
+      .string()
+      .optional()
+      .describe(
+        'Custom display name for the transaction(s). Replaces the bank-provided description with a user-friendly name.',
+      ),
+    excludedFromBudget: z
+      .boolean()
+      .optional()
+      .describe(
+        'true to exclude from budget calculations, false to re-include. Useful for internal transfers, reimbursements, or one-off transactions.',
       ),
   }),
   execute: async (
     ctx,
     input,
   ): Promise<{ updated: number; summary: string } | { error: string }> => {
-    const threadCtx = await resolveContext(ctx)
-    const wsKey = await getWorkspaceDecryptionKey(ctx, threadCtx.workspaceId)
-    if (!wsKey) return { error: 'Unable to access encrypted data' }
+    if (
+      input.categoryKey === undefined &&
+      input.customName === undefined &&
+      input.excludedFromBudget === undefined
+    ) {
+      return {
+        error:
+          'Provide at least one field to update: categoryKey, customName, or excludedFromBudget',
+      }
+    }
 
-    const publicKey = (await ctx.runQuery(
-      internal.agentChatQueries.getWorkspacePublicKey,
-      { workspaceId: threadCtx.workspaceId },
-    )) as string | null
-    if (!publicKey) return { error: 'Workspace encryption not configured' }
+    const threadCtx = await resolveContext(ctx)
+
+    // Only need encryption keys if updating encrypted fields
+    const needsEncryption =
+      input.categoryKey !== undefined || input.customName !== undefined
+    let wsKey: Uint8Array | null = null
+    let publicKey: string | null = null
+
+    if (needsEncryption) {
+      wsKey = await getWorkspaceDecryptionKey(ctx, threadCtx.workspaceId)
+      if (!wsKey) return { error: 'Unable to access encrypted data' }
+
+      publicKey = (await ctx.runQuery(
+        internal.agentChatQueries.getWorkspacePublicKey,
+        { workspaceId: threadCtx.workspaceId },
+      )) as string | null
+      if (!publicKey) return { error: 'Workspace encryption not configured' }
+    }
 
     try {
       const updates: Array<{
         transactionId: Id<'transactions'>
-        encryptedCategories: string
+        encryptedCategories?: string
+        encryptedDetails?: string
+        excludedFromBudget?: boolean
       }> = []
 
       for (const txId of input.transactionIds) {
-        const transactions = await ctx.runQuery(
+        const tx = await ctx.runQuery(
           internal.agentChatQueries.getTransactionById,
           { transactionId: txId as Id<'transactions'> },
         )
-        if (!transactions) continue
+        if (!tx) continue
 
-        // Decrypt current categories, update userCategoryKey, re-encrypt
-        const categories = await decryptForProfile(
-          transactions.encryptedCategories,
-          wsKey,
-          txId,
-          'encryptedCategories',
-        )
-        categories.userCategoryKey = input.categoryKey
-
-        const encrypted = await encryptForProfile(
-          categories,
-          publicKey,
-          txId,
-          'encryptedCategories',
-        )
-
-        updates.push({
+        const update: (typeof updates)[number] = {
           transactionId: txId as Id<'transactions'>,
-          encryptedCategories: encrypted,
-        })
+        }
+
+        // Update category (encrypted field)
+        if (input.categoryKey !== undefined && wsKey && publicKey) {
+          const categories = await decryptForProfile(
+            tx.encryptedCategories,
+            wsKey,
+            txId,
+            'encryptedCategories',
+          )
+          categories.userCategoryKey = input.categoryKey
+          update.encryptedCategories = await encryptForProfile(
+            categories,
+            publicKey,
+            txId,
+            'encryptedCategories',
+          )
+        }
+
+        // Update custom name (encrypted field inside encryptedDetails)
+        if (input.customName !== undefined && wsKey && publicKey) {
+          const details = await decryptForProfile(
+            tx.encryptedDetails,
+            wsKey,
+            txId,
+            'encryptedDetails',
+          )
+          details.customDescription = input.customName
+          update.encryptedDetails = await encryptForProfile(
+            details,
+            publicKey,
+            txId,
+            'encryptedDetails',
+          )
+        }
+
+        // Update budget exclusion (plain field)
+        if (input.excludedFromBudget !== undefined) {
+          update.excludedFromBudget = input.excludedFromBudget
+        }
+
+        updates.push(update)
       }
 
       if (updates.length === 0) {
         return { error: 'No valid transactions found for the given IDs' }
       }
 
-      await ctx.runMutation(
-        internal.agentChatQueries.updateTransactionCategoriesInternal,
-        { updates },
-      )
+      await ctx.runMutation(internal.agentChatQueries.saveTransactionInternal, {
+        updates,
+      })
+
+      // Build summary of what changed
+      const parts: string[] = []
+      if (input.categoryKey !== undefined)
+        parts.push(`category → "${input.categoryKey}"`)
+      if (input.customName !== undefined)
+        parts.push(`name → "${input.customName}"`)
+      if (input.excludedFromBudget !== undefined)
+        parts.push(
+          input.excludedFromBudget
+            ? 'excluded from budget'
+            : 're-included in budget',
+        )
 
       return {
         updated: updates.length,
-        summary: `Updated ${updates.length} transaction${updates.length > 1 ? 's' : ''} to category "${input.categoryKey}".`,
+        summary: `Updated ${updates.length} transaction${updates.length > 1 ? 's' : ''}: ${parts.join(', ')}.`,
       }
     } catch (error) {
       return {
         error:
           error instanceof Error
             ? error.message
-            : 'Failed to update categories',
+            : 'Failed to update transactions',
       }
     }
   },
@@ -2598,54 +2667,6 @@ export const createLabel = createTool({
       return {
         error:
           error instanceof Error ? error.message : 'Failed to create label',
-      }
-    }
-  },
-})
-
-export const excludeFromBudget = createTool({
-  title: 'Exclude from Budget',
-  description:
-    'Mark or unmark one or more transactions as excluded from budget calculations. Use searchTransactions first to find the transaction IDs. Useful for internal transfers, reimbursements, or one-off transactions that distort spending analysis.',
-  needsApproval: true,
-  inputSchema: z.object({
-    transactionIds: z
-      .array(z.string())
-      .min(1)
-      .describe('Transaction IDs to update (from searchTransactions results).'),
-    exclude: z
-      .boolean()
-      .describe('true to exclude from budget, false to re-include in budget.'),
-  }),
-  execute: async (
-    ctx,
-    input,
-  ): Promise<{ updated: number; summary: string } | { error: string }> => {
-    // Validate thread context
-    await resolveContext(ctx)
-
-    try {
-      await ctx.runMutation(
-        internal.agentChatQueries.updateTransactionExclusionInternal,
-        {
-          updates: input.transactionIds.map((id) => ({
-            transactionId: id as Id<'transactions'>,
-            excludedFromBudget: input.exclude,
-          })),
-        },
-      )
-
-      const action = input.exclude ? 'excluded from' : 're-included in'
-      return {
-        updated: input.transactionIds.length,
-        summary: `${input.transactionIds.length} transaction${input.transactionIds.length !== 1 ? 's' : ''} ${action} budget.`,
-      }
-    } catch (error) {
-      return {
-        error:
-          error instanceof Error
-            ? error.message
-            : 'Failed to update budget exclusion',
       }
     }
   },
