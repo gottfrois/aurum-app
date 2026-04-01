@@ -167,6 +167,57 @@ function SankeyTooltipContent({
   )
 }
 
+function renderSankeyLink(props: {
+  sourceX: number
+  sourceY: number
+  sourceControlX: number
+  targetX: number
+  targetY: number
+  targetControlX: number
+  linkWidth: number
+  index: number
+  payload: SankeyLink & { source?: SankeyNode; target?: SankeyNode }
+}) {
+  const {
+    sourceX,
+    sourceY,
+    sourceControlX,
+    targetX,
+    targetY,
+    targetControlX,
+    linkWidth,
+    index,
+    payload,
+  } = props
+  const gradientId = `sankey-gradient-${index}`
+  const color = payload.stroke ?? 'var(--color-primary)'
+
+  return (
+    <Layer key={`link-${index}`}>
+      <defs>
+        <linearGradient
+          id={gradientId}
+          gradientUnits="userSpaceOnUse"
+          x1={sourceX}
+          y1={0}
+          x2={targetX}
+          y2={0}
+        >
+          <stop offset="0%" stopColor={color} stopOpacity={0.15} />
+          <stop offset="50%" stopColor={color} stopOpacity={0.3} />
+          <stop offset="100%" stopColor={color} stopOpacity={0.15} />
+        </linearGradient>
+      </defs>
+      <path
+        d={`M${sourceX},${sourceY} C${sourceControlX},${sourceY} ${targetControlX},${targetY} ${targetX},${targetY}`}
+        fill="none"
+        stroke={`url(#${gradientId})`}
+        strokeWidth={linkWidth}
+      />
+    </Layer>
+  )
+}
+
 export function SankeyChart({
   nodes,
   links,
@@ -212,7 +263,7 @@ export function SankeyChart({
                   onLabelClick={onLabelClick}
                 />
               }
-              link={{ fill: 'none', strokeOpacity: 0.3 }}
+              link={renderSankeyLink}
             >
               <Tooltip
                 content={
