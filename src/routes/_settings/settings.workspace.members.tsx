@@ -2,7 +2,7 @@ import * as Sentry from '@sentry/tanstackstart-react'
 import { createFileRoute } from '@tanstack/react-router'
 import type { ColumnDef } from '@tanstack/react-table'
 import { useAction, useMutation, useQuery } from 'convex/react'
-import { Bot, Ellipsis, Mail, UserX, X } from 'lucide-react'
+import { Bot, Ellipsis, Mail, UserX } from 'lucide-react'
 import { useCallback, useEffect, useState } from 'react'
 import { useHotkeys } from 'react-hotkeys-hook'
 import { useTranslation } from 'react-i18next'
@@ -30,10 +30,10 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '~/components/ui/dropdown-menu'
-import { Input } from '~/components/ui/input'
 import { HotkeyDisplay, Kbd } from '~/components/ui/kbd'
 import { PageHeader } from '~/components/ui/page-header'
 import { Skeleton } from '~/components/ui/skeleton'
+import { Textarea } from '~/components/ui/textarea'
 import { useEncryption } from '~/contexts/encryption-context'
 import { encryptString, importPublicKey } from '~/lib/crypto'
 import { api } from '../../../convex/_generated/api'
@@ -620,6 +620,15 @@ function GrantAccessButton({
 
 // --- Invite Dialog ---
 
+const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+
+function parseEmails(input: string): Array<string> {
+  return input
+    .split(/[,\n]+/)
+    .map((e) => e.trim().toLowerCase())
+    .filter(Boolean)
+}
+
 function InviteDialog({
   existingEmails = [],
   atSeatLimit = false,
@@ -630,41 +639,62 @@ function InviteDialog({
   const { t } = useTranslation()
   const sendInvitation = useAction(api.members.sendInvitation)
   const [open, setOpen] = useState(false)
-  const [emailInput, setEmailInput] = useState('')
-  const [emails, setEmails] = useState<Array<string>>([])
+  const [input, setInput] = useState('')
+  const [errors, setErrors] = useState<Array<string>>([])
   const [sending, setSending] = useState(false)
 
-  function addEmail() {
-    const trimmed = emailInput.trim().toLowerCase()
-    if (!trimmed) return
-    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(trimmed)) {
-      toast.error(t('toast.invalidEmail'))
-      return
-    }
-    if (emails.includes(trimmed)) {
-      toast.error(t('toast.emailAlreadyAdded'))
-      return
-    }
-    if (existingEmails.includes(trimmed)) {
-      toast.error(t('toast.alreadyMemberOrInvited'))
-      return
-    }
-    setEmails((prev) => [...prev, trimmed])
-    setEmailInput('')
-  }
+  const hasInput = input.trim().length > 0
 
-  function removeEmail(email: string) {
-    setEmails((prev) => prev.filter((e) => e !== email))
+  function validate(): Array<string> | null {
+    const parsed = parseEmails(input)
+    if (parsed.length === 0) return null
+
+    const validationErrors: Array<string> = []
+    const seen = new Set<string>()
+    const validEmails: Array<string> = []
+
+    for (const email of parsed) {
+      if (!EMAIL_REGEX.test(email)) {
+        validationErrors.push(
+          t('settings.members.invalidEmailError', { email }),
+        )
+        continue
+      }
+      if (seen.has(email)) {
+        validationErrors.push(
+          t('settings.members.duplicateEmailError', { email }),
+        )
+        continue
+      }
+      if (existingEmails.includes(email)) {
+        validationErrors.push(
+          t('settings.members.alreadyMemberError', { email }),
+        )
+        continue
+      }
+      seen.add(email)
+      validEmails.push(email)
+    }
+
+    if (validationErrors.length > 0) {
+      setErrors(validationErrors)
+      return null
+    }
+
+    setErrors([])
+    return validEmails
   }
 
   async function handleSend() {
-    if (emails.length === 0) return
+    const emails = validate()
+    if (!emails) return
+
     setSending(true)
     try {
       await sendInvitation({ emails })
       toast.success(t('toast.invitationSent', { count: emails.length }))
-      setEmails([])
-      setEmailInput('')
+      setInput('')
+      setErrors([])
       setOpen(false)
     } catch (error) {
       Sentry.captureException(error)
@@ -674,8 +704,16 @@ function InviteDialog({
     }
   }
 
+  function handleOpenChange(nextOpen: boolean) {
+    setOpen(nextOpen)
+    if (!nextOpen) {
+      setInput('')
+      setErrors([])
+    }
+  }
+
   return (
-    <Dialog open={open} onOpenChange={setOpen}>
+    <Dialog open={open} onOpenChange={handleOpenChange}>
       <DialogTrigger asChild>
         <Button size="sm" disabled={atSeatLimit}>
           {atSeatLimit
@@ -690,46 +728,30 @@ function InviteDialog({
             {t('settings.members.inviteMembersDescription')}
           </DialogDescription>
         </DialogHeader>
-        <div className="space-y-4">
-          <div className="flex gap-2">
-            <Input
-              placeholder={t('settings.members.emailPlaceholder')}
-              value={emailInput}
-              onChange={(e) => setEmailInput(e.target.value)}
-              onKeyDown={(e) => {
-                if (e.key === 'Enter') {
-                  e.preventDefault()
-                  addEmail()
-                }
-              }}
-            />
-            <Button variant="outline" onClick={addEmail}>
-              {t('settings.members.add')}
-            </Button>
-          </div>
-          {emails.length > 0 && (
-            <div className="flex flex-wrap gap-2">
-              {emails.map((email) => (
-                <Badge key={email} variant="secondary" className="gap-1 pr-1">
-                  {email}
-                  <button
-                    type="button"
-                    onClick={() => removeEmail(email)}
-                    className="rounded-sm hover:bg-muted"
-                  >
-                    <X className="size-3" />
-                  </button>
-                </Badge>
+        <div className="space-y-2">
+          <Textarea
+            placeholder={t('settings.members.emailsPlaceholder')}
+            value={input}
+            onChange={(e) => {
+              setInput(e.target.value)
+              if (errors.length > 0) setErrors([])
+            }}
+            aria-invalid={errors.length > 0}
+            rows={3}
+          />
+          {errors.length > 0 && (
+            <ul className="space-y-1 text-destructive text-sm">
+              {errors.map((error) => (
+                <li key={error}>{error}</li>
               ))}
-            </div>
+            </ul>
           )}
         </div>
         <InviteFooter
           onCancel={() => setOpen(false)}
           onConfirm={handleSend}
-          disabled={emails.length === 0 || sending}
+          disabled={!hasInput || sending}
           sending={sending}
-          count={emails.length}
         />
       </DialogContent>
     </Dialog>
@@ -741,13 +763,11 @@ function InviteFooter({
   onConfirm,
   disabled,
   sending,
-  count,
 }: {
   onCancel: () => void
   onConfirm: () => void
   disabled: boolean
   sending: boolean
-  count: number
 }) {
   const { t } = useTranslation()
   const handleConfirm = useCallback(() => {
@@ -771,7 +791,7 @@ function InviteFooter({
         {t('common.cancel')} <Kbd>Esc</Kbd>
       </Button>
       <Button onClick={handleConfirm} disabled={disabled} loading={sending}>
-        {t('settings.members.sendInvitation', { count: count || 1 })}{' '}
+        {t('settings.members.inviteAction')}{' '}
         <HotkeyDisplay hotkey={{ keys: 'mod+enter' }} />
       </Button>
     </DialogFooter>
