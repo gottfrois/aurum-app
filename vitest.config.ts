@@ -27,14 +27,13 @@ export default defineConfig({
         test: {
           name: 'convex',
           include: ['convex/**/*.test.{ts,js}'],
+          exclude: ['**/node_modules/**'],
           environment: 'edge-runtime',
         },
       },
       {
         extends: true,
-        test: {
-          exclude: ['convex/**'],
-        },
+        test: {},
       },
       {
         extends: true,
