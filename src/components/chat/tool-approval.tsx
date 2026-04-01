@@ -1,34 +1,54 @@
 import { useMutation } from 'convex/react'
+import type { TFunction } from 'i18next'
 import { Check, X } from 'lucide-react'
 import { useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import { Button } from '~/components/ui/button'
 import { Input } from '~/components/ui/input'
 import { api } from '../../../convex/_generated/api'
 
-/** Human-readable summary for tool inputs. */
-function formatRuleSummary(input: Record<string, unknown>): string {
+/** Human-readable summary for tool inputs using i18n. */
+function formatRuleSummary(
+  t: TFunction,
+  input: Record<string, unknown>,
+): string {
   const parts: string[] = []
   if (input.pattern) {
     const matchType = input.matchType === 'regex' ? 'matches regex' : 'contains'
-    parts.push(`When transaction ${matchType} "${input.pattern}"`)
+    parts.push(
+      t('chat.toolApproval.ruleWhen', { matchType, pattern: input.pattern }),
+    )
   }
   const actions: string[] = []
-  if (input.categoryKey) actions.push(`categorize as "${input.categoryKey}"`)
+  if (input.categoryKey)
+    actions.push(`${t('chat.toolApproval.categorize')} "${input.categoryKey}"`)
   if (input.customDescription)
-    actions.push(`set description "${input.customDescription}"`)
-  if (input.excludeFromBudget) actions.push('exclude from budget')
+    actions.push(
+      `${t('chat.toolApproval.setDescription')} "${input.customDescription}"`,
+    )
+  if (input.excludeFromBudget)
+    actions.push(t('chat.toolApproval.excludeBudget'))
   if (actions.length > 0) parts.push(actions.join(', '))
   return parts.join(' → ')
 }
 
-function formatCategorySummary(input: Record<string, unknown>): string {
+function formatCategorySummary(
+  t: TFunction,
+  input: Record<string, unknown>,
+): string {
   const ids = input.transactionIds as string[] | undefined
   const count = ids?.length ?? 0
   const category = input.categoryKey as string | undefined
-  return `Recategorize ${count} transaction${count !== 1 ? 's' : ''} as "${category ?? 'unknown'}"`
+  return t('chat.toolApproval.recategorize', {
+    count,
+    category: category ?? 'unknown',
+  })
 }
 
-function formatLabelSummary(input: Record<string, unknown>): string {
+function formatLabelSummary(
+  t: TFunction,
+  input: Record<string, unknown>,
+): string {
   const ids = input.transactionIds as string[] | undefined
   const count = ids?.length ?? 0
   const addCount = (input.addLabelIds as string[] | undefined)?.length ?? 0
@@ -36,43 +56,55 @@ function formatLabelSummary(input: Record<string, unknown>): string {
     (input.removeLabelIds as string[] | undefined)?.length ?? 0
   const parts: string[] = []
   if (addCount > 0)
-    parts.push(`add ${addCount} label${addCount !== 1 ? 's' : ''}`)
+    parts.push(t('chat.toolApproval.addLabels', { count: addCount }))
   if (removeCount > 0)
-    parts.push(`remove ${removeCount} label${removeCount !== 1 ? 's' : ''}`)
-  return `${parts.join(', ')} on ${count} transaction${count !== 1 ? 's' : ''}`
+    parts.push(t('chat.toolApproval.removeLabels', { count: removeCount }))
+  return `${parts.join(', ')} ${t('chat.toolApproval.onTransactions', { count })}`
 }
 
-function formatCreateLabelSummary(input: Record<string, unknown>): string {
+function formatCreateLabelSummary(
+  t: TFunction,
+  input: Record<string, unknown>,
+): string {
   const name = input.name as string | undefined
   const scope = input.scope as string | undefined
-  return `Create label "${name ?? 'unknown'}"${scope ? ` (${scope})` : ''}`
+  return t('chat.toolApproval.createLabel', {
+    name: name ?? 'unknown',
+    scope: scope ?? '',
+  })
 }
 
-function formatExclusionSummary(input: Record<string, unknown>): string {
+function formatExclusionSummary(
+  t: TFunction,
+  input: Record<string, unknown>,
+): string {
   const ids = input.transactionIds as string[] | undefined
   const count = ids?.length ?? 0
   const exclude = input.exclude as boolean
-  const action = exclude ? 'Exclude' : 'Re-include'
-  return `${action} ${count} transaction${count !== 1 ? 's' : ''} ${exclude ? 'from' : 'in'} budget`
+  if (exclude) {
+    return t('chat.toolApproval.excludeFromBudget', { count })
+  }
+  return t('chat.toolApproval.reincludeInBudget', { count })
 }
 
-const TOOL_SUMMARIES: Record<
-  string,
-  (input: Record<string, unknown>) => string
-> = {
-  createTransactionRule: formatRuleSummary,
-  updateTransactionCategory: formatCategorySummary,
-  updateTransactionLabels: formatLabelSummary,
-  createLabel: formatCreateLabelSummary,
-  deleteLabel: (input) => {
-    const count = (input.labelIds as string[] | undefined)?.length ?? 0
-    return `Delete ${count} label${count !== 1 ? 's' : ''}`
-  },
-  deleteTransactionRule: (input) => {
-    const count = (input.ruleIds as string[] | undefined)?.length ?? 0
-    return `Delete ${count} transaction rule${count !== 1 ? 's' : ''}`
-  },
-  excludeFromBudget: formatExclusionSummary,
+function getToolSummaries(
+  t: TFunction,
+): Record<string, (input: Record<string, unknown>) => string> {
+  return {
+    createTransactionRule: (input) => formatRuleSummary(t, input),
+    updateTransactionCategory: (input) => formatCategorySummary(t, input),
+    updateTransactionLabels: (input) => formatLabelSummary(t, input),
+    createLabel: (input) => formatCreateLabelSummary(t, input),
+    deleteLabel: (input) => {
+      const count = (input.labelIds as string[] | undefined)?.length ?? 0
+      return t('chat.toolApproval.deleteLabels', { count })
+    },
+    deleteTransactionRule: (input) => {
+      const count = (input.ruleIds as string[] | undefined)?.length ?? 0
+      return t('chat.toolApproval.deleteRules', { count })
+    },
+    excludeFromBudget: (input) => formatExclusionSummary(t, input),
+  }
 }
 
 interface ToolApprovalProps {
@@ -90,12 +122,14 @@ export function ToolApproval({
   threadId,
   onApprovalSubmitted,
 }: ToolApprovalProps) {
+  const { t } = useTranslation()
   const submitApproval = useMutation(api.agentChatQueries.submitApproval)
   const [loading, setLoading] = useState(false)
   const [rejecting, setRejecting] = useState(false)
   const [reason, setReason] = useState('')
 
-  const summary = TOOL_SUMMARIES[toolName]?.(input) ?? JSON.stringify(input)
+  const toolSummaries = getToolSummaries(t)
+  const summary = toolSummaries[toolName]?.(input) ?? JSON.stringify(input)
 
   async function handleApprove() {
     setLoading(true)
@@ -132,13 +166,15 @@ export function ToolApproval({
 
   return (
     <div className="rounded-lg border bg-card p-3">
-      <p className="text-sm font-medium">Confirm action</p>
+      <p className="text-sm font-medium">
+        {t('chat.toolApproval.confirmAction')}
+      </p>
       <p className="mt-1 text-sm text-muted-foreground">{summary}</p>
       {rejecting && (
         <Input
           autoFocus
           className="mt-2 text-sm"
-          placeholder="Reason (optional)..."
+          placeholder={t('chat.toolApproval.reasonPlaceholder')}
           value={reason}
           onChange={(e) => setReason(e.target.value)}
           onKeyDown={(e) => {
@@ -154,7 +190,7 @@ export function ToolApproval({
           onClick={() => void handleApprove()}
         >
           <Check className="size-3.5" />
-          Approve
+          {t('chat.toolApproval.approve')}
         </Button>
         <Button
           variant="outline"
@@ -164,7 +200,9 @@ export function ToolApproval({
           onClick={() => void handleDeny()}
         >
           <X className="size-3.5" />
-          {rejecting ? 'Send rejection' : 'Reject'}
+          {rejecting
+            ? t('chat.toolApproval.sendRejection')
+            : t('chat.toolApproval.reject')}
         </Button>
       </div>
     </div>

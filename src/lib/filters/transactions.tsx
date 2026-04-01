@@ -1,3 +1,4 @@
+import type { TFunction } from 'i18next'
 import {
   ArrowUpDown,
   Building2,
@@ -33,26 +34,29 @@ interface TransactionFilterDeps {
   labelOptions: Array<FilterOption<string>>
   transactionTypeOptions: Array<FilterOption<string>>
   excludeFields?: Array<TransactionFilterField>
+  t?: TFunction
 }
 
 export function createTransactionFilterFields(
   deps: TransactionFilterDeps,
 ): Array<FieldDescriptor> {
+  // Use passed t function or identity for backward compat
+  const t = deps.t ?? ((key: string) => key)
   const allFields: Array<
     FieldDescriptor & { fieldKey: TransactionFilterField }
   > = [
     {
       fieldKey: 'account',
       key: 'account',
-      label: 'Account',
+      label: t('filters.account'),
       type: 'multiselect',
       icon: <Building2 className="size-3.5" />,
       options: deps.accountOptions,
       searchable: true,
       className: 'w-[280px]',
       operators: [
-        { value: 'is_any_of', label: 'is any of' },
-        { value: 'is_not_any_of', label: 'is none of' },
+        { value: 'is_any_of', label: t('filters.operators.isAnyOf') },
+        { value: 'is_not_any_of', label: t('filters.operators.isNotAnyOf') },
       ],
       defaultOperator: 'is_any_of',
       accessor: (r) => r.bankAccountId,
@@ -61,15 +65,15 @@ export function createTransactionFilterFields(
     {
       fieldKey: 'category',
       key: 'category',
-      label: 'Category',
+      label: t('filters.category'),
       type: 'multiselect',
       icon: <Tag className="size-3.5" />,
       options: deps.categoryOptions,
       searchable: true,
       className: 'w-[240px]',
       operators: [
-        { value: 'is_any_of', label: 'is any of' },
-        { value: 'is_not_any_of', label: 'is none of' },
+        { value: 'is_any_of', label: t('filters.operators.isAnyOf') },
+        { value: 'is_not_any_of', label: t('filters.operators.isNotAnyOf') },
       ],
       defaultOperator: 'is_any_of',
       accessor: (r) =>
@@ -85,16 +89,16 @@ export function createTransactionFilterFields(
     {
       fieldKey: 'labels',
       key: 'labels',
-      label: 'Labels',
+      label: t('filters.labels'),
       type: 'multiselect',
       icon: <Tags className="size-3.5" />,
       options: deps.labelOptions,
       searchable: true,
       operators: [
-        { value: 'is_any_of', label: 'is any of' },
-        { value: 'is_not_any_of', label: 'is none of' },
-        { value: 'empty', label: 'is empty' },
-        { value: 'not_empty', label: 'is not empty' },
+        { value: 'is_any_of', label: t('filters.operators.isAnyOf') },
+        { value: 'is_not_any_of', label: t('filters.operators.isNotAnyOf') },
+        { value: 'empty', label: t('filters.operators.empty') },
+        { value: 'not_empty', label: t('filters.operators.notEmpty') },
       ],
       defaultOperator: 'is_any_of',
       accessor: (r) => (r.labelIds ?? []) as Array<string>,
@@ -103,17 +107,17 @@ export function createTransactionFilterFields(
     {
       fieldKey: 'amount',
       key: 'amount',
-      label: 'Amount',
+      label: t('filters.amount'),
       type: 'custom',
       icon: <DollarSign className="size-3.5" />,
       operators: [
-        { value: 'eq', label: 'equals' },
-        { value: 'neq', label: 'not equals' },
-        { value: 'gt', label: 'greater than' },
-        { value: 'lt', label: 'less than' },
-        { value: 'gte', label: 'at least' },
-        { value: 'lte', label: 'at most' },
-        { value: 'between', label: 'between' },
+        { value: 'eq', label: t('filters.operators.equals') },
+        { value: 'neq', label: t('filters.operators.notEquals') },
+        { value: 'gt', label: t('filters.operators.greaterThan') },
+        { value: 'lt', label: t('filters.operators.lessThan') },
+        { value: 'gte', label: t('filters.operators.atLeast') },
+        { value: 'lte', label: t('filters.operators.atMost') },
+        { value: 'between', label: t('filters.operators.between') },
       ],
       defaultOperator: 'gt',
       customRenderer: (props) => NumberRenderer(props),
@@ -136,14 +140,16 @@ export function createTransactionFilterFields(
     {
       fieldKey: 'flow',
       key: 'flow',
-      label: 'Flow',
+      label: t('filters.flow'),
       type: 'multiselect',
       icon: <ArrowUpDown className="size-3.5" />,
       options: [
-        { value: 'income', label: 'Income' },
-        { value: 'expense', label: 'Expense' },
+        { value: 'income', label: t('filters.flowIncome') },
+        { value: 'expense', label: t('filters.flowExpense') },
       ],
-      operators: [{ value: 'is_any_of', label: 'is any of' }],
+      operators: [
+        { value: 'is_any_of', label: t('filters.operators.isAnyOf') },
+      ],
       defaultOperator: 'is_any_of',
       accessor: (r) => ((r.value as number) > 0 ? 'income' : 'expense'),
       valueType: 'enum',
@@ -151,14 +157,14 @@ export function createTransactionFilterFields(
     {
       fieldKey: 'wording',
       key: 'wording',
-      label: 'Description',
+      label: t('filters.description'),
       type: 'text',
       icon: <Text className="size-3.5" />,
       operators: [
-        { value: 'contains', label: 'contains' },
-        { value: 'not_contains', label: 'does not contain' },
-        { value: 'is', label: 'is' },
-        { value: 'is_not', label: 'is not' },
+        { value: 'contains', label: t('filters.operators.contains') },
+        { value: 'not_contains', label: t('filters.operators.notContains') },
+        { value: 'is', label: t('filters.operators.is') },
+        { value: 'is_not', label: t('filters.operators.isNot') },
       ],
       defaultOperator: 'contains',
       accessor: (r) => r.wording,
@@ -167,14 +173,14 @@ export function createTransactionFilterFields(
     {
       fieldKey: 'type',
       key: 'type',
-      label: 'Type',
+      label: t('filters.type'),
       type: 'multiselect',
       icon: <FileType className="size-3.5" />,
       options: deps.transactionTypeOptions,
       searchable: true,
       operators: [
-        { value: 'is_any_of', label: 'is any of' },
-        { value: 'is_not_any_of', label: 'is none of' },
+        { value: 'is_any_of', label: t('filters.operators.isAnyOf') },
+        { value: 'is_not_any_of', label: t('filters.operators.isNotAnyOf') },
       ],
       defaultOperator: 'is_any_of',
       accessor: (r) => r.type,
@@ -183,14 +189,16 @@ export function createTransactionFilterFields(
     {
       fieldKey: 'status',
       key: 'status',
-      label: 'Status',
+      label: t('filters.status'),
       type: 'multiselect',
       icon: <CircleDot className="size-3.5" />,
       options: [
-        { value: 'pending', label: 'Pending' },
-        { value: 'completed', label: 'Completed' },
+        { value: 'pending', label: t('filters.statusPending') },
+        { value: 'completed', label: t('filters.statusCompleted') },
       ],
-      operators: [{ value: 'is_any_of', label: 'is any of' }],
+      operators: [
+        { value: 'is_any_of', label: t('filters.operators.isAnyOf') },
+      ],
       defaultOperator: 'is_any_of',
       accessor: (r) => (r.coming ? 'pending' : 'completed'),
       valueType: 'enum',
@@ -198,16 +206,16 @@ export function createTransactionFilterFields(
     {
       fieldKey: 'counterparty',
       key: 'counterparty',
-      label: 'Counterparty',
+      label: t('filters.counterparty'),
       type: 'text',
       icon: <Users className="size-3.5" />,
       operators: [
-        { value: 'contains', label: 'contains' },
-        { value: 'not_contains', label: 'does not contain' },
-        { value: 'is', label: 'is' },
-        { value: 'is_not', label: 'is not' },
-        { value: 'empty', label: 'is empty' },
-        { value: 'not_empty', label: 'is not empty' },
+        { value: 'contains', label: t('filters.operators.contains') },
+        { value: 'not_contains', label: t('filters.operators.notContains') },
+        { value: 'is', label: t('filters.operators.is') },
+        { value: 'is_not', label: t('filters.operators.isNot') },
+        { value: 'empty', label: t('filters.operators.empty') },
+        { value: 'not_empty', label: t('filters.operators.notEmpty') },
       ],
       defaultOperator: 'contains',
       accessor: (r) => r.counterparty,
@@ -216,14 +224,16 @@ export function createTransactionFilterFields(
     {
       fieldKey: 'excluded',
       key: 'excluded',
-      label: 'Budget',
+      label: t('filters.budget'),
       type: 'multiselect',
       icon: <EyeOff className="size-3.5" />,
       options: [
-        { value: 'included', label: 'Included' },
-        { value: 'excluded', label: 'Excluded' },
+        { value: 'included', label: t('filters.budgetIncluded') },
+        { value: 'excluded', label: t('filters.budgetExcluded') },
       ],
-      operators: [{ value: 'is_any_of', label: 'is any of' }],
+      operators: [
+        { value: 'is_any_of', label: t('filters.operators.isAnyOf') },
+      ],
       defaultOperator: 'is_any_of',
       accessor: (r) =>
         (r as Record<string, unknown>).excludedFromBudget

@@ -9,6 +9,7 @@ import {
 } from '@tanstack/react-table'
 import { Trash2, X } from 'lucide-react'
 import * as React from 'react'
+import { useTranslation } from 'react-i18next'
 import { ConfirmDialog } from '~/components/confirm-dialog'
 import { Button } from '~/components/ui/button'
 import { Checkbox } from '~/components/ui/checkbox'
@@ -52,16 +53,21 @@ interface DataTableProps<TData, TValue> {
 export function DataTable<TData, TValue>({
   columns,
   data,
-  filterPlaceholder = 'Filter...',
+  filterPlaceholder,
   filterColumn,
   actions,
   onBatchDelete,
-  batchDeleteConfirmDescription = 'This action cannot be undone. The selected items will be permanently deleted.',
+  batchDeleteConfirmDescription,
   getRowId,
   enableRowSelection,
   disabledRowTooltip,
   groups,
 }: DataTableProps<TData, TValue>) {
+  const { t } = useTranslation()
+  const resolvedFilterPlaceholder =
+    filterPlaceholder ?? t('table.filterPlaceholder')
+  const resolvedBatchDeleteDescription =
+    batchDeleteConfirmDescription ?? t('dialogs.deleteItems.description')
   const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>(
     [],
   )
@@ -80,7 +86,7 @@ export function DataTable<TData, TValue>({
             (table.getIsSomePageRowsSelected() && 'indeterminate')
           }
           onCheckedChange={(value) => table.toggleAllPageRowsSelected(!!value)}
-          aria-label="Select all"
+          aria-label={t('table.selectAll')}
         />
       ),
       cell: ({ row }) => {
@@ -90,7 +96,7 @@ export function DataTable<TData, TValue>({
             checked={row.getIsSelected()}
             disabled={disabled}
             onCheckedChange={(value) => row.toggleSelected(!!value)}
-            aria-label="Select row"
+            aria-label={t('table.selectRow')}
           />
         )
         if (disabled && disabledRowTooltip) {
@@ -110,7 +116,7 @@ export function DataTable<TData, TValue>({
       enableHiding: false,
     }
     return [selectColumn, ...columns]
-  }, [columns, onBatchDelete, disabledRowTooltip])
+  }, [columns, onBatchDelete, disabledRowTooltip, t])
 
   const table = useReactTable({
     data,
@@ -144,7 +150,7 @@ export function DataTable<TData, TValue>({
       <div className="flex shrink-0 items-center gap-2 pb-6">
         {filterColumn && (
           <Input
-            placeholder={filterPlaceholder}
+            placeholder={resolvedFilterPlaceholder}
             value={
               (table.getColumn(filterColumn)?.getFilterValue() as string) ?? ''
             }
@@ -279,7 +285,7 @@ export function DataTable<TData, TValue>({
                   colSpan={allColumns.length}
                   className="h-24 text-center"
                 >
-                  No results.
+                  {t('filters.noResultsFound')}
                 </TableCell>
               </TableRow>
             )}
@@ -293,7 +299,7 @@ export function DataTable<TData, TValue>({
               variant="outline"
               className="pointer-events-none rounded-full"
             >
-              {selectedCount} selected
+              {t('selectionBar.countSelected', { count: selectedCount })}
             </Button>
             <Button
               variant="outline"
@@ -310,7 +316,7 @@ export function DataTable<TData, TValue>({
               onClick={() => setConfirmBatchDelete(true)}
             >
               <Trash2 className="size-4" />
-              Delete
+              {t('common.delete')}
             </Button>
           </div>
         </div>
@@ -319,9 +325,9 @@ export function DataTable<TData, TValue>({
         <ConfirmDialog
           open={confirmBatchDelete}
           onOpenChange={setConfirmBatchDelete}
-          title={`Delete ${selectedCount} item${selectedCount > 1 ? 's' : ''}?`}
-          description={batchDeleteConfirmDescription}
-          confirmLabel="Delete"
+          title={t('dialogs.deleteItems.title', { count: selectedCount })}
+          description={resolvedBatchDeleteDescription}
+          confirmLabel={t('common.delete')}
           onConfirm={handleBatchDelete}
         />
       )}

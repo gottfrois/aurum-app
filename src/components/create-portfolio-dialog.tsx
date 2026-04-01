@@ -1,6 +1,7 @@
 import { useMutation } from 'convex/react'
 import * as React from 'react'
 import { useHotkeys } from 'react-hotkeys-hook'
+import { useTranslation } from 'react-i18next'
 import { Button } from '~/components/ui/button'
 import {
   Dialog,
@@ -22,6 +23,7 @@ export function CreatePortfolioDialog({
   open: boolean
   onOpenChange: (open: boolean) => void
 }) {
+  const { t } = useTranslation()
   const createPortfolio = useMutation(api.portfolios.createPortfolio)
   const { setActivePortfolioId } = usePortfolio()
   const [newName, setNewName] = React.useState('')
@@ -38,16 +40,18 @@ export function CreatePortfolioDialog({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent showCloseButton={false}>
         <DialogHeader>
-          <DialogTitle>Create Portfolio</DialogTitle>
+          <DialogTitle>{t('dialogs.createPortfolio.title')}</DialogTitle>
         </DialogHeader>
         <div className="grid gap-4 py-4">
           <div className="grid gap-2">
-            <Label htmlFor="portfolio-name">Name</Label>
+            <Label htmlFor="portfolio-name">
+              {t('dialogs.createPortfolio.nameLabel')}
+            </Label>
             <Input
               id="portfolio-name"
               value={newName}
               onChange={(e) => setNewName(e.target.value)}
-              placeholder="e.g. SASU Pro, Joint Account"
+              placeholder={t('dialogs.createPortfolio.namePlaceholder')}
             />
           </div>
         </div>
@@ -70,6 +74,7 @@ function CreatePortfolioFooter({
   onConfirm: () => void
   disabled: boolean
 }) {
+  const { t } = useTranslation()
   const handleConfirm = React.useCallback(() => {
     if (!disabled) onConfirm()
   }, [disabled, onConfirm])
@@ -88,10 +93,10 @@ function CreatePortfolioFooter({
   return (
     <DialogFooter>
       <Button variant="outline" onClick={onCancel}>
-        Cancel <Kbd>Esc</Kbd>
+        {t('common.cancel')} <Kbd>Esc</Kbd>
       </Button>
       <Button onClick={handleConfirm} disabled={disabled}>
-        Create <HotkeyDisplay hotkey={{ keys: 'mod+enter' }} />
+        {t('common.create')} <HotkeyDisplay hotkey={{ keys: 'mod+enter' }} />
       </Button>
     </DialogFooter>
   )

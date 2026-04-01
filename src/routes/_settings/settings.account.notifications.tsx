@@ -1,6 +1,7 @@
 import * as Sentry from '@sentry/tanstackstart-react'
 import { createFileRoute } from '@tanstack/react-router'
 import { useMutation, useQuery } from 'convex/react'
+import { useTranslation } from 'react-i18next'
 import { toast } from 'sonner'
 import {
   ItemCard,
@@ -23,6 +24,7 @@ export const Route = createFileRoute(
 })
 
 function NotificationsPage() {
+  const { t } = useTranslation()
   const consents = useQuery(api.onboarding.getConsents)
   const updateMarketing = useMutation(api.onboarding.updateMarketingConsent)
 
@@ -44,22 +46,23 @@ function NotificationsPage() {
       await updateMarketing({ marketingCommunications: checked })
     } catch (error) {
       Sentry.captureException(error)
-      toast.error('Failed to update notification preferences')
+      toast.error(t('toast.failedUpdateNotifications'))
     }
   }
 
   return (
     <div className="mx-auto flex w-full max-w-3xl flex-1 flex-col px-10 py-16">
       <PageHeader
-        title="Notifications"
-        description="Choose what updates you want to receive."
+        title={t('settings.notifications.title')}
+        description={t('settings.notifications.description')}
       />
       <div className="mt-8 space-y-6">
         <div>
-          <h2 className="text-lg font-medium">Updates from Bunkr</h2>
+          <h2 className="text-lg font-medium">
+            {t('settings.notifications.updatesFromBunkr')}
+          </h2>
           <p className="text-sm text-muted-foreground">
-            Subscribe to product announcements and important changes from the
-            Bunkr team
+            {t('settings.notifications.updatesDescription')}
           </p>
         </div>
 
@@ -67,9 +70,11 @@ function NotificationsPage() {
           <ItemCardItems>
             <ItemCardItem>
               <ItemCardItemContent>
-                <ItemCardItemTitle>Marketing and onboarding</ItemCardItemTitle>
+                <ItemCardItemTitle>
+                  {t('settings.notifications.marketing')}
+                </ItemCardItemTitle>
                 <ItemCardItemDescription>
-                  Occasional emails to help you get the most out of Bunkr
+                  {t('settings.notifications.marketingDescription')}
                 </ItemCardItemDescription>
               </ItemCardItemContent>
               <ItemCardItemAction>

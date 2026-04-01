@@ -1,5 +1,6 @@
 import { useMutation, useQuery } from 'convex/react'
 import { useRef, useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import { toast } from 'sonner'
 import { Input } from '~/components/ui/input'
 import { Label } from '~/components/ui/label'
@@ -22,6 +23,7 @@ export function VaultStep({
   setSubmitting,
   isInvited,
 }: OnboardingStepProps) {
+  const { t } = useTranslation()
   const [passphrase, setPassphrase] = useState('')
   const [confirm, setConfirm] = useState('')
   const [saving, setSaving] = useState(false)
@@ -98,7 +100,7 @@ export function VaultStep({
       await updateStep({ step: 'portfolio' })
       goToStep('portfolio')
     } catch (err) {
-      toast.error('Failed to set up encryption')
+      toast.error(t('toast.failedSetupEncryption'))
       console.error(err)
       setSaving(false)
       setSubmitting(false)
@@ -108,11 +110,11 @@ export function VaultStep({
   if (alreadySetUp) {
     return (
       <StepLayout
-        title="Vault already set up"
-        subtitle="Your encryption is already configured. Continue to the next step."
+        title={t('onboarding.vault.alreadySetupTitle')}
+        subtitle={t('onboarding.vault.alreadySetupSubtitle')}
         onBack={() => goToStep(backStep)}
         onSubmit={handleSetup}
-        submitLabel="Continue"
+        submitLabel={t('common.continue')}
         loading={saving}
       />
     )
@@ -120,21 +122,23 @@ export function VaultStep({
 
   return (
     <StepLayout
-      title="Set up your Vault"
-      subtitle="Your financial data is protected with zero-knowledge encryption"
+      title={t('onboarding.vault.title')}
+      subtitle={t('onboarding.vault.subtitle')}
       onBack={() => goToStep(backStep)}
       onSubmit={handleSetup}
-      submitLabel="Create Vault"
+      submitLabel={t('button.createVault')}
       submitDisabled={!valid}
       loading={saving}
     >
       <div className="space-y-4">
         <div className="grid gap-2">
-          <Label htmlFor="vault-passphrase">Passphrase</Label>
+          <Label htmlFor="vault-passphrase">
+            {t('onboarding.vault.passphraseLabel')}
+          </Label>
           <Input
             id="vault-passphrase"
             type="password"
-            placeholder="At least 8 characters"
+            placeholder={t('onboarding.vault.passphrasePlaceholder')}
             value={passphrase}
             onChange={(e) => setPassphrase(e.target.value)}
             autoCapitalize="off"
@@ -142,15 +146,17 @@ export function VaultStep({
             spellCheck={false}
           />
           <p className="text-xs text-muted-foreground">
-            There is no reset mechanism. Store your passphrase safely.
+            {t('onboarding.vault.passphraseWarning')}
           </p>
         </div>
         <div className="grid gap-2">
-          <Label htmlFor="vault-confirm">Confirm passphrase</Label>
+          <Label htmlFor="vault-confirm">
+            {t('onboarding.vault.confirmLabel')}
+          </Label>
           <Input
             id="vault-confirm"
             type="password"
-            placeholder="Repeat passphrase"
+            placeholder={t('onboarding.vault.confirmPlaceholder')}
             value={confirm}
             onChange={(e) => setConfirm(e.target.value)}
             autoCapitalize="off"
@@ -158,7 +164,9 @@ export function VaultStep({
             spellCheck={false}
           />
           {confirm && passphrase !== confirm && (
-            <p className="text-sm text-destructive">Passphrases do not match</p>
+            <p className="text-sm text-destructive">
+              {t('toast.passphraseMismatch')}
+            </p>
           )}
         </div>
       </div>

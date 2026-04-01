@@ -1,4 +1,5 @@
 import * as React from 'react'
+import { useTranslation } from 'react-i18next'
 import { Cell, Label, Pie, PieChart } from 'recharts'
 import { Card, CardContent, CardHeader, CardTitle } from '~/components/ui/card'
 import type { ChartConfig } from '~/components/ui/chart'
@@ -40,6 +41,7 @@ function CategoryTooltipContent({
   total: number
   formatCurrency: (value: number, currency: string) => string
 }) {
+  const { t } = useTranslation()
   if (!active || !payload?.length) return null
   const entry = payload[0].payload
   const percentage = total > 0 ? ((entry.value / total) * 100).toFixed(1) : '0'
@@ -54,18 +56,27 @@ function CategoryTooltipContent({
         <span className="font-medium">{entry.label}</span>
       </div>
       <div className="flex items-center justify-between gap-4">
-        <span className="text-muted-foreground">Amount</span>
+        <span className="text-muted-foreground">{t('charts.amount')}</span>
         <span className="font-mono font-medium tabular-nums">
           {formatCurrency(entry.value, currency)}
         </span>
       </div>
       <div className="flex items-center justify-between gap-4">
-        <span className="text-muted-foreground">Share</span>
+        <span className="text-muted-foreground">{t('charts.share')}</span>
         <span className="font-mono font-medium tabular-nums">
           {percentage}%
         </span>
       </div>
     </div>
+  )
+}
+
+function CategoryDonutLabel({ cx, cy }: { cx?: number; cy?: number }) {
+  const { t } = useTranslation()
+  return (
+    <tspan x={cx} y={(cy ?? 0) + 20} className="fill-muted-foreground text-xs">
+      {t('charts.expenses')}
+    </tspan>
   )
 }
 
@@ -75,6 +86,7 @@ export function CategoryPieChart({
   total,
   onCategoryClick,
 }: CategoryPieChartProps) {
+  const { t } = useTranslation()
   const { isPrivate } = usePrivacy()
 
   const formatCurrency = React.useCallback(
@@ -97,11 +109,11 @@ export function CategoryPieChart({
     return (
       <Card>
         <CardHeader>
-          <CardTitle>Expenses by Category</CardTitle>
+          <CardTitle>{t('charts.expensesByCategory')}</CardTitle>
         </CardHeader>
         <CardContent>
           <div className="flex h-[200px] items-center justify-center text-sm text-muted-foreground">
-            No expense data available
+            {t('charts.noExpenseData')}
           </div>
         </CardContent>
       </Card>
@@ -111,7 +123,7 @@ export function CategoryPieChart({
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Expenses by Category</CardTitle>
+        <CardTitle>{t('charts.expensesByCategory')}</CardTitle>
       </CardHeader>
       <CardContent className="px-2 sm:px-6">
         <div className="flex flex-col items-center gap-4">
@@ -159,13 +171,7 @@ export function CategoryPieChart({
                           >
                             {formattedTotal}
                           </tspan>
-                          <tspan
-                            x={viewBox.cx}
-                            y={(viewBox.cy ?? 0) + 20}
-                            className="fill-muted-foreground text-xs"
-                          >
-                            Expenses
-                          </tspan>
+                          <CategoryDonutLabel cx={viewBox.cx} cy={viewBox.cy} />
                         </text>
                       )
                     }

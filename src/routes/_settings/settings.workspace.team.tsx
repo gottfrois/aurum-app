@@ -3,6 +3,7 @@ import { createFileRoute } from '@tanstack/react-router'
 import { useAction, useMutation, useQuery } from 'convex/react'
 import { Home } from 'lucide-react'
 import { useCallback, useEffect, useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import { toast } from 'sonner'
 import {
   ItemCard,
@@ -73,19 +74,14 @@ function fromAccessLevel(level: AccessLevel) {
   }
 }
 
-const ACCESS_LABELS: Record<AccessLevel, string> = {
-  full: 'Full access',
-  'dashboard-only': 'Dashboard only',
-  none: 'No access',
-}
-
 function TeamSettingsPage() {
+  const { t } = useTranslation()
   return (
     <RequireOwner>
       <div className="mx-auto flex w-full max-w-3xl flex-1 flex-col px-10 py-16">
         <PageHeader
-          title="Team"
-          description="Control what each member can see in the team dashboard."
+          title={t('settings.teamDashboard.title')}
+          description={t('settings.teamDashboard.description')}
         />
         <div className="mt-8 space-y-6">
           <RequireTeamPlan fallback={<UpgradePrompt />}>
@@ -98,16 +94,16 @@ function TeamSettingsPage() {
 }
 
 function UpgradePrompt() {
+  const { t } = useTranslation()
   return (
     <Empty className="border">
       <EmptyHeader>
         <EmptyMedia variant="icon">
           <Home />
         </EmptyMedia>
-        <EmptyTitle>Team Plan Required</EmptyTitle>
+        <EmptyTitle>{t('settings.teamDashboard.teamPlanRequired')}</EmptyTitle>
         <EmptyDescription>
-          Team permissions are available on the Team plan. Upgrade to manage
-          what members can see in the team dashboard.
+          {t('settings.teamDashboard.teamPlanDescription')}
         </EmptyDescription>
       </EmptyHeader>
     </Empty>
@@ -115,6 +111,7 @@ function UpgradePrompt() {
 }
 
 function TeamPermissions() {
+  const { t } = useTranslation()
   const data = useQuery(api.members.listMembers)
   const resolveUsers = useAction(api.members.resolveUsers)
   const updatePermissions = useMutation(api.members.updateMemberPermissions)
@@ -176,10 +173,9 @@ function TeamPermissions() {
           <EmptyMedia variant="icon">
             <Home />
           </EmptyMedia>
-          <EmptyTitle>No Members</EmptyTitle>
+          <EmptyTitle>{t('settings.teamDashboard.noMembers')}</EmptyTitle>
           <EmptyDescription>
-            Invite members to your workspace to manage their team dashboard
-            access.
+            {t('settings.teamDashboard.noMembersDescription')}
           </EmptyDescription>
         </EmptyHeader>
       </Empty>
@@ -192,10 +188,10 @@ function TeamPermissions() {
         memberId: memberId as never,
         permissions: fromAccessLevel(level),
       })
-      toast.success('Permissions updated')
+      toast.success(t('toast.permissionsUpdated'))
     } catch (error) {
       Sentry.captureException(error)
-      toast.error('Failed to update permissions')
+      toast.error(t('toast.failedUpdatePermissions'))
     }
   }
 
@@ -203,7 +199,9 @@ function TeamPermissions() {
     <ItemCard>
       <ItemCardHeader>
         <ItemCardHeaderContent>
-          <ItemCardHeaderTitle>Member Access</ItemCardHeaderTitle>
+          <ItemCardHeaderTitle>
+            {t('settings.teamDashboard.memberAccess')}
+          </ItemCardHeaderTitle>
         </ItemCardHeaderContent>
       </ItemCardHeader>
       <ItemCardItems>
@@ -239,10 +237,15 @@ function TeamPermissions() {
                     {usersLoading ? <Skeleton className="h-4 w-28" /> : name}
                   </ItemCardItemTitle>
                   <ItemCardItemDescription>
-                    {ACCESS_LABELS[level]}
+                    {level === 'full'
+                      ? t('settings.teamDashboard.fullAccess')
+                      : level === 'dashboard-only'
+                        ? t('settings.teamDashboard.dashboardOnly')
+                        : t('settings.teamDashboard.noAccess')}
                     {member.sharedPortfolioCount > 0 && (
                       <span className="ml-1">
-                        &middot; {member.sharedPortfolioCount} shared
+                        &middot; {member.sharedPortfolioCount}{' '}
+                        {t('settings.teamDashboard.shared')}
                       </span>
                     )}
                   </ItemCardItemDescription>
@@ -259,11 +262,15 @@ function TeamPermissions() {
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="full">Full access</SelectItem>
-                    <SelectItem value="dashboard-only">
-                      Dashboard only
+                    <SelectItem value="full">
+                      {t('settings.teamDashboard.fullAccess')}
                     </SelectItem>
-                    <SelectItem value="none">No access</SelectItem>
+                    <SelectItem value="dashboard-only">
+                      {t('settings.teamDashboard.dashboardOnly')}
+                    </SelectItem>
+                    <SelectItem value="none">
+                      {t('settings.teamDashboard.noAccess')}
+                    </SelectItem>
                   </SelectContent>
                 </Select>
               </ItemCardItemAction>

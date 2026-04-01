@@ -1,6 +1,7 @@
 import { createFileRoute } from '@tanstack/react-router'
 import { useMutation, useQuery } from 'convex/react'
 import { useCallback, useEffect, useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import { toast } from 'sonner'
 import { ActivateAgentDialog } from '~/components/activate-agent-dialog'
 import {
@@ -34,13 +35,14 @@ export const Route = createFileRoute('/_settings/settings/workspace/agent')({
 })
 
 function AgentSettingsPage() {
+  const { t } = useTranslation()
   return (
     <RequireOwner>
       <div className="mx-auto flex w-full max-w-3xl flex-1 flex-col px-10 py-16">
         <div className="shrink-0">
           <PageHeader
-            title="AI & Agents"
-            description="Configure the Bunkr AI assistant for your workspace."
+            title={t('settings.agent.title')}
+            description={t('settings.agent.description')}
           />
         </div>
         <div className="mt-8 space-y-6">
@@ -52,6 +54,7 @@ function AgentSettingsPage() {
 }
 
 function AgentSettings() {
+  const { t } = useTranslation()
   const settings = useQuery(api.agent.getAgentSettings)
   const updateSettings = useMutation(api.agent.updateAgentSettings)
   const deactivateAgent = useMutation(api.agent.deactivateAgent)
@@ -95,9 +98,9 @@ function AgentSettings() {
           'agent-instructions',
         )
         await updateSettings({ encryptedInstructions: encrypted })
-        toast.success('Instructions saved')
+        toast.success(t('toast.instructionsSaved'))
       } catch {
-        toast.error('Failed to save instructions')
+        toast.error(t('toast.failedSaveInstructions'))
       }
     },
     [workspacePublicKey, updateSettings],
@@ -126,16 +129,16 @@ function AgentSettings() {
       return
     }
     void deactivateAgent()
-      .then(() => toast.success('Bunkr Agent deactivated'))
-      .catch(() => toast.error('Failed to deactivate agent'))
+      .then(() => toast.success(t('toast.agentDeactivated')))
+      .catch(() => toast.error(t('toast.failedDeactivateAgent')))
   }
 
   const handleToggleWebSearch = async (checked: boolean) => {
     try {
       await updateSettings({ webSearchEnabled: checked })
-      toast.success('Settings updated')
+      toast.success(t('toast.settingsUpdated'))
     } catch {
-      toast.error('Failed to update settings')
+      toast.error(t('status.errorOccurred'))
     }
   }
 
@@ -146,13 +149,13 @@ function AgentSettings() {
           <ItemCardItem>
             <ItemCardItemContent>
               <ItemCardItemTitle>
-                Bunkr Agent{' '}
+                {t('settings.agent.bunkrAgent')}{' '}
                 <Badge variant="secondary" className="ml-1">
-                  Beta
+                  {t('settings.agent.beta')}
                 </Badge>
               </ItemCardItemTitle>
               <ItemCardItemDescription>
-                Allow conversations with Bunkr Agent inside your workspace
+                {t('settings.agent.agentDescription')}
               </ItemCardItemDescription>
             </ItemCardItemContent>
             <ItemCardItemAction>
@@ -171,10 +174,11 @@ function AgentSettings() {
             <ItemCardItems>
               <ItemCardItem>
                 <ItemCardItemContent>
-                  <ItemCardItemTitle>Enable web search</ItemCardItemTitle>
+                  <ItemCardItemTitle>
+                    {t('settings.agent.webSearch')}
+                  </ItemCardItemTitle>
                   <ItemCardItemDescription>
-                    Allow Bunkr Agent to search the public web for current
-                    information and cite sources
+                    {t('settings.agent.webSearchDescription')}
                   </ItemCardItemDescription>
                 </ItemCardItemContent>
                 <ItemCardItemAction>
@@ -192,10 +196,10 @@ function AgentSettings() {
               <ItemCardItem>
                 <ItemCardItemContent>
                   <ItemCardItemTitle>
-                    Conversation history retention
+                    {t('settings.agent.retention')}
                   </ItemCardItemTitle>
                   <ItemCardItemDescription>
-                    Automatically delete conversations older than this period
+                    {t('settings.agent.retentionDescription')}
                   </ItemCardItemDescription>
                 </ItemCardItemContent>
                 <ItemCardItemAction>
@@ -206,9 +210,9 @@ function AgentSettings() {
                         await updateSettings({
                           threadRetentionDays: Number(v),
                         })
-                        toast.success('Settings updated')
+                        toast.success(t('toast.settingsUpdated'))
                       } catch {
-                        toast.error('Failed to update settings')
+                        toast.error(t('status.errorOccurred'))
                       }
                     }}
                   >
@@ -216,11 +220,21 @@ function AgentSettings() {
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="1">1 day</SelectItem>
-                      <SelectItem value="3">3 days</SelectItem>
-                      <SelectItem value="7">7 days</SelectItem>
-                      <SelectItem value="14">14 days</SelectItem>
-                      <SelectItem value="30">30 days</SelectItem>
+                      <SelectItem value="1">
+                        {t('settings.agent.retention1d')}
+                      </SelectItem>
+                      <SelectItem value="3">
+                        {t('settings.agent.retention3d')}
+                      </SelectItem>
+                      <SelectItem value="7">
+                        {t('settings.agent.retention7d')}
+                      </SelectItem>
+                      <SelectItem value="14">
+                        {t('settings.agent.retention14d')}
+                      </SelectItem>
+                      <SelectItem value="30">
+                        {t('settings.agent.retention30d')}
+                      </SelectItem>
                     </SelectContent>
                   </Select>
                 </ItemCardItemAction>
@@ -230,17 +244,18 @@ function AgentSettings() {
 
           <div className="space-y-3">
             <div>
-              <h3 className="text-sm font-medium">Instructions</h3>
+              <h3 className="text-sm font-medium">
+                {t('settings.agent.instructions')}
+              </h3>
               <p className="text-sm text-muted-foreground">
-                Provide custom instructions that guide how Bunkr Agent responds
-                in your workspace.
+                {t('settings.agent.instructionsDescription')}
               </p>
             </div>
             <Textarea
               value={instructions}
               onChange={handleInstructionsChange}
               onBlur={handleInstructionsBlur}
-              placeholder="Optional agent instructions..."
+              placeholder={t('settings.agent.instructionsPlaceholder')}
               className="min-h-32"
               disabled={!instructionsLoaded}
             />

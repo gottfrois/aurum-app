@@ -1,5 +1,6 @@
 import { useAction, useQuery } from 'convex/react'
 import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import { Avatar, AvatarFallback, AvatarImage } from '~/components/ui/avatar'
 import { Card, CardContent, CardHeader, CardTitle } from '~/components/ui/card'
 import { useFormatCurrency } from '~/contexts/privacy-context'
@@ -28,6 +29,7 @@ export function TeamBreakdown({
 }: {
   workspaceId: Id<'workspaces'>
 }) {
+  const { t } = useTranslation()
   const breakdownMeta = useQuery(api.team.getTeamMemberBreakdown, {
     workspaceId,
   })
@@ -146,7 +148,7 @@ export function TeamBreakdown({
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Team Breakdown</CardTitle>
+        <CardTitle>{t('charts.teamBreakdown')}</CardTitle>
       </CardHeader>
       <CardContent className="space-y-4">
         {breakdown.map((member) => {
@@ -154,7 +156,7 @@ export function TeamBreakdown({
           const user = userId ? users[userId] : undefined
           const name = user
             ? [user.firstName, user.lastName].filter(Boolean).join(' ')
-            : 'Member'
+            : t('charts.member')
           const initials = name
             .split(' ')
             .map((n) => n[0])

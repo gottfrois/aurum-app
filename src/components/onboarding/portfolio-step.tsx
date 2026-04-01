@@ -8,6 +8,7 @@ import {
   Wallet,
 } from 'lucide-react'
 import { useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import { toast } from 'sonner'
 import { Input } from '~/components/ui/input'
 import { Label } from '~/components/ui/label'
@@ -28,7 +29,8 @@ export function PortfolioStep({
   goToStep,
   setSubmitting,
 }: OnboardingStepProps) {
-  const [name, setName] = useState('Personal')
+  const { t } = useTranslation()
+  const [name, setName] = useState(t('onboarding.portfolio.namePlaceholder'))
   const [selectedIcon, setSelectedIcon] = useState('User')
   const [saving, setSaving] = useState(false)
   const createPortfolio = useMutation(api.portfolios.createPortfolio)
@@ -42,7 +44,7 @@ export function PortfolioStep({
       await updateStep({ step: 'connection' })
       goToStep('connection')
     } catch (err) {
-      toast.error('Failed to create portfolio')
+      toast.error(t('toast.failedCreatePortfolio'))
       console.error(err)
       setSaving(false)
       setSubmitting(false)
@@ -51,27 +53,29 @@ export function PortfolioStep({
 
   return (
     <StepLayout
-      title="Create your first portfolio"
-      subtitle="Portfolios help you organize your financial accounts"
+      title={t('onboarding.portfolio.title')}
+      subtitle={t('onboarding.portfolio.subtitle')}
       onBack={() => goToStep('vault')}
       onSubmit={handleNext}
-      submitLabel="Continue"
+      submitLabel={t('common.continue')}
       submitDisabled={!name.trim()}
       loading={saving}
     >
       <div className="space-y-4">
         <div className="grid gap-2">
-          <Label htmlFor="portfolio-name">Portfolio name</Label>
+          <Label htmlFor="portfolio-name">
+            {t('onboarding.portfolio.nameLabel')}
+          </Label>
           <Input
             id="portfolio-name"
             value={name}
             onChange={(e) => setName(e.target.value)}
-            placeholder="Personal"
+            placeholder={t('onboarding.portfolio.namePlaceholder')}
             autoFocus
           />
         </div>
         <div className="grid gap-2">
-          <Label>Icon</Label>
+          <Label>{t('onboarding.portfolio.iconLabel')}</Label>
           <div className="flex flex-wrap gap-2">
             {PORTFOLIO_ICONS.map(({ name: iconName, icon: Icon }) => (
               <button

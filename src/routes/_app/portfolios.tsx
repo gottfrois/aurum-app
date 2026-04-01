@@ -4,6 +4,7 @@ import { useMutation, useQuery } from 'convex/react'
 import { MoreVertical } from 'lucide-react'
 import * as React from 'react'
 import { useHotkeys } from 'react-hotkeys-hook'
+import { useTranslation } from 'react-i18next'
 import { toast } from 'sonner'
 import { ConfirmDialog } from '~/components/confirm-dialog'
 import { CreatePortfolioDialog } from '~/components/create-portfolio-dialog'
@@ -58,10 +59,10 @@ function toSharingLevel(portfolio: Doc<'portfolios'>): SharingLevel {
   return (portfolio.shareAmounts ?? true) ? 'full' : 'percentages'
 }
 
-const SHARING_LABELS: Record<SharingLevel, string> = {
-  none: 'Not shared',
-  percentages: 'Percentages only',
-  full: 'Full access',
+const SHARING_LABEL_KEYS: Record<SharingLevel, string> = {
+  none: 'portfolios.notShared',
+  percentages: 'portfolios.percentagesOnly',
+  full: 'portfolios.fullAccess',
 }
 
 export const Route = createFileRoute('/_app/portfolios')({
@@ -69,6 +70,7 @@ export const Route = createFileRoute('/_app/portfolios')({
 })
 
 function PortfoliosPage() {
+  const { t } = useTranslation()
   const { portfolios, isLoading, setActivePortfolioId } = usePortfolio()
   const updatePortfolio = useMutation(api.portfolios.updatePortfolio)
   const deletePortfolio = useMutation(api.portfolios.deletePortfolio)
@@ -128,10 +130,14 @@ function PortfoliosPage() {
         shared: level !== 'none',
         shareAmounts: level === 'full',
       })
-      toast.success(level === 'none' ? 'Portfolio unshared' : 'Sharing updated')
+      toast.success(
+        level === 'none'
+          ? t('toast.portfolioUnshared')
+          : t('toast.sharingUpdated'),
+      )
     } catch (error) {
       Sentry.captureException(error)
-      toast.error('Failed to update sharing')
+      toast.error(t('toast.failedUpdateSharing'))
     }
   }
 
@@ -140,7 +146,7 @@ function PortfoliosPage() {
   if (isLoading || !portfolios) {
     return (
       <>
-        <SiteHeader title="Manage Portfolios" />
+        <SiteHeader title={t('portfolios.pageTitle')} />
         <div className="mx-auto w-full max-w-3xl flex-1 px-10 py-16">
           <header>
             <Skeleton className="h-9 w-40" />
@@ -175,11 +181,11 @@ function PortfoliosPage() {
 
   return (
     <>
-      <SiteHeader title="Manage Portfolios" />
+      <SiteHeader title={t('portfolios.pageTitle')} />
       <div className="mx-auto w-full max-w-3xl flex-1 px-10 py-16">
         <PageHeader
-          title="Your portfolios"
-          description="Organize your accounts into separate portfolios for tracking."
+          title={t('portfolios.title')}
+          description={t('portfolios.description')}
         />
         <div className="mt-8 space-y-6">
           <ItemCard>
@@ -187,11 +193,13 @@ function PortfoliosPage() {
               <ItemCardHeaderContent>
                 <ItemCardHeaderTitle>
                   {portfolios.length}{' '}
-                  {portfolios.length === 1 ? 'portfolio' : 'portfolios'}
+                  {portfolios.length === 1
+                    ? t('portfolios.singular')
+                    : t('portfolios.plural')}
                 </ItemCardHeaderTitle>
               </ItemCardHeaderContent>
               <Button size="sm" onClick={() => setCreateDialogOpen(true)}>
-                Add portfolio
+                {t('button.addPortfolio')}
               </Button>
             </ItemCardHeader>
             <ItemCardItems>
@@ -208,8 +216,12 @@ function PortfoliosPage() {
                         <ItemCardItemTitle>{portfolio.name}</ItemCardItemTitle>
                         <ItemCardItemDescription>
                           {isTeamPlan
-                            ? SHARING_LABELS[level]
-                            : `Created ${new Date(portfolio._creationTime).toLocaleDateString('fr-FR')}`}
+                            ? t(SHARING_LABEL_KEYS[level])
+                            : t('portfolios.createdDate', {
+                                date: new Date(
+                                  portfolio._creationTime,
+                                ).toLocaleDateString(),
+                              })}
                         </ItemCardItemDescription>
                       </ItemCardItemContent>
                     </div>
@@ -229,11 +241,15 @@ function PortfoliosPage() {
                               <SelectValue />
                             </SelectTrigger>
                             <SelectContent>
-                              <SelectItem value="none">Not shared</SelectItem>
-                              <SelectItem value="percentages">
-                                Percentages only
+                              <SelectItem value="none">
+                                {t('portfolios.notShared')}
                               </SelectItem>
-                              <SelectItem value="full">Full access</SelectItem>
+                              <SelectItem value="percentages">
+                                {t('portfolios.percentagesOnly')}
+                              </SelectItem>
+                              <SelectItem value="full">
+                                {t('portfolios.fullAccess')}
+                              </SelectItem>
                             </SelectContent>
                           </Select>
                         )}
@@ -252,14 +268,14 @@ function PortfoliosPage() {
                             <DropdownMenuItem
                               onClick={() => openEdit(portfolio)}
                             >
-                              Rename
+                              {t('common.rename')}
                             </DropdownMenuItem>
                             <DropdownMenuItem
                               variant="destructive"
                               onClick={() => openDelete(portfolio)}
                               disabled={!canDelete}
                             >
-                              Delete
+                              {t('common.delete')}
                             </DropdownMenuItem>
                           </DropdownMenuContent>
                         </DropdownMenu>
@@ -281,11 +297,13 @@ function PortfoliosPage() {
       >
         <DialogContent showCloseButton={false}>
           <DialogHeader>
-            <DialogTitle>Edit Portfolio</DialogTitle>
+            <DialogTitle>{t('portfolios.editTitle')}</DialogTitle>
           </DialogHeader>
           <div className="grid gap-4 py-4">
             <div className="grid gap-2">
-              <Label htmlFor="edit-portfolio-name">Name</Label>
+              <Label htmlFor="edit-portfolio-name">
+                {t('portfolios.editNameLabel')}
+              </Label>
               <Input
                 id="edit-portfolio-name"
                 value={editName}
@@ -306,10 +324,12 @@ function PortfoliosPage() {
         onOpenChange={(open) => {
           if (!open) setDeletingPortfolio(null)
         }}
-        title="Delete Portfolio"
-        description={`Deleting ${deletingPortfolio?.name} is permanent and cannot be undone. Deleting a portfolio also deletes all associated accounts & connections.`}
+        title={t('portfolios.deleteTitle')}
+        description={t('portfolios.deleteConfirm', {
+          name: deletingPortfolio?.name,
+        })}
         confirmValue={deletingPortfolio?.name}
-        confirmLabel="Delete"
+        confirmLabel={t('common.delete')}
         loading={isDeleting}
         onConfirm={handleDelete}
       />
@@ -331,6 +351,7 @@ function EditPortfolioFooter({
   onConfirm: () => void
   disabled: boolean
 }) {
+  const { t } = useTranslation()
   const handleConfirm = React.useCallback(() => {
     if (!disabled) onConfirm()
   }, [disabled, onConfirm])
@@ -349,10 +370,10 @@ function EditPortfolioFooter({
   return (
     <DialogFooter>
       <Button variant="outline" onClick={onCancel}>
-        Cancel <Kbd>Esc</Kbd>
+        {t('common.cancel')} <Kbd>Esc</Kbd>
       </Button>
       <Button onClick={handleConfirm} disabled={disabled}>
-        Save <HotkeyDisplay hotkey={{ keys: 'mod+enter' }} />
+        {t('common.save')} <HotkeyDisplay hotkey={{ keys: 'mod+enter' }} />
       </Button>
     </DialogFooter>
   )

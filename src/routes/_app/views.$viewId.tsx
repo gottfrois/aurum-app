@@ -4,6 +4,7 @@ import { useMutation, useQuery } from 'convex/react'
 import { ConvexError } from 'convex/values'
 import { Ellipsis, Star } from 'lucide-react'
 import * as React from 'react'
+import { useTranslation } from 'react-i18next'
 import { toast } from 'sonner'
 import { ConfirmDialog } from '~/components/confirm-dialog'
 import { DialogFormFooter } from '~/components/dialog-form-footer'
@@ -44,6 +45,7 @@ export const Route = createFileRoute('/_app/views/$viewId')({
 })
 
 function ViewDetailPage() {
+  const { t } = useTranslation()
   const { viewId: rawViewId } = Route.useParams()
   const viewId = rawViewId as Id<'filterViews'>
   const navigate = useNavigate()
@@ -79,24 +81,26 @@ function ViewDetailPage() {
         viewId,
         filters: serializeFilters(filtersRef.current),
       })
-      toast.success('View filters saved')
+      toast.success(t('toast.viewFiltersSaved'))
     } catch (error) {
       Sentry.captureException(error)
-      toast.error('Failed to save filters')
+      toast.error(t('toast.failedSaveFilters'))
     }
-  }, [updateView, viewId])
+  }, [updateView, viewId, t])
 
   const handleToggleFavorite = async () => {
     try {
       const result = await toggleFavorite({ viewId })
       toast.success(
-        result.favorited ? 'Added to favorites' : 'Removed from favorites',
+        result.favorited
+          ? t('toast.addedFavorite')
+          : t('toast.removedFavorite'),
       )
     } catch (err) {
       toast.error(
         err instanceof ConvexError
           ? (err.data as string)
-          : 'Failed to toggle favorite',
+          : t('toast.failedToggleFavorite'),
       )
     }
   }
@@ -105,11 +109,11 @@ function ViewDetailPage() {
     setDeleting(true)
     try {
       await removeView({ viewId })
-      toast.success('View deleted')
+      toast.success(t('toast.viewDeleted'))
       navigate({ to: '/views' })
     } catch (error) {
       Sentry.captureException(error)
-      toast.error('Failed to delete view')
+      toast.error(t('toast.failedDeleteView'))
     } finally {
       setDeleting(false)
     }
@@ -129,7 +133,10 @@ function ViewDetailPage() {
     return (
       <>
         <SiteHeader
-          breadcrumbs={[{ label: 'Views', href: '/views' }, { label: '...' }]}
+          breadcrumbs={[
+            { label: t('views.pageTitle'), href: '/views' },
+            { label: '...' },
+          ]}
         />
         <div className="flex flex-1 flex-col p-4 md:p-6">
           <Skeleton className="h-8 w-48" />
@@ -143,12 +150,12 @@ function ViewDetailPage() {
       <>
         <SiteHeader
           breadcrumbs={[
-            { label: 'Views', href: '/views' },
-            { label: 'Not Found' },
+            { label: t('views.pageTitle'), href: '/views' },
+            { label: t('views.notFound') },
           ]}
         />
         <div className="flex flex-1 flex-col items-center justify-center p-4 md:p-6">
-          <p className="text-muted-foreground">View not found</p>
+          <p className="text-muted-foreground">{t('views.notFound')}</p>
         </div>
       </>
     )
@@ -157,7 +164,10 @@ function ViewDetailPage() {
   return (
     <>
       <SiteHeader
-        breadcrumbs={[{ label: 'Views', href: '/views' }, { label: view.name }]}
+        breadcrumbs={[
+          { label: t('views.pageTitle'), href: '/views' },
+          { label: view.name },
+        ]}
         actions={
           <div className="flex items-center gap-1.5">
             <Tooltip>
@@ -175,7 +185,9 @@ function ViewDetailPage() {
                 </Button>
               </TooltipTrigger>
               <TooltipContent>
-                {isFavorite ? 'Remove from favorites' : 'Add to favorites'}
+                {isFavorite
+                  ? t('button.removeFavorite')
+                  : t('button.addFavorite')}
               </TooltipContent>
             </Tooltip>
 
@@ -187,14 +199,14 @@ function ViewDetailPage() {
               </DropdownMenuTrigger>
               <DropdownMenuContent align="start">
                 <DropdownMenuItem onClick={() => setEditOpen(true)}>
-                  Edit details
+                  {t('button.editView')}
                 </DropdownMenuItem>
                 <DropdownMenuSeparator />
                 <DropdownMenuItem
                   variant="destructive"
                   onClick={() => setDeleteOpen(true)}
                 >
-                  Delete
+                  {t('common.delete')}
                 </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
@@ -222,9 +234,9 @@ function ViewDetailPage() {
       <ConfirmDialog
         open={deleteOpen}
         onOpenChange={setDeleteOpen}
-        title="Delete view"
-        description="Are you sure you want to delete this view? This action cannot be undone."
-        confirmLabel="Delete"
+        title={t('views.deleteTitle')}
+        description={t('views.deleteConfirm')}
+        confirmLabel={t('common.delete')}
         loading={deleting}
         onConfirm={handleDelete}
       />
@@ -245,6 +257,7 @@ function EditViewDialog({
   initialName: string
   initialDescription: string
 }) {
+  const { t } = useTranslation()
   const updateView = useMutation(api.filterViews.update)
   const [name, setName] = React.useState(initialName)
   const [description, setDescription] = React.useState(initialDescription)
@@ -268,11 +281,11 @@ function EditViewDialog({
         name: name.trim(),
         description: description.trim() || undefined,
       })
-      toast.success('View updated')
+      toast.success(t('toast.viewUpdated'))
       onOpenChange(false)
     } catch (error) {
       Sentry.captureException(error)
-      toast.error('Failed to update view')
+      toast.error(t('toast.failedUpdateView'))
     } finally {
       setSaving(false)
     }
@@ -282,11 +295,11 @@ function EditViewDialog({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent showCloseButton={false} className="sm:max-w-[400px]">
         <DialogHeader>
-          <DialogTitle>Edit view</DialogTitle>
+          <DialogTitle>{t('views.editTitle')}</DialogTitle>
         </DialogHeader>
         <div className="space-y-4 py-2">
           <div className="space-y-2">
-            <Label htmlFor="view-name">Name</Label>
+            <Label htmlFor="view-name">{t('views.editNameLabel')}</Label>
             <Input
               id="view-name"
               value={name}
@@ -295,13 +308,15 @@ function EditViewDialog({
             />
           </div>
           <div className="space-y-2">
-            <Label htmlFor="view-description">Description</Label>
+            <Label htmlFor="view-description">
+              {t('views.editDescriptionLabel')}
+            </Label>
             <Textarea
               id="view-description"
               value={description}
               onChange={(e) => setDescription(e.target.value)}
               rows={2}
-              placeholder="Optional description..."
+              placeholder={t('views.editDescriptionPlaceholder')}
             />
           </div>
         </div>
@@ -310,7 +325,7 @@ function EditViewDialog({
           onConfirm={handleConfirm}
           disabled={!name.trim() || saving}
           saving={saving}
-          confirmLabel="Save"
+          confirmLabel={t('common.save')}
         />
       </DialogContent>
     </Dialog>

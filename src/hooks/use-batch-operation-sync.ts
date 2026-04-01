@@ -1,18 +1,20 @@
 import { useMutation, useQuery } from 'convex/react'
 import { useEffect, useRef } from 'react'
 import { useBulkOperation } from '~/contexts/bulk-operation-context'
+import i18n from '~/lib/i18n'
 import { api } from '../../convex/_generated/api'
 import type { Id } from '../../convex/_generated/dataModel'
 
-const BATCH_LABELS: Record<string, string> = {
-  'batch.labels.updating': 'Updating labels',
-  'batch.category.updating': 'Updating category',
-  'batch.exclusion.excluding': 'Excluding from budget',
-  'batch.exclusion.including': 'Including in budget',
+const BATCH_LABEL_KEYS: Record<string, string> = {
+  'batch.labels.updating': 'progress.updatingLabels',
+  'batch.category.updating': 'progress.updatingCategory',
+  'batch.exclusion.excluding': 'progress.excludingFromBudget',
+  'batch.exclusion.including': 'progress.includingInBudget',
 }
 
 function resolveBatchLabel(key: string): string {
-  return BATCH_LABELS[key] ?? key
+  const i18nKey = BATCH_LABEL_KEYS[key]
+  return i18nKey ? i18n.t(i18nKey) : key
 }
 
 export function useBatchOperationSync() {

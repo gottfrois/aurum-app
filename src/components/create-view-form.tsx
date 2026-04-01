@@ -4,6 +4,7 @@ import { useMutation } from 'convex/react'
 import { Globe, Lock } from 'lucide-react'
 import * as React from 'react'
 import { useHotkeys } from 'react-hotkeys-hook'
+import { useTranslation } from 'react-i18next'
 import { toast } from 'sonner'
 import { PortfolioAvatar } from '~/components/portfolio-avatar'
 import type { Filter } from '~/components/reui/filters'
@@ -38,6 +39,7 @@ export function CreateViewForm({
   defaultScope,
   onCancel,
 }: CreateViewFormProps) {
+  const { t } = useTranslation()
   const navigate = useNavigate()
   const createView = useMutation(api.filterViews.create)
   const { portfolios } = usePortfolio()
@@ -67,11 +69,11 @@ export function CreateViewForm({
         visibility: isPortfolio ? 'portfolio' : visibility,
         portfolioId: isPortfolio ? (visibility as Id<'portfolios'>) : undefined,
       })
-      toast.success('View created')
+      toast.success(t('toast.viewCreated'))
       navigate({ to: '/views/$viewId', params: { viewId } })
     } catch (error) {
       Sentry.captureException(error)
-      toast.error('Failed to create view')
+      toast.error(t('toast.failedCreateView'))
       setSaving(false)
     }
   }, [
@@ -84,6 +86,7 @@ export function CreateViewForm({
     getFilters,
     visibility,
     navigate,
+    t,
   ])
 
   useHotkeys('escape', onCancel, {
@@ -109,13 +112,15 @@ export function CreateViewForm({
             <input
               value={name}
               onChange={(e) => setName(e.target.value)}
-              placeholder="All transactions"
+              placeholder={t('views.formNamePlaceholder')}
               autoFocus
               className="min-w-0 flex-1 bg-transparent text-base font-medium placeholder:text-muted-foreground focus:outline-none"
             />
 
             <div className="flex shrink-0 items-center gap-2">
-              <span className="text-sm text-muted-foreground">Save to</span>
+              <span className="text-sm text-muted-foreground">
+                {t('views.formSaveTo')}
+              </span>
               <Select value={visibility} onValueChange={setVisibility}>
                 <SelectTrigger size="sm" className="w-[160px]">
                   <SelectValue />
@@ -124,18 +129,18 @@ export function CreateViewForm({
                   <SelectGroup>
                     <SelectItem value="personal">
                       <Lock className="size-4" />
-                      Personal
+                      {t('views.formPersonal')}
                     </SelectItem>
                     <SelectItem value="workspace">
                       <Globe className="size-4" />
-                      Everyone
+                      {t('views.formWorkspace')}
                     </SelectItem>
                   </SelectGroup>
                   {portfolios && portfolios.length > 0 && (
                     <>
                       <SelectSeparator />
                       <SelectGroup>
-                        <SelectLabel>Portfolios</SelectLabel>
+                        <SelectLabel>{t('views.formPortfolios')}</SelectLabel>
                         {portfolios.map((p) => (
                           <SelectItem key={p._id} value={p._id}>
                             <PortfolioAvatar
@@ -152,7 +157,7 @@ export function CreateViewForm({
               </Select>
 
               <Button variant="outline" size="sm" onClick={onCancel}>
-                Cancel <Kbd>Esc</Kbd>
+                {t('common.cancel')} <Kbd>Esc</Kbd>
               </Button>
               <Button
                 size="sm"
@@ -160,7 +165,8 @@ export function CreateViewForm({
                 disabled={isDisabled}
                 loading={saving}
               >
-                Save <HotkeyDisplay hotkey={{ keys: 'mod+enter' }} />
+                {t('common.save')}{' '}
+                <HotkeyDisplay hotkey={{ keys: 'mod+enter' }} />
               </Button>
             </div>
           </div>
@@ -168,7 +174,7 @@ export function CreateViewForm({
           <input
             value={description}
             onChange={(e) => setDescription(e.target.value)}
-            placeholder="Description (optional)"
+            placeholder={t('views.formDescriptionPlaceholder')}
             className="mt-1 min-w-0 bg-transparent text-sm text-muted-foreground placeholder:text-muted-foreground/60 focus:outline-none"
           />
         </div>

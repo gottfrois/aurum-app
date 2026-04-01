@@ -19,6 +19,7 @@ import {
   Users,
   Workflow,
 } from 'lucide-react'
+import { useTranslation } from 'react-i18next'
 import { PortfolioAvatar } from '~/components/portfolio-avatar'
 import {
   Sidebar,
@@ -39,6 +40,7 @@ import { api } from '../../convex/_generated/api'
 export function SettingsSidebar({
   ...props
 }: React.ComponentProps<typeof Sidebar>) {
+  const { t } = useTranslation()
   const { count: connectionIssueCount } = useConnectionsNeedingAttention()
   const { role } = useEncryption()
   const isOwner = role === 'owner'
@@ -52,7 +54,7 @@ export function SettingsSidebar({
             <SidebarMenuButton asChild>
               <Link to="/">
                 <ArrowLeft />
-                <span>Back to app</span>
+                <span>{t('nav.backToApp')}</span>
               </Link>
             </SidebarMenuButton>
           </SidebarMenuItem>
@@ -60,14 +62,14 @@ export function SettingsSidebar({
       </SidebarHeader>
       <SidebarContent>
         <SidebarGroup>
-          <SidebarGroupLabel>Account</SidebarGroupLabel>
+          <SidebarGroupLabel>{t('settings.nav.account')}</SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu>
               <SidebarMenuItem>
                 <SidebarMenuButton asChild>
                   <Link to="/settings/account">
                     <Palette />
-                    <span>Preferences</span>
+                    <span>{t('settings.nav.preferences')}</span>
                   </Link>
                 </SidebarMenuButton>
               </SidebarMenuItem>
@@ -75,7 +77,7 @@ export function SettingsSidebar({
                 <SidebarMenuButton asChild>
                   <Link to="/settings/account/profile">
                     <User />
-                    <span>Profile</span>
+                    <span>{t('settings.nav.profile')}</span>
                   </Link>
                 </SidebarMenuButton>
               </SidebarMenuItem>
@@ -83,7 +85,7 @@ export function SettingsSidebar({
                 <SidebarMenuButton asChild>
                   <Link to="/settings/account/security">
                     <Shield />
-                    <span>Security & access</span>
+                    <span>{t('settings.nav.security')}</span>
                   </Link>
                 </SidebarMenuButton>
               </SidebarMenuItem>
@@ -91,7 +93,7 @@ export function SettingsSidebar({
                 <SidebarMenuButton asChild>
                   <Link to="/settings/account/encryption">
                     <Lock />
-                    <span>Encryption</span>
+                    <span>{t('settings.nav.encryption')}</span>
                   </Link>
                 </SidebarMenuButton>
               </SidebarMenuItem>
@@ -99,7 +101,7 @@ export function SettingsSidebar({
                 <SidebarMenuButton asChild>
                   <Link to="/settings/account/notifications">
                     <Bell />
-                    <span>Notifications</span>
+                    <span>{t('settings.nav.notifications')}</span>
                   </Link>
                 </SidebarMenuButton>
               </SidebarMenuItem>
@@ -107,7 +109,7 @@ export function SettingsSidebar({
                 <SidebarMenuButton asChild>
                   <Link to="/settings/account/connections">
                     <Link2 />
-                    <span>Connections</span>
+                    <span>{t('settings.nav.connections')}</span>
                   </Link>
                 </SidebarMenuButton>
                 {connectionIssueCount > 0 && (
@@ -121,14 +123,14 @@ export function SettingsSidebar({
         </SidebarGroup>
         {isOwner && (
           <SidebarGroup>
-            <SidebarGroupLabel>Workspace</SidebarGroupLabel>
+            <SidebarGroupLabel>{t('settings.nav.workspace')}</SidebarGroupLabel>
             <SidebarGroupContent>
               <SidebarMenu>
                 <SidebarMenuItem>
                   <SidebarMenuButton asChild>
                     <Link to="/settings/workspace">
                       <Settings />
-                      <span>General</span>
+                      <span>{t('settings.nav.general')}</span>
                     </Link>
                   </SidebarMenuButton>
                 </SidebarMenuItem>
@@ -136,7 +138,7 @@ export function SettingsSidebar({
                   <SidebarMenuButton asChild>
                     <Link to="/settings/workspace/members">
                       <Users />
-                      <span>Members</span>
+                      <span>{t('settings.nav.members')}</span>
                     </Link>
                   </SidebarMenuButton>
                 </SidebarMenuItem>
@@ -144,7 +146,7 @@ export function SettingsSidebar({
                   <SidebarMenuButton asChild>
                     <Link to="/settings/workspace/team">
                       <SquareUserRound />
-                      <span>Team</span>
+                      <span>{t('settings.nav.team')}</span>
                     </Link>
                   </SidebarMenuButton>
                 </SidebarMenuItem>
@@ -152,7 +154,7 @@ export function SettingsSidebar({
                   <SidebarMenuButton asChild>
                     <Link to="/settings/workspace/permissions">
                       <ShieldCheck />
-                      <span>Permissions</span>
+                      <span>{t('settings.nav.permissions')}</span>
                     </Link>
                   </SidebarMenuButton>
                 </SidebarMenuItem>
@@ -160,7 +162,7 @@ export function SettingsSidebar({
                   <SidebarMenuButton asChild>
                     <Link to="/settings/workspace/billing">
                       <CreditCard />
-                      <span>Billing</span>
+                      <span>{t('settings.nav.billing')}</span>
                     </Link>
                   </SidebarMenuButton>
                 </SidebarMenuItem>
@@ -168,7 +170,7 @@ export function SettingsSidebar({
                   <SidebarMenuButton asChild>
                     <Link to="/settings/workspace/categories">
                       <Tag />
-                      <span>Categories</span>
+                      <span>{t('settings.nav.categories')}</span>
                     </Link>
                   </SidebarMenuButton>
                 </SidebarMenuItem>
@@ -176,7 +178,7 @@ export function SettingsSidebar({
                   <SidebarMenuButton asChild>
                     <Link to="/settings/workspace/labels">
                       <Sticker />
-                      <span>Labels</span>
+                      <span>{t('settings.nav.labels')}</span>
                     </Link>
                   </SidebarMenuButton>
                 </SidebarMenuItem>
@@ -184,7 +186,7 @@ export function SettingsSidebar({
                   <SidebarMenuButton asChild>
                     <Link to="/settings/workspace/rules">
                       <Workflow />
-                      <span>Rules</span>
+                      <span>{t('settings.nav.rules')}</span>
                     </Link>
                   </SidebarMenuButton>
                 </SidebarMenuItem>
@@ -192,7 +194,7 @@ export function SettingsSidebar({
                   <SidebarMenuButton asChild>
                     <Link to="/settings/workspace/agent">
                       <Sparkles />
-                      <span>AI & Agents</span>
+                      <span>{t('settings.nav.agent')}</span>
                     </Link>
                   </SidebarMenuButton>
                 </SidebarMenuItem>
@@ -202,7 +204,9 @@ export function SettingsSidebar({
         )}
         {portfolios && portfolios.length > 0 && (
           <SidebarGroup>
-            <SidebarGroupLabel>Your portfolios</SidebarGroupLabel>
+            <SidebarGroupLabel>
+              {t('settings.nav.yourPortfolios')}
+            </SidebarGroupLabel>
             <SidebarGroupContent>
               <SidebarMenu>
                 {portfolios.map((portfolio) => (

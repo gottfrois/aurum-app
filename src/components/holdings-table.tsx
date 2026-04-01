@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next'
 import {
   Table,
   TableBody,
@@ -40,24 +41,31 @@ export function HoldingsTable({
 }: {
   investments: Array<Investment>
 }) {
+  const { t } = useTranslation()
   const { isPrivate } = usePrivacy()
   const sorted = [...investments].sort((a, b) => b.valuation - a.valuation)
 
   if (sorted.length === 0) {
-    return <p className="text-sm text-muted-foreground">No holdings found.</p>
+    return (
+      <p className="text-sm text-muted-foreground">
+        {t('holdings.noHoldings')}
+      </p>
+    )
   }
 
   return (
     <Table>
       <TableHeader>
         <TableRow>
-          <TableHead>Name</TableHead>
-          <TableHead>ISIN</TableHead>
-          <TableHead className="text-right">Qty</TableHead>
-          <TableHead className="text-right">Unit Price</TableHead>
-          <TableHead className="text-right">Value</TableHead>
-          <TableHead className="text-right">P&L</TableHead>
-          <TableHead className="text-right">Weight</TableHead>
+          <TableHead>{t('holdings.name')}</TableHead>
+          <TableHead>{t('holdings.isin')}</TableHead>
+          <TableHead className="text-right">{t('holdings.qty')}</TableHead>
+          <TableHead className="text-right">
+            {t('holdings.unitPrice')}
+          </TableHead>
+          <TableHead className="text-right">{t('holdings.value')}</TableHead>
+          <TableHead className="text-right">{t('holdings.pnl')}</TableHead>
+          <TableHead className="text-right">{t('holdings.weight')}</TableHead>
         </TableRow>
       </TableHeader>
       <TableBody>

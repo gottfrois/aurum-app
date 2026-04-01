@@ -1,9 +1,11 @@
 import { Link } from '@tanstack/react-router'
 import { AlertTriangle, X } from 'lucide-react'
 import { useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import { useConnectionsNeedingAttention } from '~/hooks/use-connections-needing-attention'
 
 export function ConnectionAlertBanner() {
+  const { t } = useTranslation()
   const { connections, count, isLoading } = useConnectionsNeedingAttention()
   const [dismissed, setDismissed] = useState(false)
 
@@ -13,8 +15,8 @@ export function ConnectionAlertBanner() {
 
   const message =
     count === 1
-      ? `${connections[0].connectorName} needs re-authentication`
-      : `${count} connections need attention`
+      ? t('banner.needsReauth', { name: connections[0].connectorName })
+      : t('banner.connectionsNeedAttention', { count })
 
   return (
     <div className="flex items-center justify-between gap-4 border-b bg-amber-50 px-4 py-2 text-sm text-amber-900 dark:bg-amber-950/50 dark:text-amber-200 lg:px-6">
@@ -27,13 +29,13 @@ export function ConnectionAlertBanner() {
           to="/settings/account/connections"
           className="shrink-0 text-sm font-medium underline-offset-4 hover:underline"
         >
-          Review connections
+          {t('banner.reviewConnections')}
         </Link>
         <button
           type="button"
           onClick={() => setDismissed(true)}
           className="shrink-0 rounded-sm p-0.5 opacity-70 hover:opacity-100"
-          aria-label="Dismiss"
+          aria-label={t('banner.dismiss')}
         >
           <X className="size-3.5" />
         </button>

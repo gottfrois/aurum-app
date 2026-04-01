@@ -1,4 +1,5 @@
 import * as React from 'react'
+import { useTranslation } from 'react-i18next'
 import type { TooltipProps } from 'recharts'
 import { Area, AreaChart, CartesianGrid, XAxis, YAxis } from 'recharts'
 import { PeriodSelector } from '~/components/period-selector'
@@ -68,6 +69,7 @@ function StackedTooltipContent({
     }
     return map
   }, [categories])
+  const { t } = useTranslation()
   if (!active || !payload?.length) return null
 
   const total = payload.reduce((sum, entry) => sum + (entry.value ?? 0), 0)
@@ -101,7 +103,7 @@ function StackedTooltipContent({
             </div>
           ))}
         <div className="flex items-center justify-between gap-4 border-t pt-1.5 font-medium">
-          <span>Total</span>
+          <span>{t('charts.total')}</span>
           <span className="font-mono tabular-nums">
             {formatCurrency(total)}
           </span>
@@ -124,6 +126,7 @@ function ChartContent({
   chartConfig: ChartConfig
   isLoading: boolean
 }) {
+  const { t } = useTranslation()
   if (isLoading) {
     return <Skeleton className="h-[250px] w-full" />
   }
@@ -131,7 +134,7 @@ function ChartContent({
   if (data.length < 2) {
     return (
       <div className="flex h-[250px] items-center justify-center text-sm text-muted-foreground">
-        Not enough data to display a chart
+        {t('charts.notEnoughData')}
       </div>
     )
   }

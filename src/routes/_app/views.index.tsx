@@ -5,6 +5,7 @@ import { useMutation, useQuery } from 'convex/react'
 import { ConvexError } from 'convex/values'
 import { Layers, MoreHorizontal, Plus } from 'lucide-react'
 import * as React from 'react'
+import { useTranslation } from 'react-i18next'
 import { toast } from 'sonner'
 import { ConfirmDialog } from '~/components/confirm-dialog'
 import { DataTable } from '~/components/data-table'
@@ -58,9 +59,10 @@ type ViewRow = {
 }
 
 function ViewsPage() {
+  const { t } = useTranslation()
   return (
     <>
-      <SiteHeader title="Views" />
+      <SiteHeader title={t('views.pageTitle')} />
       <div className="flex flex-1 flex-col">
         <ViewsContent />
       </div>
@@ -69,6 +71,7 @@ function ViewsPage() {
 }
 
 function ViewsContent() {
+  const { t } = useTranslation()
   const navigate = useNavigate()
   const views = useQuery(api.filterViews.list, {})
   const favorites = useQuery(api.filterViewFavorites.list)
@@ -98,13 +101,15 @@ function ViewsContent() {
     try {
       const result = await toggleFavorite({ viewId })
       toast.success(
-        result.favorited ? 'Added to favorites' : 'Removed from favorites',
+        result.favorited
+          ? t('toast.addedFavorite')
+          : t('toast.removedFavorite'),
       )
     } catch (err) {
       toast.error(
         err instanceof ConvexError
           ? (err.data as string)
-          : 'Failed to toggle favorite',
+          : t('toast.failedToggleFavorite'),
       )
     }
   }
@@ -114,11 +119,11 @@ function ViewsContent() {
     setDeleting(true)
     try {
       await removeView({ viewId: deleteViewId })
-      toast.success('View deleted')
+      toast.success(t('toast.viewDeleted'))
       setDeleteViewId(null)
     } catch (error) {
       Sentry.captureException(error)
-      toast.error('Failed to delete view')
+      toast.error(t('toast.failedDeleteView'))
     } finally {
       setDeleting(false)
     }
@@ -129,10 +134,10 @@ function ViewsContent() {
       for (const id of ids) {
         await removeView({ viewId: id as Id<'filterViews'> })
       }
-      toast.success(`${ids.length} view${ids.length > 1 ? 's' : ''} deleted`)
+      toast.success(t('toast.viewsDeleted', { count: ids.length }))
     } catch (error) {
       Sentry.captureException(error)
-      toast.error('Failed to delete views')
+      toast.error(t('toast.failedDeleteViews'))
     }
   }
 
@@ -155,12 +160,8 @@ function ViewsContent() {
             <EmptyMedia variant="icon">
               <Layers />
             </EmptyMedia>
-            <EmptyTitle>Views</EmptyTitle>
-            <EmptyDescription>
-              Create custom views using filters to show only the transactions
-              you want to see. You can save, share, and favorite these views for
-              easy access and faster collaboration.
-            </EmptyDescription>
+            <EmptyTitle>{t('views.emptyTitle')}</EmptyTitle>
+            <EmptyDescription>{t('views.emptyDescription')}</EmptyDescription>
           </EmptyHeader>
           <EmptyContent>
             <Button
@@ -168,7 +169,7 @@ function ViewsContent() {
                 navigate({ to: '/transactions', search: { createView: true } })
               }
             >
-              Create new view
+              {t('button.createView')}
             </Button>
           </EmptyContent>
         </Empty>
@@ -226,9 +227,9 @@ function ViewsContent() {
     ...(tableData.some((v) => v.visibility === 'personal')
       ? [
           {
-            label: 'Personal views',
-            description: 'Only visible to you',
-            action: newViewAction('personal', 'Create personal view...'),
+            label: t('views.personalGroup'),
+            description: t('views.personalDescription'),
+            action: newViewAction('personal', t('views.createPersonalTooltip')),
             filter: (row: ViewRow) => row.visibility === 'personal',
           },
         ]
@@ -236,16 +237,19 @@ function ViewsContent() {
     ...(tableData.some((v) => v.visibility === 'workspace')
       ? [
           {
-            label: 'Workspace',
-            description: 'Visible to everyone',
-            action: newViewAction('workspace', 'Create workspace view...'),
+            label: t('views.workspaceGroup'),
+            description: t('views.workspaceDescription'),
+            action: newViewAction(
+              'workspace',
+              t('views.createWorkspaceTooltip'),
+            ),
             filter: (row: ViewRow) => row.visibility === 'workspace',
           },
         ]
       : []),
     ...portfolioIds.map((pid) => ({
       label: portfolioNameMap.get(pid) ?? 'Portfolio',
-      action: newViewAction(pid, 'Create portfolio view...'),
+      action: newViewAction(pid, t('views.createPortfolioTooltip')),
       filter: (row: ViewRow) =>
         row.visibility === 'portfolio' && row.portfolioId === pid,
     })),
@@ -254,7 +258,7 @@ function ViewsContent() {
   const tableColumns: ColumnDef<ViewRow, unknown>[] = [
     {
       accessorKey: 'name',
-      header: 'Name',
+      header: t('views.nameHeader'),
       cell: ({ row }) => (
         <div className="flex items-center gap-3">
           {row.original.color ? (
@@ -277,7 +281,7 @@ function ViewsContent() {
     },
     {
       accessorKey: 'description',
-      header: 'Description',
+      header: t('views.descriptionHeader'),
       cell: ({ row }) => (
         <span className="text-muted-foreground">
           {row.original.description}
@@ -286,7 +290,7 @@ function ViewsContent() {
     },
     {
       id: 'filters',
-      header: 'Filters',
+      header: t('views.filtersHeader'),
       size: 80,
       cell: ({ row }) => (
         <span className="text-muted-foreground">
@@ -296,7 +300,7 @@ function ViewsContent() {
     },
     {
       id: 'created',
-      header: 'Created',
+      header: t('views.createdHeader'),
       size: 100,
       cell: ({ row }) => (
         <span className="text-muted-foreground">
@@ -318,22 +322,22 @@ function ViewsContent() {
             <DropdownMenuContent align="end">
               <DropdownMenuItem asChild>
                 <Link to="/views/$viewId" params={{ viewId: row.original._id }}>
-                  Open view
+                  {t('button.openView')}
                 </Link>
               </DropdownMenuItem>
               <DropdownMenuItem
                 onClick={() => void handleToggleFavorite(row.original._id)}
               >
                 {row.original.isFavorite
-                  ? 'Remove from favorites'
-                  : 'Add to favorites'}
+                  ? t('button.removeFavorite')
+                  : t('button.addFavorite')}
               </DropdownMenuItem>
               <DropdownMenuSeparator />
               <DropdownMenuItem
                 variant="destructive"
                 onClick={() => setDeleteViewId(row.original._id)}
               >
-                Delete
+                {t('common.delete')}
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
@@ -347,8 +351,8 @@ function ViewsContent() {
       <div className="mx-auto w-full max-w-3xl flex-1 px-10 py-16">
         <div className="shrink-0">
           <PageHeader
-            title="Views"
-            description="Save and organize filtered views of your transactions."
+            title={t('views.pageTitle')}
+            description={t('views.description')}
           />
         </div>
         <div className="mt-8 flex min-h-0 flex-1 flex-col">
@@ -356,7 +360,7 @@ function ViewsContent() {
             columns={tableColumns}
             data={tableData}
             filterColumn="name"
-            filterPlaceholder="Filter by name..."
+            filterPlaceholder={t('views.filterPlaceholder')}
             getRowId={(row) => row._id}
             onBatchDelete={handleBatchDelete}
             groups={groups}
@@ -371,7 +375,7 @@ function ViewsContent() {
                 }
               >
                 <Plus className="size-4" />
-                New view
+                {t('button.newView')}
               </Button>
             }
           />
@@ -383,9 +387,9 @@ function ViewsContent() {
         onOpenChange={(open) => {
           if (!open) setDeleteViewId(null)
         }}
-        title="Delete view"
-        description="Are you sure you want to delete this view? This action cannot be undone."
-        confirmLabel="Delete"
+        title={t('views.deleteTitle')}
+        description={t('views.deleteConfirm')}
+        confirmLabel={t('common.delete')}
         loading={deleting}
         onConfirm={handleDelete}
       />

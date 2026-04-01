@@ -1,5 +1,6 @@
 import * as Sentry from '@sentry/tanstackstart-react'
 import { useMutation } from 'convex/react'
+import { useTranslation } from 'react-i18next'
 import { toast } from 'sonner'
 import { CategoryCombobox } from '~/components/category-combobox'
 import { useEncryption } from '~/contexts/encryption-context'
@@ -23,6 +24,7 @@ export function CategoryPicker({
   onCreateRule,
   modal,
 }: CategoryPickerProps) {
+  const { t } = useTranslation()
   const { getCategory } = useCategories()
   const { workspacePublicKey } = useEncryption()
   const updateCategory = useMutation(api.transactions.updateTransactionCategory)
@@ -58,18 +60,18 @@ export function CategoryPicker({
         previousCategoryColor: prevCat?.color || undefined,
       })
       const label = categoryLabel || getCategory(categoryKey).label
-      toast.success('Category updated', {
-        description: `Changed to "${label}"`,
+      toast.success(t('toast.categoryUpdated'), {
+        description: t('toast.categoryUpdatedDesc', { label }),
         action: onCreateRule
           ? {
-              label: 'Create rule',
+              label: t('categoryPicker.createRule'),
               onClick: () => onCreateRule(wording, categoryKey),
             }
           : undefined,
       })
     } catch (error) {
       Sentry.captureException(error)
-      toast.error('Failed to update category')
+      toast.error(t('toast.failedUpdateCategory'))
     }
   }
 

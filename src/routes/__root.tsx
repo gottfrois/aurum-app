@@ -1,3 +1,5 @@
+import '~/lib/i18n'
+
 import { ClerkProvider, useAuth } from '@clerk/tanstack-react-start'
 import { auth } from '@clerk/tanstack-react-start/server'
 import type { ConvexQueryClient } from '@convex-dev/react-query'
@@ -18,6 +20,7 @@ import { useConvexAuth, useQuery } from 'convex/react'
 import { ConvexProviderWithClerk } from 'convex/react-clerk'
 import { ThemeProvider } from 'next-themes'
 import * as React from 'react'
+import { useTranslation } from 'react-i18next'
 import { PassphrasePrompt } from '~/components/passphrase-prompt'
 import { Toaster } from '~/components/ui/sonner'
 import { TooltipProvider } from '~/components/ui/tooltip'
@@ -25,6 +28,7 @@ import { BulkOperationProvider } from '~/contexts/bulk-operation-context'
 import { EncryptionProvider } from '~/contexts/encryption-context'
 import { PortfolioProvider } from '~/contexts/portfolio-context'
 import { PrivacyProvider } from '~/contexts/privacy-context'
+import { useLanguageSync } from '~/hooks/use-language-sync'
 import appCss from '~/styles/app.css?url'
 import { api } from '../../convex/_generated/api'
 
@@ -172,24 +176,32 @@ function RootComponent() {
   return (
     <ClerkProvider>
       <ConvexProviderWithClerk client={context.convexClient} useAuth={useAuth}>
-        <TooltipProvider>
-          <PortfolioProvider>
-            <EncryptionProvider>
-              <BulkOperationProvider>
-                <PrivacyProvider>
-                  <RootDocument>
-                    <OnboardingGuard>
-                      <Outlet />
-                    </OnboardingGuard>
-                  </RootDocument>
-                </PrivacyProvider>
-              </BulkOperationProvider>
-            </EncryptionProvider>
-          </PortfolioProvider>
-        </TooltipProvider>
+        <LanguageSyncWrapper>
+          <TooltipProvider>
+            <PortfolioProvider>
+              <EncryptionProvider>
+                <BulkOperationProvider>
+                  <PrivacyProvider>
+                    <RootDocument>
+                      <OnboardingGuard>
+                        <Outlet />
+                      </OnboardingGuard>
+                    </RootDocument>
+                  </PrivacyProvider>
+                </BulkOperationProvider>
+              </EncryptionProvider>
+            </PortfolioProvider>
+          </TooltipProvider>
+        </LanguageSyncWrapper>
       </ConvexProviderWithClerk>
     </ClerkProvider>
   )
+}
+
+function LanguageSyncWrapper({ children }: { children: React.ReactNode }) {
+  const { isAuthenticated } = useConvexAuth()
+  useLanguageSync(isAuthenticated)
+  return <>{children}</>
 }
 
 const EXEMPT_PATHS = [
@@ -229,8 +241,9 @@ function OnboardingGuard({ children }: { children: React.ReactNode }) {
 }
 
 function RootDocument({ children }: { children: React.ReactNode }) {
+  const { i18n } = useTranslation()
   return (
-    <html lang="en" suppressHydrationWarning>
+    <html lang={i18n.language} suppressHydrationWarning>
       <head>
         <HeadContent />
       </head>

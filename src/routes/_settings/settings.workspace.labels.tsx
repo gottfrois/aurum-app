@@ -3,6 +3,7 @@ import type { ColumnDef } from '@tanstack/react-table'
 import { useMutation, useQuery } from 'convex/react'
 import { MoreHorizontal, Plus } from 'lucide-react'
 import * as React from 'react'
+import { useTranslation } from 'react-i18next'
 import { toast } from 'sonner'
 import { ConfirmDialog } from '~/components/confirm-dialog'
 import { DataTable } from '~/components/data-table'
@@ -42,13 +43,14 @@ type LabelRow = {
 }
 
 function LabelsPage() {
+  const { t } = useTranslation()
   return (
     <RequireOwner>
       <div className="flex h-full flex-col overflow-hidden px-10 pt-16">
         <div className="shrink-0">
           <PageHeader
-            title="Labels"
-            description="Create labels to tag and organize transactions across portfolios."
+            title={t('settings.labels.title')}
+            description={t('settings.labels.workspaceDescription')}
           />
         </div>
         <div className="mt-8 flex min-h-0 flex-1 flex-col">
@@ -60,6 +62,7 @@ function LabelsPage() {
 }
 
 function LabelsList() {
+  const { t } = useTranslation()
   const workspace = useQuery(api.workspaces.getMyWorkspace)
   const labels = useQuery(
     api.transactionLabels.listWorkspaceLabels,
@@ -94,13 +97,15 @@ function LabelsList() {
         description: newDescription.trim() || undefined,
         color: newColor,
       })
-      toast.success('Label created')
+      toast.success(t('toast.labelCreated'))
       setCreateOpen(false)
       setNewName('')
       setNewDescription('')
       setNewColor('#3B82F6')
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : 'Failed to create label')
+      toast.error(
+        err instanceof Error ? err.message : t('toast.failedCreateLabel'),
+      )
     } finally {
       setSaving(false)
     }
@@ -116,13 +121,15 @@ function LabelsList() {
         description: newDescription.trim() || undefined,
         color: newColor,
       })
-      toast.success('Label updated')
+      toast.success(t('toast.labelUpdated'))
       setEditingLabel(null)
       setNewName('')
       setNewDescription('')
       setNewColor('#3B82F6')
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : 'Failed to update label')
+      toast.error(
+        err instanceof Error ? err.message : t('toast.failedUpdateLabel'),
+      )
     } finally {
       setSaving(false)
     }
@@ -132,10 +139,12 @@ function LabelsList() {
     if (!deletingLabelId) return
     try {
       await deleteLabel({ labelId: deletingLabelId })
-      toast.success('Label deleted')
+      toast.success(t('toast.labelDeleted'))
       setDeletingLabelId(null)
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : 'Failed to delete label')
+      toast.error(
+        err instanceof Error ? err.message : t('toast.failedDeleteLabel'),
+      )
     }
   }
 
@@ -144,10 +153,10 @@ function LabelsList() {
       await batchDeleteLabels({
         labelIds: ids as Id<'transactionLabels'>[],
       })
-      toast.success(`${ids.length} label${ids.length > 1 ? 's' : ''} deleted`)
+      toast.success(t('toast.labelsDeleted', { count: ids.length }))
     } catch (err) {
       toast.error(
-        err instanceof Error ? err.message : 'Failed to delete labels',
+        err instanceof Error ? err.message : t('toast.failedDeleteLabels'),
       )
     }
   }
@@ -162,7 +171,7 @@ function LabelsList() {
   const tableColumns: ColumnDef<LabelRow, unknown>[] = [
     {
       accessorKey: 'name',
-      header: 'Name',
+      header: t('settings.labels.nameHeader'),
       cell: ({ row }) => (
         <div className="flex items-center gap-3">
           <span
@@ -175,7 +184,7 @@ function LabelsList() {
     },
     {
       accessorKey: 'description',
-      header: 'Description',
+      header: t('settings.labels.descriptionHeader'),
       cell: ({ row }) => (
         <span className="text-muted-foreground">
           {row.original.description}
@@ -184,7 +193,7 @@ function LabelsList() {
     },
     {
       id: 'created',
-      header: 'Created',
+      header: t('settings.labels.createdHeader'),
       size: 100,
       cell: ({ row }) => (
         <span className="text-muted-foreground">
@@ -230,13 +239,13 @@ function LabelsList() {
         columns={tableColumns}
         data={labels as LabelRow[]}
         filterColumn="name"
-        filterPlaceholder="Filter by name..."
+        filterPlaceholder={t('settings.labels.filterPlaceholder')}
         getRowId={(row) => row._id}
         onBatchDelete={handleBatchDelete}
         actions={
           <Button size="sm" onClick={() => setCreateOpen(true)}>
             <Plus className="size-4" />
-            Add label
+            {t('settings.labels.addLabel')}
           </Button>
         }
       />
@@ -244,9 +253,9 @@ function LabelsList() {
       <Dialog open={createOpen} onOpenChange={setCreateOpen}>
         <DialogContent className="sm:max-w-md" showCloseButton={false}>
           <DialogHeader>
-            <DialogTitle>Add Label</DialogTitle>
+            <DialogTitle>{t('settings.labels.addLabelTitle')}</DialogTitle>
             <DialogDescription>
-              Create a label to tag transactions.
+              {t('settings.labels.addLabelWorkspaceDescription')}
             </DialogDescription>
           </DialogHeader>
           <LabelFormFields
@@ -262,7 +271,7 @@ function LabelsList() {
             onConfirm={handleCreate}
             disabled={saving || !newName.trim()}
             saving={saving}
-            confirmLabel="Create"
+            confirmLabel={t('common.create')}
           />
         </DialogContent>
       </Dialog>
@@ -275,9 +284,9 @@ function LabelsList() {
       >
         <DialogContent className="sm:max-w-md" showCloseButton={false}>
           <DialogHeader>
-            <DialogTitle>Edit Label</DialogTitle>
+            <DialogTitle>{t('settings.labels.editLabelTitle')}</DialogTitle>
             <DialogDescription>
-              Update label name, description or color.
+              {t('settings.labels.editLabelDescription')}
             </DialogDescription>
           </DialogHeader>
           <LabelFormFields
@@ -293,7 +302,7 @@ function LabelsList() {
             onConfirm={handleUpdate}
             disabled={saving || !newName.trim()}
             saving={saving}
-            confirmLabel="Save"
+            confirmLabel={t('common.save')}
           />
         </DialogContent>
       </Dialog>
@@ -303,9 +312,9 @@ function LabelsList() {
         onOpenChange={(open) => {
           if (!open) setDeletingLabelId(null)
         }}
-        title="Delete label?"
-        description="This action cannot be undone. This label will be removed from all transactions that use it."
-        confirmLabel="Delete"
+        title={t('settings.labels.deleteLabelTitle')}
+        description={t('settings.labels.deleteLabelDescription')}
+        confirmLabel={t('common.delete')}
         onConfirm={handleDelete}
       />
     </>

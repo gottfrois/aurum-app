@@ -31,6 +31,7 @@ import {
   XIcon,
 } from 'lucide-react'
 import * as React from 'react'
+import { useTranslation } from 'react-i18next'
 import { toast } from 'sonner'
 import { CategoryPicker } from '~/components/category-picker'
 import {
@@ -956,6 +957,7 @@ function BulkLabelView({
   onToggle: (labelId: string, checked: boolean) => void
   onBack: () => void
 }) {
+  const { t } = useTranslation()
   const [search, setSearch] = React.useState('')
   // Optimistic overrides: tracks labels toggled by the user before the server confirms
   const [optimistic, setOptimistic] = React.useState<Map<string, boolean>>(
@@ -1018,7 +1020,7 @@ function BulkLabelView({
         <input
           value={search}
           onChange={(e) => setSearch(e.target.value)}
-          placeholder="Search or create label..."
+          placeholder={t('transactions.searchLabels')}
           className="flex h-10 w-full bg-transparent text-sm outline-none placeholder:text-muted-foreground"
           autoFocus
         />
@@ -1026,7 +1028,7 @@ function BulkLabelView({
       <div className="min-h-[300px] max-h-[300px] overflow-y-auto overflow-x-hidden scroll-py-1 px-2 py-1">
         {filtered.length === 0 && !search.trim() && (
           <p className="py-6 text-center text-sm text-muted-foreground">
-            No labels found.
+            {t('transactions.noLabelsFound')}
           </p>
         )}
         {filtered.length > 0 && (
@@ -1315,35 +1317,43 @@ function TransactionDetailSheet({
     (transaction?.portfolioId as Id<'portfolios'>) ?? singlePortfolioId,
   )
 
+  const { t } = useTranslation()
+
   if (!transaction) return null
 
   const categoryKey = resolveTransactionCategoryKey(transaction)
 
   const details: Array<{ label: string; value: string | undefined }> = [
-    { label: 'Date', value: formatDate(transaction.date) },
+    { label: t('transactionDetail.date'), value: formatDate(transaction.date) },
     {
-      label: 'Value date',
+      label: t('transactionDetail.valueDate'),
       value: transaction.vdate ? formatDate(transaction.vdate) : undefined,
     },
     {
-      label: 'Accounting date',
+      label: t('transactionDetail.accountingDate'),
       value: transaction.rdate ? formatDate(transaction.rdate) : undefined,
     },
-    { label: 'Account', value: transaction.accountName },
-    { label: 'Account number', value: transaction.accountNumber },
-    { label: 'Type', value: transaction.type },
-    { label: 'Counterparty', value: transaction.counterparty },
-    { label: 'Card', value: transaction.card },
-    { label: 'Wording', value: transaction.wording },
+    { label: t('transactionDetail.account'), value: transaction.accountName },
     {
-      label: 'Original wording',
+      label: t('transactionDetail.accountNumber'),
+      value: transaction.accountNumber,
+    },
+    { label: t('transactionDetail.type'), value: transaction.type },
+    {
+      label: t('transactionDetail.counterparty'),
+      value: transaction.counterparty,
+    },
+    { label: t('transactionDetail.card'), value: transaction.card },
+    { label: t('transactionDetail.wording'), value: transaction.wording },
+    {
+      label: t('transactionDetail.originalWording'),
       value: transaction.originalWording,
     },
     {
-      label: 'Simplified wording',
+      label: t('transactionDetail.simplifiedWording'),
       value: transaction.simplifiedWording,
     },
-    { label: 'Comment', value: transaction.comment },
+    { label: t('transactionDetail.comment'), value: transaction.comment },
   ]
 
   const hasOriginalCurrency =
@@ -1371,13 +1381,15 @@ function TransactionDetailSheet({
                 />
                 <SheetDescription className="mt-1">
                   {transaction.coming
-                    ? 'Pending transaction'
-                    : 'Completed transaction'}
+                    ? t('transactionDetail.pending')
+                    : t('transactionDetail.completed')}
                 </SheetDescription>
               </div>
               <div className="ml-3 flex h-7 items-center">
                 <SheetClose className="rounded-md text-muted-foreground hover:text-foreground focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring">
-                  <span className="sr-only">Close panel</span>
+                  <span className="sr-only">
+                    {t('transactionDetail.closePanel')}
+                  </span>
                   <XIcon className="size-5" />
                 </SheetClose>
               </div>
@@ -1404,7 +1416,7 @@ function TransactionDetailSheet({
             </div>
             {hasOriginalCurrency && (
               <p className="mt-1 text-sm text-muted-foreground">
-                Original:{' '}
+                {t('transactionDetail.original')}{' '}
                 {transaction.originalValue != null &&
                   transaction.originalCurrency &&
                   formatCurrency(
@@ -1420,7 +1432,7 @@ function TransactionDetailSheet({
             <div className="space-y-4">
               <div>
                 <dt className="text-sm font-medium text-muted-foreground">
-                  Category
+                  {t('transactionDetail.category')}
                 </dt>
                 <dd className="mt-1">
                   <CategoryPicker
@@ -1444,7 +1456,7 @@ function TransactionDetailSheet({
               {workspaceId && (
                 <div>
                   <dt className="text-sm font-medium text-muted-foreground">
-                    Labels
+                    {t('transactionDetail.labels')}
                   </dt>
                   <dd className="mt-1">
                     <LabelPicker
@@ -1454,9 +1466,9 @@ function TransactionDetailSheet({
                         const prev = transaction.labelIds ?? []
                         onLabelToggle(transaction._id, labelIds)
                         if (labelIds.length > prev.length) {
-                          toast.success('Label added', {
+                          toast.success(t('transactionDetail.labelAdded'), {
                             action: {
-                              label: 'Create rule',
+                              label: t('categoryPicker.createRule'),
                               onClick: () =>
                                 onCreateRule(
                                   transaction.wording,
@@ -1480,16 +1492,18 @@ function TransactionDetailSheet({
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
                   <EyeOff className="size-4 text-muted-foreground" />
-                  <span className="text-sm">Exclude from budget</span>
+                  <span className="text-sm">
+                    {t('transactionDetail.excludeFromBudget')}
+                  </span>
                 </div>
                 <Switch
                   checked={transaction.excludedFromBudget ?? false}
                   onCheckedChange={(checked) => {
                     onExclusionToggle(transaction._id, checked)
                     if (checked) {
-                      toast.success('Excluded from budget', {
+                      toast.success(t('transactionDetail.excludedFromBudget'), {
                         action: {
-                          label: 'Create rule',
+                          label: t('categoryPicker.createRule'),
                           onClick: () =>
                             onCreateRule(
                               transaction.wording,
@@ -1501,7 +1515,7 @@ function TransactionDetailSheet({
                         },
                       })
                     } else {
-                      toast.success('Included in budget')
+                      toast.success(t('transactionDetail.includedInBudget'))
                     }
                   }}
                 />
@@ -1532,7 +1546,7 @@ function TransactionDetailSheet({
           {auditEntries.length > 0 && (
             <div className="mt-2 border-t px-4 pt-5 pb-6 sm:px-6">
               <dt className="text-sm font-medium text-muted-foreground">
-                Activity
+                {t('transactionDetail.activity')}
               </dt>
               <dd className="mt-3">
                 <AuditTimeline
@@ -1554,13 +1568,13 @@ function TransactionDetailSheet({
                     className="mt-2 w-full text-muted-foreground"
                     onClick={() => loadMore(10)}
                   >
-                    Load older activity
+                    {t('transactionDetail.loadOlderActivity')}
                   </Button>
                 )}
                 {auditStatus === 'LoadingMore' && (
                   <div className="mt-2 flex justify-center">
                     <span className="text-sm text-muted-foreground">
-                      Loading…
+                      {t('common.loading')}
                     </span>
                   </div>
                 )}

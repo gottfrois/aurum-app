@@ -1,5 +1,6 @@
 import { ChevronsUpDown, Plus } from 'lucide-react'
 import * as React from 'react'
+import { useTranslation } from 'react-i18next'
 import { Badge } from '~/components/ui/badge'
 import { Button } from '~/components/ui/button'
 import { Checkbox } from '~/components/ui/checkbox'
@@ -36,6 +37,7 @@ export function LabelPicker({
   onToggle,
   onCreateLabel,
 }: LabelPickerProps) {
+  const { t } = useTranslation()
   const [open, setOpen] = React.useState(false)
   const [search, setSearch] = React.useState('')
   // Optimistic state — merges with server state for instant UI feedback
@@ -119,7 +121,9 @@ export function LabelPicker({
               ))}
             </span>
           ) : (
-            <span className="text-muted-foreground">Add labels...</span>
+            <span className="text-muted-foreground">
+              {t('labelPicker.addLabels')}
+            </span>
           )}
           <ChevronsUpDown className="ml-auto size-3 shrink-0 opacity-50" />
         </Button>
@@ -127,7 +131,7 @@ export function LabelPicker({
       <PopoverContent className="w-[220px] p-0" align="start">
         <Command>
           <CommandInput
-            placeholder="Search or create label..."
+            placeholder={t('labelPicker.searchPlaceholder')}
             value={search}
             onValueChange={setSearch}
           />
@@ -140,10 +144,10 @@ export function LabelPicker({
                   onClick={handleCreate}
                 >
                   <Plus className="size-3" />
-                  Create &ldquo;{search.trim()}&rdquo;
+                  {t('labelPicker.create', { name: search.trim() })}
                 </button>
               ) : (
-                'No labels found.'
+                t('labelPicker.noLabels')
               )}
             </CommandEmpty>
             {labels.length > 0 && (
@@ -175,7 +179,7 @@ export function LabelPicker({
                 <CommandGroup>
                   <CommandItem onSelect={handleCreate}>
                     <Plus className="size-3" />
-                    Create &ldquo;{search.trim()}&rdquo;
+                    {t('labelPicker.create', { name: search.trim() })}
                   </CommandItem>
                 </CommandGroup>
               )}

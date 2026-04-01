@@ -8,6 +8,7 @@ import {
   Settings,
 } from 'lucide-react'
 import type * as React from 'react'
+import { useTranslation } from 'react-i18next'
 import { NavFavorites } from '~/components/nav-favorites'
 import { NavMain } from '~/components/nav-main'
 import { NavUser } from '~/components/nav-user'
@@ -26,32 +27,33 @@ import {
 } from '~/components/ui/sidebar'
 import { useCommandRegistry } from '~/contexts/command-context'
 
-const navMain = [
-  {
-    title: 'Dashboard',
-    url: '/',
-    icon: LayoutDashboard,
-  },
-  {
-    title: 'Transactions',
-    url: '/transactions',
-    icon: ArrowLeftRight,
-  },
-  {
-    title: 'Views',
-    url: '/views',
-    icon: Layers,
-  },
-  {
-    title: 'Accounts',
-    url: '/accounts',
-    icon: Landmark,
-  },
-]
-
 export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
+  const { t } = useTranslation()
   const { commands } = useCommandRegistry()
   const shortcutsCommand = commands.find((c) => c.id === 'shortcuts.show')
+
+  const navMain = [
+    {
+      title: t('nav.dashboard'),
+      url: '/',
+      icon: LayoutDashboard,
+    },
+    {
+      title: t('nav.transactions'),
+      url: '/transactions',
+      icon: ArrowLeftRight,
+    },
+    {
+      title: t('nav.views'),
+      url: '/views',
+      icon: Layers,
+    },
+    {
+      title: t('nav.accounts'),
+      url: '/accounts',
+      icon: Landmark,
+    },
+  ]
 
   return (
     <Sidebar collapsible="offcanvas" {...props}>
@@ -68,7 +70,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
                 <SidebarMenuItem>
                   <SidebarMenuButton onClick={shortcutsCommand.handler}>
                     <Keyboard />
-                    <span>Shortcuts</span>
+                    <span>{t('nav.shortcuts')}</span>
                     <Kbd className="ml-auto">?</Kbd>
                   </SidebarMenuButton>
                 </SidebarMenuItem>
@@ -77,7 +79,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
                 <SidebarMenuButton asChild>
                   <Link to="/settings">
                     <Settings />
-                    <span>Settings</span>
+                    <span>{t('nav.settings')}</span>
                     <HotkeyDisplay
                       hotkey={{ keys: 'g+s' }}
                       className="ml-auto"

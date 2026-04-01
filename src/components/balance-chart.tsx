@@ -1,4 +1,5 @@
 import * as React from 'react'
+import { useTranslation } from 'react-i18next'
 import { Area, AreaChart, CartesianGrid, XAxis, YAxis } from 'recharts'
 import { PeriodSelector } from '~/components/period-selector'
 import { PnLBadge } from '~/components/pnl-badge'
@@ -24,6 +25,7 @@ import { computePnL } from '~/lib/pnl'
 
 const MAX_CHART_POINTS = 300
 
+// chartConfig label is resolved dynamically via i18n in the component
 const chartConfig = {
   balance: {
     label: 'Balance',
@@ -141,6 +143,7 @@ export function BalanceChart({
   title,
   description,
 }: BalanceChartProps) {
+  const { t } = useTranslation()
   const { isPrivate } = usePrivacy()
   const formatCurrency = React.useMemo(
     () => (isPrivate ? () => '••••••' : currencyFormatter(currency)),
@@ -173,7 +176,7 @@ export function BalanceChart({
             <Skeleton className="h-full min-h-[250px] w-full" />
           ) : data.length < 2 ? (
             <div className="flex h-full min-h-[250px] items-center justify-center text-sm text-muted-foreground">
-              Not enough data to display a chart
+              {t('charts.notEnoughData')}
             </div>
           ) : (
             <ChartArea data={chartData} formatCurrency={formatCurrency} />
@@ -193,7 +196,7 @@ export function BalanceChart({
         <Skeleton className="h-[250px] w-full" />
       ) : data.length < 2 ? (
         <div className="flex h-[250px] items-center justify-center rounded-lg border border-dashed text-sm text-muted-foreground">
-          Not enough data to display a chart
+          {t('charts.notEnoughData')}
         </div>
       ) : (
         <ChartArea data={chartData} formatCurrency={formatCurrency} />

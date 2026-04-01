@@ -1,4 +1,5 @@
 import * as React from 'react'
+import { useTranslation } from 'react-i18next'
 import { HotkeyDisplay } from '~/components/ui/kbd'
 import {
   Sheet,
@@ -15,6 +16,7 @@ interface ShortcutsDrawerProps {
 }
 
 export function ShortcutsDrawer({ open, onOpenChange }: ShortcutsDrawerProps) {
+  const { t } = useTranslation()
   const { commands } = useCommandRegistry()
 
   const grouped = React.useMemo(() => {
@@ -32,10 +34,8 @@ export function ShortcutsDrawer({ open, onOpenChange }: ShortcutsDrawerProps) {
     <Sheet open={open} onOpenChange={onOpenChange}>
       <SheetContent side="right" className="sm:max-w-sm">
         <SheetHeader>
-          <SheetTitle>Keyboard shortcuts</SheetTitle>
-          <SheetDescription>
-            Available keyboard shortcuts in the app.
-          </SheetDescription>
+          <SheetTitle>{t('shortcuts.title')}</SheetTitle>
+          <SheetDescription>{t('shortcuts.description')}</SheetDescription>
         </SheetHeader>
         <div className="flex flex-col gap-6 px-4 pb-4">
           {[...grouped.entries()].map(([group, cmds]) => (

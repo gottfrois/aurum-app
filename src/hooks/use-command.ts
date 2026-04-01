@@ -1,5 +1,6 @@
 import * as React from 'react'
 import { useHotkeys } from 'react-hotkeys-hook'
+import { useTranslation } from 'react-i18next'
 import type { CommandEntry } from '~/contexts/command-context'
 import { useCommandDispatch } from '~/contexts/command-context'
 import { getCommandDefinition } from '~/lib/commands'
@@ -17,6 +18,7 @@ export function useCommand(
   options: UseCommandOptions,
 ): void {
   const { register } = useCommandDispatch()
+  const { t } = useTranslation()
   const definition = getCommandDefinition(commandId)
 
   // Use refs for callback props so the registered entry stays stable
@@ -31,8 +33,12 @@ export function useCommand(
   const entry = React.useMemo<CommandEntry>(
     () => ({
       id: commandId,
-      label: options.label ?? definition?.label ?? commandId,
-      group: definition?.group ?? 'General',
+      label:
+        options.label ??
+        (definition?.labelKey ? t(definition.labelKey) : commandId),
+      group: definition?.groupKey
+        ? t(definition.groupKey)
+        : t('commands.groups.general'),
       icon: definition?.icon,
       hotkey: definition?.hotkey,
       handler: () => handlerRef.current(),
@@ -41,7 +47,7 @@ export function useCommand(
       keywords: definition?.keywords,
       view: viewRef.current ? (props) => viewRef.current?.(props) : undefined,
     }),
-    [commandId, options.label, options.disabled, options.hidden, definition],
+    [commandId, options.label, options.disabled, options.hidden, definition, t],
   )
 
   React.useEffect(() => {

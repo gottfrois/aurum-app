@@ -1,5 +1,6 @@
 import { LayoutGrid, PieChartIcon } from 'lucide-react'
 import * as React from 'react'
+import { useTranslation } from 'react-i18next'
 import {
   Cell,
   Label,
@@ -71,6 +72,7 @@ function AllocationTooltipContent({
   total: number
   formatCurrency: (value: number, currency: string) => string
 }) {
+  const { t } = useTranslation()
   if (!active || !payload?.length) return null
 
   const entry = payload[0].payload
@@ -86,13 +88,13 @@ function AllocationTooltipContent({
         <span className="font-medium">{entry.label}</span>
       </div>
       <div className="flex items-center justify-between gap-4">
-        <span className="text-muted-foreground">Amount</span>
+        <span className="text-muted-foreground">{t('charts.amount')}</span>
         <span className="font-mono font-medium tabular-nums">
           {formatCurrency(entry.value, currency)}
         </span>
       </div>
       <div className="flex items-center justify-between gap-4">
-        <span className="text-muted-foreground">Allocation</span>
+        <span className="text-muted-foreground">{t('charts.allocation')}</span>
         <span className="font-mono font-medium tabular-nums">
           {percentage}%
         </span>
@@ -231,13 +233,7 @@ function DonutView({
                     >
                       {formattedTotal}
                     </tspan>
-                    <tspan
-                      x={viewBox.cx}
-                      y={(viewBox.cy ?? 0) + 20}
-                      className="fill-muted-foreground text-xs"
-                    >
-                      Total
-                    </tspan>
+                    <AllocationDonutLabel cx={viewBox.cx} cy={viewBox.cy} />
                   </text>
                 )
               }
@@ -357,12 +353,22 @@ function AllocationLegend({
   )
 }
 
+function AllocationDonutLabel({ cx, cy }: { cx?: number; cy?: number }) {
+  const { t } = useTranslation()
+  return (
+    <tspan x={cx} y={(cy ?? 0) + 20} className="fill-muted-foreground text-xs">
+      {t('charts.total')}
+    </tspan>
+  )
+}
+
 export function AllocationChart({
   data,
   currency,
   total,
   onCategoryClick,
 }: AllocationChartProps) {
+  const { t } = useTranslation()
   const [view, setView] = React.useState<ChartView>('donut')
   const { isPrivate } = usePrivacy()
 
@@ -385,7 +391,7 @@ export function AllocationChart({
   return (
     <Card className="@container/card">
       <CardHeader>
-        <CardTitle>Allocation</CardTitle>
+        <CardTitle>{t('charts.allocation')}</CardTitle>
         <CardAction>
           <ToggleGroup
             type="single"
@@ -398,19 +404,25 @@ export function AllocationChart({
           >
             <Tooltip>
               <TooltipTrigger asChild>
-                <ToggleGroupItem value="donut" aria-label="Donut chart">
+                <ToggleGroupItem
+                  value="donut"
+                  aria-label={t('charts.donutChart')}
+                >
                   <PieChartIcon className="size-4" />
                 </ToggleGroupItem>
               </TooltipTrigger>
-              <TooltipContent>Donut chart</TooltipContent>
+              <TooltipContent>{t('charts.donutChart')}</TooltipContent>
             </Tooltip>
             <Tooltip>
               <TooltipTrigger asChild>
-                <ToggleGroupItem value="treemap" aria-label="Treemap">
+                <ToggleGroupItem
+                  value="treemap"
+                  aria-label={t('charts.treemap')}
+                >
                   <LayoutGrid className="size-4" />
                 </ToggleGroupItem>
               </TooltipTrigger>
-              <TooltipContent>Treemap</TooltipContent>
+              <TooltipContent>{t('charts.treemap')}</TooltipContent>
             </Tooltip>
           </ToggleGroup>
         </CardAction>

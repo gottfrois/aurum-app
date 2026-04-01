@@ -4,6 +4,7 @@ import { useMutation, useQuery } from 'convex/react'
 import { ConvexError } from 'convex/values'
 import { MoreHorizontal, Plus } from 'lucide-react'
 import * as React from 'react'
+import { useTranslation } from 'react-i18next'
 import { toast } from 'sonner'
 import { ConfirmDialog } from '~/components/confirm-dialog'
 import {
@@ -41,6 +42,7 @@ type CategoryRow = {
 }
 
 function PortfolioCategoriesPage() {
+  const { t } = useTranslation()
   const { id } = Route.useParams()
   const portfolioId = id as Id<'portfolios'>
   const portfolio = useQuery(api.portfolios.getPortfolio, { portfolioId })
@@ -63,8 +65,8 @@ function PortfolioCategoriesPage() {
     <div className="flex h-full flex-col overflow-hidden px-10 pt-16">
       <div className="shrink-0">
         <PageHeader
-          title="Categories"
-          description="Transaction categories available in this portfolio."
+          title={t('settings.categories.title')}
+          description={t('settings.categories.portfolioDescription')}
         />
       </div>
       <div className="mt-8 flex min-h-0 flex-1 flex-col">
@@ -84,6 +86,7 @@ function CategoriesTable({
   categories: CategoryRow[]
   portfolioId: Id<'portfolios'>
 }) {
+  const { t } = useTranslation()
   const deleteCategory = useMutation(api.categories.deleteCategory)
   const batchDeleteCategories = useMutation(
     api.categories.batchDeleteCategories,
@@ -103,13 +106,13 @@ function CategoriesTable({
     if (!deletingCategoryId) return
     try {
       await deleteCategory({ categoryId: deletingCategoryId })
-      toast.success('Category deleted')
+      toast.success(t('toast.categoryDeleted'))
       setDeletingCategoryId(null)
     } catch (err) {
       toast.error(
         err instanceof ConvexError
           ? (err.data as string)
-          : 'Failed to delete category',
+          : t('toast.failedDeleteCategory'),
       )
     }
   }
@@ -119,14 +122,12 @@ function CategoriesTable({
       await batchDeleteCategories({
         categoryIds: ids as Id<'transactionCategories'>[],
       })
-      toast.success(
-        `${ids.length} categor${ids.length > 1 ? 'ies' : 'y'} deleted`,
-      )
+      toast.success(t('toast.categoriesDeleted', { count: ids.length }))
     } catch (err) {
       toast.error(
         err instanceof ConvexError
           ? (err.data as string)
-          : 'Failed to delete categories',
+          : t('toast.failedDeleteCategories'),
       )
     }
   }
@@ -134,7 +135,7 @@ function CategoriesTable({
   const tableColumns: ColumnDef<CategoryRow, unknown>[] = [
     {
       accessorKey: 'label',
-      header: 'Name',
+      header: t('settings.categories.nameHeader'),
       cell: ({ row }) => (
         <div className="flex items-center gap-3">
           <span
@@ -147,7 +148,7 @@ function CategoriesTable({
     },
     {
       accessorKey: 'description',
-      header: 'Description',
+      header: t('settings.categories.descriptionHeader'),
       cell: ({ row }) => (
         <span className="text-muted-foreground">
           {row.original.description}
@@ -156,7 +157,7 @@ function CategoriesTable({
     },
     {
       id: 'created',
-      header: 'Created',
+      header: t('settings.categories.createdHeader'),
       size: 100,
       cell: ({ row }) => (
         <span className="text-muted-foreground">
@@ -188,7 +189,7 @@ function CategoriesTable({
                     )
                   }
                 >
-                  Delete
+                  {t('common.delete')}
                 </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
@@ -199,9 +200,12 @@ function CategoriesTable({
   ]
 
   const categoryGroups: DataTableGroup<CategoryRow>[] = [
-    { label: 'Portfolio', filter: (row) => isPortfolioLevel(row) },
     {
-      label: 'Inherited from workspace',
+      label: t('settings.categories.portfolioGroup'),
+      filter: (row) => isPortfolioLevel(row),
+    },
+    {
+      label: t('settings.categories.inheritedGroup'),
       filter: (row) => !isPortfolioLevel(row),
     },
   ]
@@ -212,16 +216,16 @@ function CategoriesTable({
         columns={tableColumns}
         data={categories}
         filterColumn="label"
-        filterPlaceholder="Filter by name..."
+        filterPlaceholder={t('settings.categories.filterPlaceholder')}
         getRowId={(row) => row._id}
         onBatchDelete={handleBatchDelete}
         enableRowSelection={(row) => canSelect(row)}
-        disabledRowTooltip="Inherited from workspace — manage in workspace settings"
+        disabledRowTooltip={t('settings.categories.inheritedTooltip')}
         groups={categoryGroups}
         actions={
           <Button size="sm" onClick={() => createDialog.openDialog('')}>
             <Plus className="size-4" />
-            Add category
+            {t('settings.categories.addCategory')}
           </Button>
         }
       />
@@ -240,9 +244,9 @@ function CategoriesTable({
         onOpenChange={(open) => {
           if (!open) setDeletingCategoryId(null)
         }}
-        title="Delete category?"
-        description="This action cannot be undone. This category will be permanently deleted."
-        confirmLabel="Delete"
+        title={t('settings.categories.deleteCategoryTitle')}
+        description={t('settings.categories.deleteCategoryDescription')}
+        confirmLabel={t('common.delete')}
         onConfirm={handleDelete}
       />
     </>

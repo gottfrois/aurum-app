@@ -2,6 +2,7 @@ import { createFileRoute, Link } from '@tanstack/react-router'
 import { useQuery } from 'convex/react'
 import { Landmark } from 'lucide-react'
 import * as React from 'react'
+import { useTranslation } from 'react-i18next'
 import { AllocationChart } from '~/components/allocation-chart'
 import { BalanceChart } from '~/components/balance-chart'
 import { SiteHeader } from '~/components/site-header'
@@ -32,7 +33,11 @@ import { usePortfolio } from '~/contexts/portfolio-context'
 import { useFormatCurrency } from '~/contexts/privacy-context'
 import { useAggregatedBalances } from '~/hooks/use-aggregated-balances'
 import { useCachedDecryptRecords } from '~/hooks/use-cached-decrypt'
-import { ACCOUNT_CATEGORIES, getCategoryKey } from '~/lib/account-categories'
+import {
+  ACCOUNT_CATEGORIES,
+  getAccountCategoryLabel,
+  getCategoryKey,
+} from '~/lib/account-categories'
 import type { Period } from '~/lib/chart-periods'
 import { getStartTimestamp } from '~/lib/chart-periods'
 import {
@@ -61,9 +66,11 @@ export const Route = createFileRoute('/_app/accounts/')({
 })
 
 function AccountsPage() {
+  const { t } = useTranslation()
   const { type } = Route.useSearch()
   const category = type ? ACCOUNT_CATEGORIES[type] : undefined
-  const title = category ? category.label : 'Accounts'
+  const title =
+    category && type ? getAccountCategoryLabel(type, t) : t('accounts.title')
 
   return (
     <>
@@ -86,6 +93,7 @@ const BANK_CHART_COLORS = [
 ]
 
 function BankAccountsList({ categoryFilter }: { categoryFilter?: string }) {
+  const { t } = useTranslation()
   const {
     isLoading: portfolioLoading,
     isAllPortfolios,
@@ -259,12 +267,12 @@ function BankAccountsList({ categoryFilter }: { categoryFilter?: string }) {
   const activeCategorySeries = React.useMemo(() => {
     return Object.entries(ACCOUNT_CATEGORIES)
       .filter(([key]) => activeCategoryKeys.has(key))
-      .map(([key, cat]) => ({
+      .map(([key]) => ({
         key,
-        label: cat.label,
+        label: getAccountCategoryLabel(key, t),
         color: categoryColors[key] ?? 'var(--color-chart-5)',
       }))
-  }, [activeCategoryKeys, categoryColors])
+  }, [activeCategoryKeys, categoryColors, t])
 
   const allocationByBank = React.useMemo(() => {
     if (!bankAccounts) return []
@@ -345,16 +353,13 @@ function BankAccountsList({ categoryFilter }: { categoryFilter?: string }) {
           <EmptyMedia variant="icon">
             <Landmark />
           </EmptyMedia>
-          <EmptyTitle>No Accounts Yet</EmptyTitle>
-          <EmptyDescription>
-            You haven&apos;t connected any financial accounts yet. Get started
-            by adding a connection.
-          </EmptyDescription>
+          <EmptyTitle>{t('accounts.emptyTitle')}</EmptyTitle>
+          <EmptyDescription>{t('accounts.emptyDescription')}</EmptyDescription>
         </EmptyHeader>
         {!isTeamView && (
           <EmptyContent>
             <Button onClick={() => addConnectionCommand?.handler()}>
-              Add Connection <Kbd>C</Kbd>
+              {t('button.addConnection')} <Kbd>C</Kbd>
             </Button>
           </EmptyContent>
         )}
@@ -386,9 +391,9 @@ function BankAccountsList({ categoryFilter }: { categoryFilter?: string }) {
               period={period}
               onPeriodChange={setPeriod}
               title={
-                categoryFilter && ACCOUNT_CATEGORIES[categoryFilter].label
-                  ? ACCOUNT_CATEGORIES[categoryFilter].label
-                  : 'Accounts'
+                categoryFilter
+                  ? getAccountCategoryLabel(categoryFilter, t)
+                  : t('accounts.title')
               }
               description={formattedTotal}
             />
@@ -417,7 +422,7 @@ function BankAccountsList({ categoryFilter }: { categoryFilter?: string }) {
               isLoading={decryptedSnapshots === undefined}
               period={period}
               onPeriodChange={setPeriod}
-              title="Accounts"
+              title={t('accounts.title')}
               description={formattedTotal}
               pnl={aggregatePnl}
             />
@@ -441,7 +446,7 @@ function BankAccountsList({ categoryFilter }: { categoryFilter?: string }) {
             <div key={categoryKey} className="space-y-2">
               <h3 className="flex items-center gap-2 text-sm font-medium text-muted-foreground">
                 <CategoryIcon className="size-4" />
-                {cat.label}
+                {getAccountCategoryLabel(categoryKey, t)}
                 <span>({accounts.length})</span>
               </h3>
               <ItemGroup className="rounded-lg border">

@@ -3,6 +3,7 @@ import { createFileRoute } from '@tanstack/react-router'
 import { useMutation, useQuery } from 'convex/react'
 import { Link2 } from 'lucide-react'
 import * as React from 'react'
+import { useTranslation } from 'react-i18next'
 import { toast } from 'sonner'
 import {
   ItemCard,
@@ -52,6 +53,7 @@ export const Route = createFileRoute(
 })
 
 function PortfolioConnectionsPage() {
+  const { t } = useTranslation()
   const { id } = Route.useParams()
   const portfolioId = id as Id<'portfolios'>
   const rawConnections = useQuery(api.powens.listConnections, { portfolioId })
@@ -80,8 +82,8 @@ function PortfolioConnectionsPage() {
   return (
     <div className="mx-auto flex w-full max-w-3xl flex-1 flex-col px-10 py-16">
       <PageHeader
-        title="Connections"
-        description="Bank connections linked to this portfolio. You can set custom names for your accounts."
+        title={t('settings.portfolioConnections.title')}
+        description={t('settings.portfolioConnections.description')}
       />
       <div className="mt-8 space-y-6">
         <ConnectionsList
@@ -93,7 +95,10 @@ function PortfolioConnectionsPage() {
   )
 }
 
-function getConnectionState(state?: string | null): {
+function getConnectionState(
+  state: string | null | undefined,
+  t: (key: string) => string,
+): {
   label: string
   dotColor: string
 } {
@@ -101,40 +106,61 @@ function getConnectionState(state?: string | null): {
     case null:
     case undefined:
     case 'SyncDone':
-      return { label: 'Connected', dotColor: 'bg-emerald-500' }
+      return {
+        label: t('settings.connections.statusConnected'),
+        dotColor: 'bg-emerald-500',
+      }
     case 'SCARequired':
     case 'additionalInformationNeeded':
     case 'decoupled':
     case 'webauthRequired':
-      return { label: 'Action needed', dotColor: 'bg-amber-500' }
+      return {
+        label: t('settings.connections.statusActionNeeded'),
+        dotColor: 'bg-amber-500',
+      }
     case 'validating':
-      return { label: 'Syncing', dotColor: 'bg-blue-500' }
+      return {
+        label: t('settings.connections.statusSyncing'),
+        dotColor: 'bg-blue-500',
+      }
     case 'wrongpass':
     case 'bug':
-      return { label: 'Error', dotColor: 'bg-destructive' }
+      return {
+        label: t('settings.connections.statusError'),
+        dotColor: 'bg-destructive',
+      }
     case 'rateLimiting':
-      return { label: 'Rate limited', dotColor: 'bg-amber-500' }
+      return {
+        label: t('settings.connections.statusRateLimited'),
+        dotColor: 'bg-amber-500',
+      }
     default:
-      return { label: 'Unknown', dotColor: 'bg-muted-foreground' }
+      return {
+        label: t('settings.connections.statusUnknown'),
+        dotColor: 'bg-muted-foreground',
+      }
   }
 }
 
-function formatAccountType(type?: string | null): string {
+function formatAccountType(
+  type: string | null | undefined,
+  t: (key: string) => string,
+): string {
   switch (type) {
     case 'checking':
-      return 'Checking'
+      return t('accountTypes.checking')
     case 'savings':
-      return 'Savings'
+      return t('accountTypes.savings')
     case 'market':
     case 'pea':
     case 'pee':
-      return 'Investment'
+      return t('accountTypes.investment')
     case 'life_insurance':
-      return 'Insurance'
+      return t('accountTypes.insurance')
     case 'card':
-      return 'Card'
+      return t('accountTypes.card')
     default:
-      return type ?? 'Account'
+      return type ?? t('accountTypes.account')
   }
 }
 
@@ -145,6 +171,7 @@ function ConnectionsList({
   connections: DecryptedConnection[] | undefined
   accountsByConnection: Map<string, DecryptedBankAccount[]>
 }) {
+  const { t } = useTranslation()
   if (connections === undefined) {
     return <Skeleton className="h-48 w-full rounded-lg" />
   }
@@ -156,9 +183,9 @@ function ConnectionsList({
           <EmptyMedia variant="icon">
             <Link2 />
           </EmptyMedia>
-          <EmptyTitle>No Connections</EmptyTitle>
+          <EmptyTitle>{t('settings.portfolioConnections.empty')}</EmptyTitle>
           <EmptyDescription>
-            This portfolio has no connections yet.
+            {t('settings.portfolioConnections.emptyDescription')}
           </EmptyDescription>
         </EmptyHeader>
       </Empty>
@@ -168,7 +195,7 @@ function ConnectionsList({
   return (
     <div className="space-y-6">
       {connections.map((connection) => {
-        const { label, dotColor } = getConnectionState(connection.state)
+        const { label, dotColor } = getConnectionState(connection.state, t)
         const accounts = accountsByConnection.get(connection._id) ?? []
         return (
           <ItemCard key={connection._id}>
@@ -177,7 +204,9 @@ function ConnectionsList({
                 <ItemCardHeaderTitle>
                   <div className="flex items-center gap-2">
                     {connection.connectorName ??
-                      `Connection #${connection.powensConnectionId}`}
+                      t('settings.portfolioConnections.connectionNumber', {
+                        id: connection.powensConnectionId,
+                      })}
                     <div className="flex items-center gap-1.5 text-xs font-normal text-muted-foreground">
                       <span className={`size-2 rounded-full ${dotColor}`} />
                       {label}
@@ -191,7 +220,7 @@ function ConnectionsList({
                 <ItemCardItem>
                   <ItemCardItemContent>
                     <ItemCardItemDescription>
-                      No accounts
+                      {t('settings.portfolioConnections.noAccounts')}
                     </ItemCardItemDescription>
                   </ItemCardItemContent>
                 </ItemCardItem>
@@ -209,9 +238,11 @@ function ConnectionsList({
 }
 
 function BankAccountItem({ account }: { account: DecryptedBankAccount }) {
+  const { t } = useTranslation()
   const { workspacePublicKey } = useEncryption()
   const updateCustomName = useMutation(api.powens.updateBankAccountCustomName)
-  const originalName = account.connectorName ?? account.name ?? 'Unnamed'
+  const originalName =
+    account.connectorName ?? account.name ?? t('accountTypes.account')
   const [inputValue, setInputValue] = React.useState(account.customName ?? '')
   const [saving, setSaving] = React.useState(false)
 
@@ -242,9 +273,10 @@ function BankAccountItem({ account }: { account: DecryptedBankAccount }) {
           bankAccountId: account._id,
           encryptedCustomName: undefined,
         })
-        toast.success('Custom name cleared')
+        toast.success(t('toast.customNameCleared'))
       } else {
-        if (!workspacePublicKey) throw new Error('Vault not unlocked')
+        if (!workspacePublicKey)
+          throw new Error(t('settings.portfolioConnections.vaultNotUnlocked'))
         const pubKey = await importPublicKey(workspacePublicKey)
         const encryptedCustomName = await encryptData(
           { customName: trimmed },
@@ -256,12 +288,12 @@ function BankAccountItem({ account }: { account: DecryptedBankAccount }) {
           bankAccountId: account._id,
           encryptedCustomName,
         })
-        toast.success('Custom name updated')
+        toast.success(t('toast.customNameUpdated'))
       }
     } catch (error) {
       Sentry.captureException(error)
       setInputValue(account.customName ?? '')
-      toast.error('Failed to update custom name')
+      toast.error(t('toast.failedUpdateCustomName'))
     } finally {
       setSaving(false)
     }
@@ -274,7 +306,7 @@ function BankAccountItem({ account }: { account: DecryptedBankAccount }) {
           <div className="flex items-center gap-2">
             {originalName}
             <Badge variant="outline" className="font-normal">
-              {formatAccountType(account.type)}
+              {formatAccountType(account.type, t)}
             </Badge>
           </div>
         </ItemCardItemTitle>
@@ -291,7 +323,7 @@ function BankAccountItem({ account }: { account: DecryptedBankAccount }) {
             if (e.key === 'Enter') e.currentTarget.blur()
           }}
           disabled={saving}
-          placeholder="Custom name"
+          placeholder={t('settings.portfolioConnections.customNamePlaceholder')}
           className="h-8 w-48 text-sm"
         />
       </ItemCardItemAction>

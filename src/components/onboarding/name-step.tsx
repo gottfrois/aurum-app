@@ -1,5 +1,6 @@
 import { useUser } from '@clerk/tanstack-react-start'
 import { useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import { toast } from 'sonner'
 import { Input } from '~/components/ui/input'
 import { Label } from '~/components/ui/label'
@@ -7,6 +8,7 @@ import { StepLayout } from './step-layout'
 import type { OnboardingStepProps } from './types'
 
 export function NameStep({ goToStep, setSubmitting }: OnboardingStepProps) {
+  const { t } = useTranslation()
   const { user } = useUser()
   const [firstName, setFirstName] = useState(user?.firstName ?? '')
   const [lastName, setLastName] = useState(user?.lastName ?? '')
@@ -20,7 +22,7 @@ export function NameStep({ goToStep, setSubmitting }: OnboardingStepProps) {
       await user.update({ firstName, lastName })
       goToStep('workspace')
     } catch (err) {
-      toast.error('Failed to update name')
+      toast.error(t('toast.failedUpdateNameOnboarding'))
       console.error(err)
       setSaving(false)
       setSubmitting(false)
@@ -29,32 +31,34 @@ export function NameStep({ goToStep, setSubmitting }: OnboardingStepProps) {
 
   return (
     <StepLayout
-      title="What's your name?"
-      subtitle="Let us know what to call you"
+      title={t('onboarding.name.title')}
+      subtitle={t('onboarding.name.subtitle')}
       onBack={() => goToStep('legal')}
       onSubmit={handleNext}
-      submitLabel="Continue"
+      submitLabel={t('common.continue')}
       submitDisabled={!firstName.trim()}
       loading={saving}
     >
       <div className="space-y-4">
         <div className="grid gap-2">
-          <Label htmlFor="firstName">First name</Label>
+          <Label htmlFor="firstName">
+            {t('onboarding.name.firstNameLabel')}
+          </Label>
           <Input
             id="firstName"
             value={firstName}
             onChange={(e) => setFirstName(e.target.value)}
-            placeholder="First name"
+            placeholder={t('onboarding.name.firstNamePlaceholder')}
             autoFocus
           />
         </div>
         <div className="grid gap-2">
-          <Label htmlFor="lastName">Last name</Label>
+          <Label htmlFor="lastName">{t('onboarding.name.lastNameLabel')}</Label>
           <Input
             id="lastName"
             value={lastName}
             onChange={(e) => setLastName(e.target.value)}
-            placeholder="Last name"
+            placeholder={t('onboarding.name.lastNamePlaceholder')}
           />
         </div>
       </div>

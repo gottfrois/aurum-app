@@ -1,6 +1,7 @@
 import { Check, Copy } from 'lucide-react'
 import { useCallback, useState } from 'react'
 import { useHotkeys } from 'react-hotkeys-hook'
+import { useTranslation } from 'react-i18next'
 import {
   AlertDialog,
   AlertDialogAction,
@@ -35,11 +36,14 @@ export function ConfirmDialog({
   title,
   description,
   confirmValue,
-  confirmLabel = 'Confirm',
-  cancelLabel = 'Cancel',
+  confirmLabel,
+  cancelLabel,
   loading = false,
   onConfirm,
 }: ConfirmDialogProps) {
+  const { t } = useTranslation()
+  const resolvedConfirmLabel = confirmLabel ?? t('common.confirm')
+  const resolvedCancelLabel = cancelLabel ?? t('common.cancel')
   const [inputValue, setInputValue] = useState('')
   const [copied, setCopied] = useState(false)
 
@@ -96,7 +100,7 @@ export function ConfirmDialog({
         {needsConfirmation && (
           <div className="grid gap-2 py-2">
             <Label className="flex flex-wrap items-center gap-1">
-              Type
+              {t('dialogs.confirm.typeLabel')}
               <Badge
                 variant="secondary"
                 className="cursor-pointer gap-1 font-mono"
@@ -109,7 +113,7 @@ export function ConfirmDialog({
                   <Copy className="size-3" />
                 )}
               </Badge>
-              to confirm
+              {t('dialogs.confirm.toConfirm')}
             </Label>
             <Input
               value={inputValue}
@@ -120,7 +124,7 @@ export function ConfirmDialog({
         )}
         <AlertDialogFooter>
           <AlertDialogCancel disabled={loading}>
-            {cancelLabel} <Kbd>Esc</Kbd>
+            {resolvedCancelLabel} <Kbd>Esc</Kbd>
           </AlertDialogCancel>
           <AlertDialogAction
             variant="destructive"
@@ -131,7 +135,8 @@ export function ConfirmDialog({
               onConfirm()
             }}
           >
-            {confirmLabel} <HotkeyDisplay hotkey={{ keys: 'mod+enter' }} />
+            {resolvedConfirmLabel}{' '}
+            <HotkeyDisplay hotkey={{ keys: 'mod+enter' }} />
           </AlertDialogAction>
         </AlertDialogFooter>
       </AlertDialogContent>

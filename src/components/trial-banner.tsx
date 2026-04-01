@@ -1,11 +1,13 @@
 import { Link } from '@tanstack/react-router'
 import { Clock } from 'lucide-react'
+import { useTranslation } from 'react-i18next'
 
 interface TrialBannerProps {
   trialEndsAt: number
 }
 
 export function TrialBanner({ trialEndsAt }: TrialBannerProps) {
+  const { t } = useTranslation()
   const now = Date.now()
   const msRemaining = trialEndsAt - now
   const daysRemaining = Math.max(
@@ -19,15 +21,15 @@ export function TrialBanner({ trialEndsAt }: TrialBannerProps) {
         <Clock className="size-4 text-muted-foreground" />
         <span>
           {daysRemaining === 0
-            ? 'Your trial expires today.'
-            : `${daysRemaining} day${daysRemaining !== 1 ? 's' : ''} left in your trial.`}
+            ? t('banner.trialExpiresToday')
+            : t('banner.trialDaysRemaining', { count: daysRemaining })}
         </span>
       </div>
       <Link
         to="/settings/workspace/billing"
         className="shrink-0 text-sm font-medium text-primary underline-offset-4 hover:underline"
       >
-        Upgrade now
+        {t('banner.upgradeNow')}
       </Link>
     </div>
   )

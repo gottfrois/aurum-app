@@ -8,6 +8,7 @@ import { isToolUIPart, type ToolUIPart as ToolUIPartType } from 'ai'
 import { useMutation } from 'convex/react'
 import { ArrowRight, Check, Copy } from 'lucide-react'
 import { useCallback, useEffect, useRef, useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import { ChatBubble } from '~/components/chat/chat-bubble'
 import { ChatDisclaimer } from '~/components/chat/chat-disclaimer'
 import { ChatEmptyState } from '~/components/chat/chat-empty-state'
@@ -32,30 +33,30 @@ import { Tool, type ToolPart } from '~/components/ui/tool'
 import { cn } from '~/lib/utils'
 import { api } from '../../../convex/_generated/api'
 
-/** Map tool names to human-readable labels. */
-const TOOL_LABELS: Record<string, string> = {
-  getSpendingSummary: 'Analyzing spending',
-  getCashFlow: 'Analyzing cash flow',
-  searchTransactions: 'Searching transactions',
-  searchCategories: 'Searching categories',
-  searchLabels: 'Searching labels',
-  listAccounts: 'Loading accounts',
-  listInvestments: 'Loading investments',
-  getBalanceHistory: 'Loading balance history',
-  findAnomalies: 'Detecting anomalies',
-  getRecurringExpenses: 'Finding recurring expenses',
-  listUncategorizedTransactions: 'Finding uncategorized transactions',
-  getTransactionRules: 'Loading transaction rules',
-  comparePeriodSpending: 'Comparing spending periods',
-  createTransactionRule: 'Creating transaction rule',
-  updateTransactionCategory: 'Updating transaction categories',
-  updateTransactionLabels: 'Updating transaction labels',
-  createLabel: 'Creating label',
-  deleteLabel: 'Deleting label',
-  deleteTransactionRule: 'Deleting transaction rule',
-  excludeFromBudget: 'Updating budget exclusion',
-  findSavingsOpportunities: 'Finding savings opportunities',
-  web_search: 'Searching the web',
+/** Map tool names to i18n keys for human-readable labels. */
+const TOOL_LABEL_KEYS: Record<string, string> = {
+  getSpendingSummary: 'chat.tools.analyzingSpending',
+  getCashFlow: 'chat.tools.analyzingCashFlow',
+  searchTransactions: 'chat.tools.searchingTransactions',
+  searchCategories: 'chat.tools.searchingCategories',
+  searchLabels: 'chat.tools.searchingLabels',
+  listAccounts: 'chat.tools.loadingAccounts',
+  listInvestments: 'chat.tools.loadingInvestments',
+  getBalanceHistory: 'chat.tools.loadingBalanceHistory',
+  findAnomalies: 'chat.tools.detectingAnomalies',
+  getRecurringExpenses: 'chat.tools.findingRecurring',
+  listUncategorizedTransactions: 'chat.tools.findingUncategorized',
+  getTransactionRules: 'chat.tools.loadingRules',
+  comparePeriodSpending: 'chat.tools.comparingSpending',
+  createTransactionRule: 'chat.tools.creatingRule',
+  updateTransactionCategory: 'chat.tools.updatingCategories',
+  updateTransactionLabels: 'chat.tools.updatingLabels',
+  createLabel: 'chat.tools.creatingLabel',
+  deleteLabel: 'chat.tools.deletingLabel',
+  deleteTransactionRule: 'chat.tools.deletingRule',
+  excludeFromBudget: 'chat.tools.updatingBudget',
+  findSavingsOpportunities: 'chat.tools.findingSavings',
+  web_search: 'chat.tools.searchingWeb',
 }
 
 interface ChatMessagesProps {
@@ -67,6 +68,7 @@ export function ChatMessages({
   threadId,
   onSuggestionClick,
 }: ChatMessagesProps) {
+  const { t } = useTranslation()
   const { results: messages } = useUIMessages(
     api.agentChatQueries.listThreadMessages,
     { threadId },
@@ -138,7 +140,7 @@ export function ChatMessages({
         ))}
         {isWaitingForReply && (
           <div className="flex items-center gap-2 px-1">
-            <Loader variant="text-shimmer" text="Thinking" />
+            <Loader variant="text-shimmer" text={t('chat.thinking')} />
           </div>
         )}
         <ChatContainerScrollAnchor />
@@ -163,6 +165,7 @@ function ChatMessageBubble({
   threadId: string
   onApprovalSubmitted: (messageId: string) => void
 }) {
+  const { t } = useTranslation()
   const navigate = useNavigate()
   const isUser = message.role === 'user'
   const parts = message.parts ?? []
@@ -275,7 +278,7 @@ function ChatMessageBubble({
             className="w-fit"
             onClick={() => handleViewTransactions(output)}
           >
-            {(output.label as string) ?? 'View transactions'}
+            {(output.label as string) ?? t('chat.viewTransactions')}
             <ArrowRight className="size-3.5" />
           </Button>,
         )
@@ -288,7 +291,9 @@ function ChatMessageBubble({
       <Tool
         key={'toolCallId' in part ? (part.toolCallId as string) : `tool-${i}`}
         toolPart={{
-          type: TOOL_LABELS[toolName] ?? toolName,
+          type: TOOL_LABEL_KEYS[toolName]
+            ? t(TOOL_LABEL_KEYS[toolName])
+            : toolName,
           state: part.state as ToolPart['state'],
           input:
             'input' in part
@@ -338,6 +343,7 @@ function SmoothTextBubble({
 }
 
 function CopyAction({ text }: { text: string }) {
+  const { t } = useTranslation()
   const [copied, setCopied] = useState(false)
 
   function handleCopy() {
@@ -348,7 +354,7 @@ function CopyAction({ text }: { text: string }) {
   }
 
   return (
-    <MessageAction tooltip={copied ? 'Copied' : 'Copy'}>
+    <MessageAction tooltip={copied ? t('chat.copied') : t('chat.copy')}>
       <Button variant="ghost" size="icon-sm" onClick={handleCopy}>
         {copied ? <Check /> : <Copy />}
       </Button>

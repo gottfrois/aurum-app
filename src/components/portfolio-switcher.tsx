@@ -2,6 +2,7 @@ import { Link } from '@tanstack/react-router'
 import { useQuery } from 'convex/react'
 import { ChevronsUpDown, Layers, Plus, Settings, Users } from 'lucide-react'
 import * as React from 'react'
+import { useTranslation } from 'react-i18next'
 import { CreatePortfolioDialog } from '~/components/create-portfolio-dialog'
 import { PortfolioAvatar } from '~/components/portfolio-avatar'
 import {
@@ -23,6 +24,7 @@ import { usePortfolio } from '~/contexts/portfolio-context'
 import { api } from '../../convex/_generated/api'
 
 export function PortfolioSwitcher() {
+  const { t } = useTranslation()
   const { isMobile } = useSidebar()
   const {
     portfolios,
@@ -63,7 +65,7 @@ export function PortfolioSwitcher() {
             </div>
             <div className="grid flex-1 text-left text-sm leading-tight">
               <span className="truncate font-semibold text-muted-foreground">
-                Add a portfolio
+                {t('portfolio.addPortfolio')}
               </span>
             </div>
           </SidebarMenuButton>
@@ -74,10 +76,10 @@ export function PortfolioSwitcher() {
   }
 
   const activeLabel = isTeamView
-    ? 'Team'
+    ? t('portfolio.team')
     : activePortfolio
       ? activePortfolio.name
-      : 'All my portfolios'
+      : t('portfolio.allMyPortfolios')
 
   return (
     <>
@@ -116,7 +118,7 @@ export function PortfolioSwitcher() {
               sideOffset={4}
             >
               <DropdownMenuLabel className="text-xs text-muted-foreground">
-                Portfolios
+                {t('portfolio.portfoliosLabel')}
               </DropdownMenuLabel>
               {showTeamOption && (
                 <DropdownMenuItem
@@ -126,7 +128,7 @@ export function PortfolioSwitcher() {
                   <div className="flex size-6 items-center justify-center rounded-sm border">
                     <Users className="size-4 shrink-0" />
                   </div>
-                  Team
+                  {t('portfolio.team')}
                 </DropdownMenuItem>
               )}
               <DropdownMenuItem
@@ -136,7 +138,7 @@ export function PortfolioSwitcher() {
                 <div className="flex size-6 items-center justify-center rounded-sm border">
                   <Layers className="size-4 shrink-0" />
                 </div>
-                All my portfolios
+                {t('portfolio.allMyPortfolios')}
               </DropdownMenuItem>
               <DropdownMenuSeparator />
               {portfolios.map((portfolio) => (
@@ -158,7 +160,7 @@ export function PortfolioSwitcher() {
                   <Plus className="size-4" />
                 </div>
                 <span className="font-medium text-muted-foreground">
-                  Add a portfolio
+                  {t('portfolio.addPortfolio')}
                 </span>
               </DropdownMenuItem>
               <DropdownMenuItem className="gap-2 p-2" asChild>
@@ -167,7 +169,7 @@ export function PortfolioSwitcher() {
                     <Settings className="size-4" />
                   </div>
                   <span className="font-medium text-muted-foreground">
-                    Manage your portfolios
+                    {t('portfolio.managePortfolios')}
                   </span>
                 </Link>
               </DropdownMenuItem>

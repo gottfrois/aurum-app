@@ -2,6 +2,7 @@ import * as Sentry from '@sentry/tanstackstart-react'
 import { Link } from '@tanstack/react-router'
 import { useMutation, useQuery } from 'convex/react'
 import { Layers, X } from 'lucide-react'
+import { useTranslation } from 'react-i18next'
 import { toast } from 'sonner'
 import {
   SidebarGroup,
@@ -20,6 +21,7 @@ import {
 import { api } from '../../convex/_generated/api'
 
 export function NavFavorites() {
+  const { t } = useTranslation()
   const favorites = useQuery(api.filterViewFavorites.list)
   const toggleFavorite = useMutation(api.filterViewFavorites.toggle)
 
@@ -28,16 +30,16 @@ export function NavFavorites() {
   const handleRemove = async (viewId: string) => {
     try {
       await toggleFavorite({ viewId: viewId as never })
-      toast.success('Removed from favorites')
+      toast.success(t('toast.removedFromFavorites'))
     } catch (error) {
       Sentry.captureException(error)
-      toast.error('Failed to remove favorite')
+      toast.error(t('toast.failedRemoveFavorite'))
     }
   }
 
   return (
     <SidebarGroup>
-      <SidebarGroupLabel>Favorites</SidebarGroupLabel>
+      <SidebarGroupLabel>{t('nav.favorites')}</SidebarGroupLabel>
       <SidebarGroupContent>
         <SidebarMenu>
           {favorites.map((fav) => (
@@ -64,7 +66,9 @@ export function NavFavorites() {
                     <X className="size-4" />
                   </SidebarMenuAction>
                 </TooltipTrigger>
-                <TooltipContent side="right">Remove favorite</TooltipContent>
+                <TooltipContent side="right">
+                  {t('button.removeFavorite')}
+                </TooltipContent>
               </Tooltip>
             </SidebarMenuItem>
           ))}

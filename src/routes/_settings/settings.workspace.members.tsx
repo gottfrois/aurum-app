@@ -5,6 +5,7 @@ import { useAction, useMutation, useQuery } from 'convex/react'
 import { Bot, Ellipsis, Mail, UserX, X } from 'lucide-react'
 import { useCallback, useEffect, useState } from 'react'
 import { useHotkeys } from 'react-hotkeys-hook'
+import { useTranslation } from 'react-i18next'
 import { toast } from 'sonner'
 import { ActivateAgentDialog } from '~/components/activate-agent-dialog'
 import { ConfirmDialog } from '~/components/confirm-dialog'
@@ -65,6 +66,7 @@ type MemberRow = {
 }
 
 function MembersPage() {
+  const { t } = useTranslation()
   const data = useQuery(api.members.listMembers)
   const subscription = useQuery(api.billing.getSubscriptionStatus)
   const agentStatus = useQuery(api.agent.getAgentStatus)
@@ -166,8 +168,8 @@ function MembersPage() {
       _id: 'bunkr-agent',
       type: 'agent',
       userId: 'bunkr-agent',
-      name: 'Bunkr Agent',
-      email: 'AI assistant with access to your financial data',
+      name: t('settings.members.bunkrAgent'),
+      email: t('settings.members.bunkrAgentDescription'),
       role: 'agent',
       isCurrentUser: false,
     })
@@ -175,11 +177,11 @@ function MembersPage() {
 
   const groups: DataTableGroup<MemberRow>[] = [
     {
-      label: 'Members',
+      label: t('settings.members.membersGroup'),
       filter: (row) => row.type === 'human' || row.type === 'invitation',
     },
     {
-      label: 'Applications',
+      label: t('settings.members.applicationsGroup'),
       filter: (row) => row.type === 'agent',
       action:
         isOwner && !agentStatus?.enabled ? <ActivateAgentButton /> : undefined,
@@ -191,8 +193,8 @@ function MembersPage() {
       <div className="flex h-full flex-col overflow-hidden px-10 pt-16">
         <div className="shrink-0">
           <PageHeader
-            title="Members"
-            description="Invite and manage who has access to this workspace."
+            title={t('settings.members.title')}
+            description={t('settings.members.description')}
           />
         </div>
         <div className="mt-8 flex min-h-0 flex-1 flex-col">
@@ -200,10 +202,10 @@ function MembersPage() {
             <Skeleton className="h-48 w-full rounded-lg" />
           ) : (
             <DataTable
-              columns={memberColumns}
+              columns={createMemberColumns(t)}
               data={rows}
               filterColumn="name"
-              filterPlaceholder="Filter by name..."
+              filterPlaceholder={t('settings.members.filterPlaceholder')}
               getRowId={(row) => row._id}
               groups={groups}
               actions={
@@ -235,95 +237,100 @@ function MembersPage() {
 
 // --- Column definitions ---
 
-const memberColumns: ColumnDef<MemberRow, unknown>[] = [
-  {
-    accessorKey: 'name',
-    header: 'Name',
-    cell: ({ row }) => {
-      const { type, name, imageUrl, isCurrentUser } = row.original
+function createMemberColumns(
+  t: ReturnType<typeof useTranslation>['t'],
+): ColumnDef<MemberRow, unknown>[] {
+  return [
+    {
+      accessorKey: 'name',
+      header: t('settings.members.nameHeader'),
+      cell: ({ row }) => {
+        const { type, name, imageUrl, isCurrentUser } = row.original
 
-      if (type === 'agent') {
-        return (
-          <div className="flex items-center gap-3">
-            <div className="flex size-8 items-center justify-center rounded-full bg-primary/10">
-              <Bot className="size-4 text-primary" />
+        if (type === 'agent') {
+          return (
+            <div className="flex items-center gap-3">
+              <div className="flex size-8 items-center justify-center rounded-full bg-primary/10">
+                <Bot className="size-4 text-primary" />
+              </div>
+              <span className="font-medium">{name}</span>
             </div>
-            <span className="font-medium">{name}</span>
-          </div>
-        )
-      }
+          )
+        }
 
-      if (type === 'invitation') {
+        if (type === 'invitation') {
+          return (
+            <div className="flex items-center gap-3">
+              <Avatar className="size-8 rounded-full">
+                <AvatarFallback className="rounded-full text-xs">
+                  <Mail className="size-4" />
+                </AvatarFallback>
+              </Avatar>
+              <span className="font-medium">{name}</span>
+            </div>
+          )
+        }
+
+        const initials = name
+          .split(' ')
+          .map((n) => n[0])
+          .join('')
+          .toUpperCase()
+          .slice(0, 2)
+
         return (
           <div className="flex items-center gap-3">
             <Avatar className="size-8 rounded-full">
+              <AvatarImage src={imageUrl} alt={name} />
               <AvatarFallback className="rounded-full text-xs">
-                <Mail className="size-4" />
+                {initials}
               </AvatarFallback>
             </Avatar>
-            <span className="font-medium">{name}</span>
+            <span className="font-medium">
+              {name}
+              {isCurrentUser && (
+                <span className="ml-1 text-sm font-normal text-muted-foreground">
+                  {t('settings.members.you')}
+                </span>
+              )}
+            </span>
           </div>
         )
-      }
-
-      const initials = name
-        .split(' ')
-        .map((n) => n[0])
-        .join('')
-        .toUpperCase()
-        .slice(0, 2)
-
-      return (
-        <div className="flex items-center gap-3">
-          <Avatar className="size-8 rounded-full">
-            <AvatarImage src={imageUrl} alt={name} />
-            <AvatarFallback className="rounded-full text-xs">
-              {initials}
-            </AvatarFallback>
-          </Avatar>
-          <span className="font-medium">
-            {name}
-            {isCurrentUser && (
-              <span className="ml-1 text-sm font-normal text-muted-foreground">
-                (you)
-              </span>
-            )}
-          </span>
-        </div>
-      )
+      },
     },
-  },
-  {
-    id: 'email',
-    header: 'Email',
-    cell: ({ row }) => (
-      <span className="text-muted-foreground">{row.original.email}</span>
-    ),
-  },
-  {
-    id: 'status',
-    header: '',
-    size: 180,
-    cell: ({ row }) => <MemberStatusCell row={row.original} />,
-  },
-  {
-    id: 'actions',
-    header: '',
-    size: 50,
-    cell: ({ row }) => <MemberActionsCell row={row.original} />,
-  },
-]
+    {
+      id: 'email',
+      header: t('settings.members.emailHeader'),
+      cell: ({ row }) => (
+        <span className="text-muted-foreground">{row.original.email}</span>
+      ),
+    },
+    {
+      id: 'status',
+      header: '',
+      size: 180,
+      cell: ({ row }) => <MemberStatusCell row={row.original} />,
+    },
+    {
+      id: 'actions',
+      header: '',
+      size: 50,
+      cell: ({ row }) => <MemberActionsCell row={row.original} />,
+    },
+  ]
+}
 
 function MemberStatusCell({ row }: { row: MemberRow }) {
+  const { t } = useTranslation()
   const { isEncryptionEnabled, role } = useEncryption()
   const isOwner = role === 'owner'
 
   if (row.type === 'agent') {
-    return <Badge variant="secondary">Active</Badge>
+    return <Badge variant="secondary">{t('settings.members.active')}</Badge>
   }
 
   if (row.type === 'invitation') {
-    return <Badge variant="outline">Invited</Badge>
+    return <Badge variant="outline">{t('settings.members.invited')}</Badge>
   }
 
   if (!isEncryptionEnabled || !row.encStatus) return null
@@ -342,13 +349,15 @@ function MemberStatusCell({ row }: { row: MemberRow }) {
   }
 
   if (hasPersonalKey) {
-    return <Badge variant="outline">Pending access</Badge>
+    return (
+      <Badge variant="outline">{t('settings.members.pendingAccess')}</Badge>
+    )
   }
 
   return (
     <Badge variant="outline">
       <UserX className="size-3" />
-      Pending setup
+      {t('settings.members.pendingSetup')}
     </Badge>
   )
 }
@@ -389,6 +398,7 @@ function ActivateAgentButton() {
 // --- Deactivate Agent Menu ---
 
 function DeactivateAgentMenu() {
+  const { t } = useTranslation()
   const deactivateAgent = useMutation(api.agent.deactivateAgent)
   const [confirmOpen, setConfirmOpen] = useState(false)
   const [deactivating, setDeactivating] = useState(false)
@@ -397,10 +407,10 @@ function DeactivateAgentMenu() {
     setDeactivating(true)
     try {
       await deactivateAgent()
-      toast.success('Bunkr Agent deactivated')
+      toast.success(t('toast.agentDeactivated'))
       setConfirmOpen(false)
     } catch {
-      toast.error('Failed to deactivate agent')
+      toast.error(t('toast.failedDeactivateAgent'))
     } finally {
       setDeactivating(false)
     }
@@ -419,17 +429,17 @@ function DeactivateAgentMenu() {
             variant="destructive"
             onClick={() => setConfirmOpen(true)}
           >
-            Deactivate
+            {t('settings.members.deactivate')}
           </DropdownMenuItem>
         </DropdownMenuContent>
       </DropdownMenu>
       <ConfirmDialog
         open={confirmOpen}
         onOpenChange={setConfirmOpen}
-        title="Deactivate Bunkr Agent"
-        description="This will revoke the agent's access to your financial data and delete all agent conversations. This action cannot be undone."
-        confirmValue="Bunkr Agent"
-        confirmLabel="Deactivate"
+        title={t('settings.members.deactivateAgentTitle')}
+        description={t('settings.members.deactivateAgentDescription')}
+        confirmValue={t('settings.members.bunkrAgent')}
+        confirmLabel={t('settings.members.deactivate')}
         loading={deactivating}
         onConfirm={handleDeactivate}
       />
@@ -446,6 +456,7 @@ function RemoveMemberMenu({
   memberId: string
   memberName: string
 }) {
+  const { t } = useTranslation()
   const removeMember = useAction(api.members.removeMember)
   const [confirmOpen, setConfirmOpen] = useState(false)
   const [removing, setRemoving] = useState(false)
@@ -454,10 +465,10 @@ function RemoveMemberMenu({
     setRemoving(true)
     try {
       await removeMember({ memberId: memberId as never })
-      toast.success('Member removed')
+      toast.success(t('toast.memberRemoved'))
       setConfirmOpen(false)
     } catch {
-      toast.error('Failed to remove member')
+      toast.error(t('toast.failedRemoveMember'))
     } finally {
       setRemoving(false)
     }
@@ -476,17 +487,19 @@ function RemoveMemberMenu({
             variant="destructive"
             onClick={() => setConfirmOpen(true)}
           >
-            Remove member
+            {t('settings.members.removeMember')}
           </DropdownMenuItem>
         </DropdownMenuContent>
       </DropdownMenu>
       <ConfirmDialog
         open={confirmOpen}
         onOpenChange={setConfirmOpen}
-        title="Remove member"
-        description={`Are you sure you want to remove ${memberName} from this workspace? They will lose access to all shared data.`}
+        title={t('settings.members.removeMemberTitle')}
+        description={t('settings.members.removeMemberConfirm', {
+          name: memberName,
+        })}
         confirmValue={memberName}
-        confirmLabel="Remove"
+        confirmLabel={t('settings.members.remove')}
         loading={removing}
         onConfirm={handleRemove}
       />
@@ -497,6 +510,7 @@ function RemoveMemberMenu({
 // --- Revoke Invitation Button ---
 
 function RevokeInvitationButton({ invitationId }: { invitationId: string }) {
+  const { t } = useTranslation()
   const revokeInvitation = useAction(api.members.revokeInvitationAction)
   const [revoking, setRevoking] = useState(false)
 
@@ -506,10 +520,10 @@ function RevokeInvitationButton({ invitationId }: { invitationId: string }) {
       await revokeInvitation({
         invitationId: invitationId as never,
       })
-      toast.success('Invitation revoked')
+      toast.success(t('toast.invitationRevoked'))
     } catch (error) {
       Sentry.captureException(error)
-      toast.error('Failed to revoke invitation')
+      toast.error(t('toast.failedRevokeInvitation'))
     } finally {
       setRevoking(false)
     }
@@ -522,7 +536,7 @@ function RevokeInvitationButton({ invitationId }: { invitationId: string }) {
       onClick={handleRevoke}
       disabled={revoking}
     >
-      Revoke
+      {t('settings.members.revoke')}
     </Button>
   )
 }
@@ -536,6 +550,7 @@ function GrantAccessButton({
   targetUserId: string
   targetPublicKey: string
 }) {
+  const { t } = useTranslation()
   const { workspacePrivateKeyJwk, unlock } = useEncryption()
   const grantAccess = useMutation(api.encryptionKeys.grantMemberAccess)
   const [granting, setGranting] = useState(false)
@@ -554,9 +569,9 @@ function GrantAccessButton({
         targetUserId,
         encryptedPrivateKey: encryptedWsPrivateKey,
       })
-      toast.success('Access granted')
+      toast.success(t('toast.accessGranted'))
     } catch (err) {
-      toast.error('Failed to grant access')
+      toast.error(t('toast.failedGrantAccess'))
       console.error(err)
     } finally {
       setGranting(false)
@@ -586,7 +601,7 @@ function GrantAccessButton({
         loading={granting}
         onClick={handleClick}
       >
-        Grant access
+        {t('settings.members.grantAccess')}
       </Button>
       <PassphraseDialog
         open={passphraseOpen}
@@ -596,8 +611,8 @@ function GrantAccessButton({
           setPassphraseOpen(false)
           setPendingGrant(true)
         }}
-        description="Your passphrase is needed to decrypt the workspace key before granting access to this member."
-        submitLabel="Unlock & grant access"
+        description={t('settings.members.grantAccessDescription')}
+        submitLabel={t('settings.members.unlockAndGrant')}
       />
     </>
   )
@@ -612,6 +627,7 @@ function InviteDialog({
   existingEmails?: Array<string>
   atSeatLimit?: boolean
 }) {
+  const { t } = useTranslation()
   const sendInvitation = useAction(api.members.sendInvitation)
   const [open, setOpen] = useState(false)
   const [emailInput, setEmailInput] = useState('')
@@ -622,15 +638,15 @@ function InviteDialog({
     const trimmed = emailInput.trim().toLowerCase()
     if (!trimmed) return
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(trimmed)) {
-      toast.error('Invalid email address')
+      toast.error(t('toast.invalidEmail'))
       return
     }
     if (emails.includes(trimmed)) {
-      toast.error('Email already added')
+      toast.error(t('toast.emailAlreadyAdded'))
       return
     }
     if (existingEmails.includes(trimmed)) {
-      toast.error('This person is already a member or has a pending invitation')
+      toast.error(t('toast.alreadyMemberOrInvited'))
       return
     }
     setEmails((prev) => [...prev, trimmed])
@@ -646,15 +662,13 @@ function InviteDialog({
     setSending(true)
     try {
       await sendInvitation({ emails })
-      toast.success(
-        emails.length === 1 ? 'Invitation sent' : 'Invitations sent',
-      )
+      toast.success(t('toast.invitationSent', { count: emails.length }))
       setEmails([])
       setEmailInput('')
       setOpen(false)
     } catch (error) {
       Sentry.captureException(error)
-      toast.error('Failed to send invitations')
+      toast.error(t('toast.failedSendInvitations'))
     } finally {
       setSending(false)
     }
@@ -664,20 +678,22 @@ function InviteDialog({
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
         <Button size="sm" disabled={atSeatLimit}>
-          {atSeatLimit ? 'Seat limit reached' : 'Invite'}
+          {atSeatLimit
+            ? t('settings.members.seatLimitReached')
+            : t('settings.members.invite')}
         </Button>
       </DialogTrigger>
       <DialogContent showCloseButton={false}>
         <DialogHeader>
-          <DialogTitle>Invite members</DialogTitle>
+          <DialogTitle>{t('settings.members.inviteMembersTitle')}</DialogTitle>
           <DialogDescription>
-            Send invitations to join your workspace.
+            {t('settings.members.inviteMembersDescription')}
           </DialogDescription>
         </DialogHeader>
         <div className="space-y-4">
           <div className="flex gap-2">
             <Input
-              placeholder="email@example.com"
+              placeholder={t('settings.members.emailPlaceholder')}
               value={emailInput}
               onChange={(e) => setEmailInput(e.target.value)}
               onKeyDown={(e) => {
@@ -688,7 +704,7 @@ function InviteDialog({
               }}
             />
             <Button variant="outline" onClick={addEmail}>
-              Add
+              {t('settings.members.add')}
             </Button>
           </div>
           {emails.length > 0 && (
@@ -733,6 +749,7 @@ function InviteFooter({
   sending: boolean
   count: number
 }) {
+  const { t } = useTranslation()
   const handleConfirm = useCallback(() => {
     if (!disabled) onConfirm()
   }, [disabled, onConfirm])
@@ -751,10 +768,10 @@ function InviteFooter({
   return (
     <DialogFooter>
       <Button variant="outline" onClick={onCancel}>
-        Cancel <Kbd>Esc</Kbd>
+        {t('common.cancel')} <Kbd>Esc</Kbd>
       </Button>
       <Button onClick={handleConfirm} disabled={disabled} loading={sending}>
-        Send {count > 0 && count} invitation{count !== 1 ? 's' : ''}{' '}
+        {t('settings.members.sendInvitation', { count: count || 1 })}{' '}
         <HotkeyDisplay hotkey={{ keys: 'mod+enter' }} />
       </Button>
     </DialogFooter>

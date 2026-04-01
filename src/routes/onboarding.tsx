@@ -1,9 +1,10 @@
 import { useClerk } from '@clerk/tanstack-react-start'
 import { createFileRoute, useNavigate } from '@tanstack/react-router'
 import { useAction, useConvexAuth, useQuery } from 'convex/react'
-import { Loader2, LogOut } from 'lucide-react'
+import { Globe, Loader2, LogOut } from 'lucide-react'
 import { MotionConfig, motion } from 'motion/react'
 import { useEffect, useRef, useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import { ConnectionStep } from '~/components/onboarding/connection-step'
 import { InviteStep } from '~/components/onboarding/invite-step'
 import { LegalStep } from '~/components/onboarding/legal-step'
@@ -12,6 +13,12 @@ import { PortfolioStep } from '~/components/onboarding/portfolio-step'
 import { VaultStep } from '~/components/onboarding/vault-step'
 import { WorkspaceStep } from '~/components/onboarding/workspace-step'
 import { Button } from '~/components/ui/button'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+} from '~/components/ui/select'
 import { cn } from '~/lib/utils'
 import { api } from '../../convex/_generated/api'
 
@@ -38,6 +45,7 @@ const INVITED_USER_STEPS = [
 type Step = (typeof NEW_USER_STEPS)[number]
 
 function OnboardingPage() {
+  const { t, i18n } = useTranslation()
   const navigate = useNavigate()
   const { signOut } = useClerk()
   const { isAuthenticated, isLoading: isAuthLoading } = useConvexAuth()
@@ -148,15 +156,29 @@ function OnboardingPage() {
               <img src="/icon.svg" alt="Bunkr" className="size-8 rounded" />
               <span className="text-xl font-bold">Bunkr</span>
             </div>
-            <Button
-              variant="ghost"
-              size="sm"
-              className="text-muted-foreground"
-              onClick={handleSignOut}
-            >
-              <LogOut className="size-4" />
-              <span className="hidden sm:inline">Log out</span>
-            </Button>
+            <div className="flex items-center gap-1">
+              <Select
+                value={i18n.language}
+                onValueChange={(v) => i18n.changeLanguage(v)}
+              >
+                <SelectTrigger className="w-fit gap-1.5 border-none shadow-none focus:ring-0">
+                  <Globe className="size-4" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="en">English</SelectItem>
+                  <SelectItem value="fr">Français</SelectItem>
+                </SelectContent>
+              </Select>
+              <Button
+                variant="ghost"
+                size="sm"
+                className="text-muted-foreground"
+                onClick={handleSignOut}
+              >
+                <LogOut className="size-4" />
+                <span className="hidden sm:inline">{t('common.logOut')}</span>
+              </Button>
+            </div>
           </div>
 
           <div className="flex flex-1 items-center justify-center">
@@ -194,11 +216,11 @@ function OnboardingPage() {
         <div className="relative hidden bg-muted lg:block">
           <div className="absolute inset-0 flex items-center justify-center p-12">
             <div className="max-w-md space-y-4 text-center">
-              <h2 className="text-3xl font-bold">Own Your Financial Data</h2>
+              <h2 className="text-3xl font-bold">
+                {t('onboarding.hero.title')}
+              </h2>
               <p className="text-lg text-muted-foreground">
-                Track your net worth, investments, and cash flow with
-                zero-knowledge encryption. Your data stays private — not even we
-                can access it.
+                {t('onboarding.hero.description')}
               </p>
             </div>
           </div>

@@ -1,6 +1,7 @@
 import { useQuery } from 'convex/react'
 import { ArrowLeftRight, ListFilter, Sparkles } from 'lucide-react'
 import * as React from 'react'
+import { useTranslation } from 'react-i18next'
 import type { CashFlowData } from '~/components/cash-flow-chart'
 import { CashFlowChart } from '~/components/cash-flow-chart'
 import { CategoryPieChart } from '~/components/category-pie-chart'
@@ -33,6 +34,7 @@ import { usePortfolio } from '~/contexts/portfolio-context'
 import { useCachedDecryptRecords } from '~/hooks/use-cached-decrypt'
 import { useCommand } from '~/hooks/use-command'
 import { useDateRange } from '~/hooks/use-date-range'
+import { useFilterI18n } from '~/hooks/use-filter-i18n'
 import { useFilters } from '~/hooks/use-filters'
 import { resolveTransactionCategoryKey, useCategories } from '~/lib/categories'
 import { createTransactionFilterFields } from '~/lib/filters/transactions'
@@ -94,6 +96,8 @@ export function TransactionsContent({
   onSaveView,
   filtersSlot,
 }: TransactionsContentProps) {
+  const { t } = useTranslation()
+  const filterI18n = useFilterI18n()
   const {
     isLoading: portfolioLoading,
     isAllPortfolios,
@@ -276,8 +280,9 @@ export function TransactionsContent({
         categoryOptions,
         labelOptions,
         transactionTypeOptions,
+        t,
       }),
-    [accountOptions, categoryOptions, labelOptions, transactionTypeOptions],
+    [accountOptions, categoryOptions, labelOptions, transactionTypeOptions, t],
   )
 
   const reuiFields = React.useMemo(
@@ -590,10 +595,9 @@ export function TransactionsContent({
               <EmptyMedia variant="icon">
                 <ArrowLeftRight />
               </EmptyMedia>
-              <EmptyTitle>No Transactions</EmptyTitle>
+              <EmptyTitle>{t('transactions.noTransactions')}</EmptyTitle>
               <EmptyDescription>
-                No transactions found for this period. Try selecting a different
-                date range.
+                {t('transactions.noTransactionsDescription')}
               </EmptyDescription>
             </EmptyHeader>
           </Empty>
@@ -626,6 +630,7 @@ export function TransactionsContent({
                 onChange={setFilters}
                 size="sm"
                 enableShortcut
+                i18n={filterI18n}
                 menuHeader={
                   <button
                     type="button"
@@ -635,7 +640,7 @@ export function TransactionsContent({
                     }
                   >
                     <Sparkles className="size-4 text-muted-foreground" />
-                    Ask AI
+                    {t('filters.askAi')}
                   </button>
                 }
                 trigger={
@@ -647,7 +652,7 @@ export function TransactionsContent({
             </div>
             {filters.length > 0 && (
               <Button variant="ghost" size="sm" onClick={() => setFilters([])}>
-                Clear
+                {t('transactions.clear')}
               </Button>
             )}
             {onSaveView && filters.length > 0 && (

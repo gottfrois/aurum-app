@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { useHotkeys } from 'react-hotkeys-hook'
+import { useTranslation } from 'react-i18next'
 import { Button } from '~/components/ui/button'
 import {
   Dialog,
@@ -27,9 +28,13 @@ export function PassphraseDialog({
   onOpenChange,
   unlock,
   onUnlocked,
-  description = 'Your passphrase is needed to decrypt the workspace key.',
-  submitLabel = 'Unlock',
+  description,
+  submitLabel,
 }: PassphraseDialogProps) {
+  const { t } = useTranslation()
+  const resolvedDescription =
+    description ?? t('dialogs.passphrase.defaultDescription')
+  const resolvedSubmitLabel = submitLabel ?? t('common.unlock')
   const [passphrase, setPassphrase] = useState('')
   const [error, setError] = useState<string | null>(null)
   const [unlocking, setUnlocking] = useState(false)
@@ -44,7 +49,7 @@ export function PassphraseDialog({
       setPassphrase('')
       onUnlocked()
     } catch {
-      setError('Invalid passphrase. Please try again.')
+      setError(t('toast.invalidPassphrase'))
     } finally {
       setUnlocking(false)
     }
@@ -54,17 +59,19 @@ export function PassphraseDialog({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent showCloseButton={false}>
         <DialogHeader>
-          <DialogTitle>Enter your passphrase</DialogTitle>
-          <DialogDescription>{description}</DialogDescription>
+          <DialogTitle>{t('dialogs.passphrase.title')}</DialogTitle>
+          <DialogDescription>{resolvedDescription}</DialogDescription>
         </DialogHeader>
         <form onSubmit={handleSubmit}>
           <div className="space-y-4 py-2">
             <div className="space-y-2">
-              <Label htmlFor="passphrase-input">Passphrase</Label>
+              <Label htmlFor="passphrase-input">
+                {t('dialogs.passphrase.label')}
+              </Label>
               <Input
                 id="passphrase-input"
                 type="password"
-                placeholder="Your encryption passphrase"
+                placeholder={t('dialogs.passphrase.placeholder')}
                 value={passphrase}
                 onChange={(e) => setPassphrase(e.target.value)}
                 autoFocus
@@ -79,7 +86,7 @@ export function PassphraseDialog({
             onCancel={() => onOpenChange(false)}
             disabled={!passphrase}
             unlocking={unlocking}
-            submitLabel={submitLabel}
+            submitLabel={resolvedSubmitLabel}
           />
         </form>
       </DialogContent>
@@ -98,6 +105,7 @@ function PassphraseFooter({
   unlocking: boolean
   submitLabel: string
 }) {
+  const { t } = useTranslation()
   useHotkeys('escape', onCancel, {
     enableOnFormTags: true,
     preventDefault: true,
@@ -106,7 +114,7 @@ function PassphraseFooter({
   return (
     <DialogFooter className="mt-4">
       <Button type="button" variant="outline" onClick={onCancel}>
-        Cancel <Kbd>Esc</Kbd>
+        {t('common.cancel')} <Kbd>Esc</Kbd>
       </Button>
       <Button type="submit" disabled={disabled} loading={unlocking}>
         {submitLabel} <HotkeyDisplay hotkey={{ keys: 'mod+enter' }} />

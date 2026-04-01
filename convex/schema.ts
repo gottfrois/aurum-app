@@ -57,6 +57,7 @@ export default defineSchema({
     userId: v.string(),
     role: v.union(v.literal('owner'), v.literal('member')),
     onboardingStep: v.optional(v.string()),
+    language: v.optional(v.string()),
     permissions: v.optional(
       v.object({
         canViewTeamDashboard: v.boolean(),

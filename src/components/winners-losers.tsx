@@ -1,4 +1,5 @@
 import { TrendingDown, TrendingUp } from 'lucide-react'
+import { useTranslation } from 'react-i18next'
 import { useFormatCurrency, usePrivacy } from '~/contexts/privacy-context'
 import { cn } from '~/lib/utils'
 
@@ -78,6 +79,7 @@ export function WinnersLosers({
   investments: Array<Investment>
   currency: string
 }) {
+  const { t } = useTranslation()
   const withPnl = investments.filter(
     (inv) => inv.diffPercent != null && inv.diffPercent !== 0,
   )
@@ -95,7 +97,7 @@ export function WinnersLosers({
   if (winners.length === 0 && losers.length === 0) {
     return (
       <p className="text-sm text-muted-foreground">
-        No investment performance data available.
+        {t('charts.noPerformanceData')}
       </p>
     )
   }
@@ -105,7 +107,7 @@ export function WinnersLosers({
       <div>
         <div className="mb-3 flex items-center gap-2 text-sm font-semibold text-success">
           <TrendingUp className="size-4" />
-          Top Winners
+          {t('charts.topWinners')}
         </div>
         {winners.length > 0 ? (
           <div className="divide-y">
@@ -114,13 +116,15 @@ export function WinnersLosers({
             ))}
           </div>
         ) : (
-          <p className="text-sm text-muted-foreground">No winners.</p>
+          <p className="text-sm text-muted-foreground">
+            {t('charts.noWinners')}
+          </p>
         )}
       </div>
       <div>
         <div className="mb-3 flex items-center gap-2 text-sm font-semibold text-destructive">
           <TrendingDown className="size-4" />
-          Top Losers
+          {t('charts.topLosers')}
         </div>
         {losers.length > 0 ? (
           <div className="divide-y">
@@ -129,7 +133,9 @@ export function WinnersLosers({
             ))}
           </div>
         ) : (
-          <p className="text-sm text-muted-foreground">No losers.</p>
+          <p className="text-sm text-muted-foreground">
+            {t('charts.noLosers')}
+          </p>
         )}
       </div>
     </div>

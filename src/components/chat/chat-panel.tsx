@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next'
 import { ChatHeader } from '~/components/chat/chat-header'
 import { ChatInput } from '~/components/chat/chat-input'
 import { ChatMessages } from '~/components/chat/chat-messages'
@@ -13,6 +14,7 @@ import {
 import { cn } from '~/lib/utils'
 
 export function ChatPanel() {
+  const { t } = useTranslation()
   const { panelMode, activeThreadId, isCreatingThread } = useChatState()
   const dispatch = useChatDispatch()
   const mockState = useMockState()
@@ -35,7 +37,7 @@ export function ChatPanel() {
   if (panelMode === 'closed') return null
   if (!activeThreadId && !isCreatingThread) return null
 
-  const title = thread?.title ?? 'New chat'
+  const title = thread?.title ?? t('chat.newChat')
   const hasMessages = !!thread?.title
 
   const loadingContent = isCreatingThread && !activeThreadId

@@ -2,6 +2,7 @@ import * as Sentry from '@sentry/tanstackstart-react'
 import { useAction } from 'convex/react'
 import { Loader2, Sparkles } from 'lucide-react'
 import * as React from 'react'
+import { useTranslation } from 'react-i18next'
 import { toast } from 'sonner'
 import type { Filter } from '~/components/reui/filters'
 import {
@@ -54,6 +55,7 @@ export function useAIFilterListener(
 }
 
 export function CommandPalette() {
+  const { t } = useTranslation()
   const { commands, paletteState, setPaletteState } = useCommandRegistry()
   const [aiQuery, setAIQuery] = React.useState('')
   const [loading, setLoading] = React.useState(false)
@@ -103,7 +105,7 @@ export function CommandPalette() {
       const conditions = await askAI({ query: trimmed, fields })
 
       if (conditions.length === 0) {
-        toast.info("Couldn't interpret that, try rephrasing")
+        toast.info(t('filters.aiNoResults'))
         setLoading(false)
         return
       }
@@ -113,7 +115,7 @@ export function CommandPalette() {
       setTimeout(() => dispatchAIFilters(conditions), 100)
     } catch (error) {
       Sentry.captureException(error)
-      toast.error('Failed to generate filters')
+      toast.error(t('toast.failedGenerateFilters'))
     } finally {
       setLoading(false)
     }

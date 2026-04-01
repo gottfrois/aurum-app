@@ -1,6 +1,7 @@
 import { useUser } from '@clerk/tanstack-react-start'
 import { useMutation } from 'convex/react'
 import { useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import { toast } from 'sonner'
 import { Input } from '~/components/ui/input'
 import { Label } from '~/components/ui/label'
@@ -12,6 +13,7 @@ export function WorkspaceStep({
   goToStep,
   setSubmitting,
 }: OnboardingStepProps) {
+  const { t, i18n } = useTranslation()
   const { user } = useUser()
   const defaultName = user?.firstName
     ? `${user.firstName}'s workspace`
@@ -24,10 +26,10 @@ export function WorkspaceStep({
     setSaving(true)
     setSubmitting(true)
     try {
-      await createWorkspace({ workspaceName: name })
+      await createWorkspace({ workspaceName: name, language: i18n.language })
       goToStep('invite')
     } catch (err) {
-      toast.error('Failed to create workspace')
+      toast.error(t('toast.failedCreateWorkspace'))
       console.error(err)
       setSaving(false)
       setSubmitting(false)
@@ -36,21 +38,23 @@ export function WorkspaceStep({
 
   return (
     <StepLayout
-      title="Create your workspace"
-      subtitle="Your workspace is where you manage your finances"
+      title={t('onboarding.workspace.title')}
+      subtitle={t('onboarding.workspace.subtitle')}
       onBack={() => goToStep('name')}
       onSubmit={handleNext}
-      submitLabel="Continue"
+      submitLabel={t('common.continue')}
       submitDisabled={!name.trim()}
       loading={saving}
     >
       <div className="grid gap-2">
-        <Label htmlFor="workspace-name">Workspace name</Label>
+        <Label htmlFor="workspace-name">
+          {t('onboarding.workspace.nameLabel')}
+        </Label>
         <Input
           id="workspace-name"
           value={name}
           onChange={(e) => setName(e.target.value)}
-          placeholder="My Workspace"
+          placeholder={t('onboarding.workspace.namePlaceholder')}
           autoFocus
         />
       </div>

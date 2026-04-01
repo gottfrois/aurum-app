@@ -1,5 +1,6 @@
 import { useAction, useMutation } from 'convex/react'
 import { useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import { toast } from 'sonner'
 import { Label } from '~/components/ui/label'
 import { api } from '../../../convex/_generated/api'
@@ -7,6 +8,7 @@ import { StepLayout } from './step-layout'
 import type { OnboardingStepProps } from './types'
 
 export function InviteStep({ goToStep, setSubmitting }: OnboardingStepProps) {
+  const { t } = useTranslation()
   const [emails, setEmails] = useState('')
   const [saving, setSaving] = useState(false)
   const [skipping, setSkipping] = useState(false)
@@ -28,7 +30,7 @@ export function InviteStep({ goToStep, setSubmitting }: OnboardingStepProps) {
       await updateStep({ step: 'vault' })
       goToStep('vault')
     } catch (err) {
-      toast.error('Failed to send invitations')
+      toast.error(t('toast.failedSendInvitationsOnboarding'))
       console.error(err)
       setSaving(false)
       setSubmitting(false)
@@ -49,24 +51,24 @@ export function InviteStep({ goToStep, setSubmitting }: OnboardingStepProps) {
 
   return (
     <StepLayout
-      title="Invite your team"
-      subtitle="Share your workspace with others. You can always do this later."
+      title={t('onboarding.invite.title')}
+      subtitle={t('onboarding.invite.subtitle')}
       onBack={() => goToStep('workspace')}
       onSubmit={handleNext}
-      submitLabel="Send invites"
+      submitLabel={t('button.sendInvites')}
       submitDisabled={!emails.trim()}
       loading={saving}
       onSkip={handleSkip}
       skipDisabled={skipping}
     >
       <div className="grid gap-2">
-        <Label htmlFor="emails">Email addresses</Label>
+        <Label htmlFor="emails">{t('onboarding.invite.emailLabel')}</Label>
         <textarea
           id="emails"
           className="border-input bg-background ring-offset-background placeholder:text-muted-foreground focus-visible:ring-ring flex min-h-[80px] w-full rounded-md border px-3 py-2 text-sm focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:outline-none disabled:cursor-not-allowed disabled:opacity-50"
           value={emails}
           onChange={(e) => setEmails(e.target.value)}
-          placeholder="Enter email addresses, separated by commas"
+          placeholder={t('onboarding.invite.emailPlaceholder')}
         />
       </div>
     </StepLayout>

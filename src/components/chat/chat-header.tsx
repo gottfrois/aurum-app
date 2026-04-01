@@ -1,5 +1,6 @@
 import { Maximize2, Minimize2, Minus, MoreHorizontal, X } from 'lucide-react'
 import { useHotkeys } from 'react-hotkeys-hook'
+import { useTranslation } from 'react-i18next'
 import { Badge } from '~/components/ui/badge'
 import { Button } from '~/components/ui/button'
 import {
@@ -37,6 +38,7 @@ export function ChatHeader({
   onClose,
   onDelete,
 }: ChatHeaderProps) {
+  const { t } = useTranslation()
   useHotkeys('escape', onMinimize, {
     enableOnFormTags: true,
     preventDefault: true,
@@ -50,7 +52,7 @@ export function ChatHeader({
         mode === 'expanded' && 'h-(--header-height) px-4 lg:px-6',
       )}
     >
-      <Badge variant="secondary">Beta</Badge>
+      <Badge variant="secondary">{t('chat.beta')}</Badge>
       <span className="flex-1 truncate text-sm font-medium">{title}</span>
       <TooltipProvider delayDuration={300}>
         <div className="flex items-center gap-0.5">
@@ -66,7 +68,7 @@ export function ChatHeader({
                   className="text-destructive"
                   onClick={onDelete}
                 >
-                  Delete conversation
+                  {t('chat.deleteConversation')}
                 </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
@@ -78,7 +80,7 @@ export function ChatHeader({
               </Button>
             </TooltipTrigger>
             <TooltipContent side="bottom">
-              Minimize <Kbd>Esc</Kbd>
+              {t('chat.minimize')} <Kbd>Esc</Kbd>
             </TooltipContent>
           </Tooltip>
           {mode === 'popover' ? (
@@ -88,7 +90,7 @@ export function ChatHeader({
                   <Maximize2 className="size-4" />
                 </Button>
               </TooltipTrigger>
-              <TooltipContent side="bottom">Move to fullscreen</TooltipContent>
+              <TooltipContent side="bottom">{t('chat.expand')}</TooltipContent>
             </Tooltip>
           ) : (
             <Tooltip>
@@ -97,7 +99,9 @@ export function ChatHeader({
                   <Minimize2 className="size-4" />
                 </Button>
               </TooltipTrigger>
-              <TooltipContent side="bottom">Exit fullscreen</TooltipContent>
+              <TooltipContent side="bottom">
+                {t('chat.collapse')}
+              </TooltipContent>
             </Tooltip>
           )}
           <Tooltip>
@@ -106,7 +110,7 @@ export function ChatHeader({
                 <X className="size-4" />
               </Button>
             </TooltipTrigger>
-            <TooltipContent side="bottom">Close</TooltipContent>
+            <TooltipContent side="bottom">{t('chat.close')}</TooltipContent>
           </Tooltip>
         </div>
       </TooltipProvider>

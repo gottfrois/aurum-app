@@ -2,6 +2,7 @@ import * as Sentry from '@sentry/tanstackstart-react'
 import { createFileRoute, useNavigate } from '@tanstack/react-router'
 import { useAction, useMutation, useQuery } from 'convex/react'
 import { useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import { toast } from 'sonner'
 import { ConfirmDialog } from '~/components/confirm-dialog'
 import {
@@ -25,6 +26,7 @@ export const Route = createFileRoute('/_settings/settings/workspace/')({
 })
 
 function GeneralPage() {
+  const { t } = useTranslation()
   const workspace = useQuery(api.workspaces.getMyWorkspace)
 
   if (workspace === undefined) {
@@ -46,8 +48,8 @@ function GeneralPage() {
     <RequireOwner>
       <div className="mx-auto flex w-full max-w-3xl flex-1 flex-col px-10 py-16">
         <PageHeader
-          title="General"
-          description="Manage your workspace name and settings."
+          title={t('settings.workspaceGeneral.title')}
+          description={t('settings.workspaceGeneral.description')}
         />
         <div className="mt-8 space-y-6">
           <WorkspaceNameCard name={workspace.name} />
@@ -59,6 +61,7 @@ function GeneralPage() {
 }
 
 function WorkspaceNameCard({ name }: { name: string }) {
+  const { t } = useTranslation()
   const updateWorkspace = useMutation(api.workspaces.updateWorkspace)
   const [workspaceName, setWorkspaceName] = useState(name)
   const [saving, setSaving] = useState(false)
@@ -69,18 +72,18 @@ function WorkspaceNameCard({ name }: { name: string }) {
 
     if (!trimmed) {
       setWorkspaceName(name)
-      toast.error('Workspace name cannot be empty')
+      toast.error(t('toast.workspaceNameCannotBeEmpty'))
       return
     }
 
     setSaving(true)
     try {
       await updateWorkspace({ name: trimmed })
-      toast.success('Workspace name updated')
+      toast.success(t('toast.workspaceNameUpdated'))
     } catch (error) {
       Sentry.captureException(error)
       setWorkspaceName(name)
-      toast.error('Failed to update workspace name')
+      toast.error(t('toast.failedUpdateWorkspaceName'))
     } finally {
       setSaving(false)
     }
@@ -91,7 +94,9 @@ function WorkspaceNameCard({ name }: { name: string }) {
       <ItemCardItems>
         <ItemCardItem>
           <ItemCardItemContent>
-            <ItemCardItemTitle>Workspace name</ItemCardItemTitle>
+            <ItemCardItemTitle>
+              {t('settings.workspaceGeneral.workspaceName')}
+            </ItemCardItemTitle>
           </ItemCardItemContent>
           <ItemCardItemAction>
             <Input
@@ -112,6 +117,7 @@ function WorkspaceNameCard({ name }: { name: string }) {
 }
 
 function DeleteWorkspaceCard({ workspaceName }: { workspaceName: string }) {
+  const { t } = useTranslation()
   const deleteWorkspace = useAction(api.workspaces.deleteWorkspace)
   const navigate = useNavigate()
   const [confirmOpen, setConfirmOpen] = useState(false)
@@ -121,11 +127,11 @@ function DeleteWorkspaceCard({ workspaceName }: { workspaceName: string }) {
     setLoading(true)
     try {
       await deleteWorkspace()
-      toast.success('Workspace deleted')
+      toast.success(t('toast.workspaceDeleted'))
       navigate({ to: '/' })
     } catch (error) {
       Sentry.captureException(error)
-      toast.error('Failed to delete workspace')
+      toast.error(t('toast.failedDeleteWorkspace'))
     } finally {
       setLoading(false)
     }
@@ -133,15 +139,18 @@ function DeleteWorkspaceCard({ workspaceName }: { workspaceName: string }) {
 
   return (
     <section>
-      <h2 className="mb-4 text-lg font-semibold">Workspace access</h2>
+      <h2 className="mb-4 text-lg font-semibold">
+        {t('settings.workspaceGeneral.workspaceAccess')}
+      </h2>
       <ItemCard>
         <ItemCardItems>
           <ItemCardItem>
             <ItemCardItemContent>
-              <ItemCardItemTitle>Delete workspace</ItemCardItemTitle>
+              <ItemCardItemTitle>
+                {t('settings.workspaceGeneral.deleteWorkspace')}
+              </ItemCardItemTitle>
               <ItemCardItemDescription>
-                Permanently delete this workspace and all associated data. This
-                action cannot be undone.
+                {t('settings.workspaceGeneral.deleteWorkspaceDescription')}
               </ItemCardItemDescription>
             </ItemCardItemContent>
             <ItemCardItemAction>
@@ -151,7 +160,7 @@ function DeleteWorkspaceCard({ workspaceName }: { workspaceName: string }) {
                 className="text-destructive hover:bg-destructive/10 hover:text-destructive"
                 onClick={() => setConfirmOpen(true)}
               >
-                Delete
+                {t('common.delete')}
               </Button>
             </ItemCardItemAction>
           </ItemCardItem>
@@ -159,10 +168,12 @@ function DeleteWorkspaceCard({ workspaceName }: { workspaceName: string }) {
         <ConfirmDialog
           open={confirmOpen}
           onOpenChange={setConfirmOpen}
-          title="Delete workspace"
-          description={`This will permanently delete ${workspaceName} and all associated data including connections, transactions, investments, and member data. This action cannot be undone.`}
+          title={t('settings.workspaceGeneral.deleteWorkspace')}
+          description={t('settings.workspaceGeneral.deleteWorkspaceConfirm', {
+            name: workspaceName,
+          })}
           confirmValue={workspaceName}
-          confirmLabel="Delete"
+          confirmLabel={t('common.delete')}
           loading={loading}
           onConfirm={handleDelete}
         />

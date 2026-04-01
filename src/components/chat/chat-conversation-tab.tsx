@@ -1,4 +1,5 @@
 import { X } from 'lucide-react'
+import { useTranslation } from 'react-i18next'
 import { Button } from '~/components/ui/button'
 
 interface ChatConversationTabProps {
@@ -12,6 +13,7 @@ export function ChatConversationTab({
   onOpen,
   onClose,
 }: ChatConversationTabProps) {
+  const { t } = useTranslation()
   return (
     <div className="group flex h-8 max-w-40 min-w-16 shrink items-center gap-1 rounded-md bg-secondary px-2.5 text-secondary-foreground">
       <button
@@ -31,7 +33,7 @@ export function ChatConversationTab({
       <Button
         variant="ghost"
         size="icon-sm"
-        aria-label="Close"
+        aria-label={t('chat.close')}
         className="size-5 shrink-0 opacity-0 transition-opacity group-hover:opacity-100"
         onClick={onClose}
       >

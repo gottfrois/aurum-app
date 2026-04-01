@@ -36,6 +36,7 @@ import {
   titleModel,
   titleModelProviderOptions,
 } from './lib/aiModels'
+import { getAuthUserId } from './lib/auth'
 import { decryptForProfile } from './lib/serverCrypto'
 
 // --- Agent definitions ---
@@ -180,6 +181,21 @@ export const streamResponse = action({
           // If decryption fails, skip custom instructions
         }
       }
+
+      // Inject language preference
+      const userId = await getAuthUserId(ctx)
+      if (userId) {
+        const memberLang = await ctx.runQuery(
+          internal.agentChatQueries.getMemberLanguage,
+          { workspaceId, userId },
+        )
+        if (memberLang && memberLang !== 'en') {
+          const langName = memberLang === 'fr' ? 'French' : memberLang
+          systemParts.push(
+            `\n\n<language>Always respond in ${langName}. The user's preferred language is ${langName} (${memberLang}). Format all text, summaries, and explanations in ${langName}.</language>`,
+          )
+        }
+      }
     }
 
     const system = systemParts.length > 1 ? systemParts.join('') : undefined
@@ -253,8 +269,9 @@ export const generateTitle = internalAction({
   args: {
     threadId: v.string(),
     prompt: v.string(),
+    language: v.optional(v.string()),
   },
-  handler: async (ctx, { threadId, prompt }) => {
+  handler: async (ctx, { threadId, prompt, language }) => {
     const { thread } = await titleAgent.continueThread(ctx, { threadId })
 
     // Only generate title if thread doesn't already have one
@@ -262,8 +279,15 @@ export const generateTitle = internalAction({
     if (existing.title) return
 
     try {
+      const langInstruction =
+        language && language !== 'en'
+          ? ` Generate the title in ${language === 'fr' ? 'French' : language}.`
+          : ''
       const { text } = await thread.generateText(
-        { prompt, providerOptions: titleModelProviderOptions },
+        {
+          prompt: prompt + langInstruction,
+          providerOptions: titleModelProviderOptions,
+        },
         { storageOptions: { saveMessages: 'none' } },
       )
       await thread.updateMetadata({ title: text.trim() })

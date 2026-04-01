@@ -2,6 +2,7 @@ import * as Sentry from '@sentry/tanstackstart-react'
 import { createFileRoute } from '@tanstack/react-router'
 import { useMutation, useQuery } from 'convex/react'
 import { useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import { toast } from 'sonner'
 import {
   ItemCard,
@@ -24,6 +25,7 @@ export const Route = createFileRoute(
 })
 
 function PortfolioGeneralPage() {
+  const { t } = useTranslation()
   const { id } = Route.useParams()
   const portfolio = useQuery(api.portfolios.getPortfolio, {
     portfolioId: id as Id<'portfolios'>,
@@ -45,8 +47,8 @@ function PortfolioGeneralPage() {
   return (
     <div className="mx-auto flex w-full max-w-3xl flex-1 flex-col px-10 py-16">
       <PageHeader
-        title="General"
-        description="Portfolio name and general settings."
+        title={t('settings.portfolioGeneral.title')}
+        description={t('settings.portfolioGeneral.description')}
       />
       <div className="mt-8 space-y-6">
         <PortfolioNameCard portfolioId={portfolio._id} name={portfolio.name} />
@@ -62,6 +64,7 @@ function PortfolioNameCard({
   portfolioId: Id<'portfolios'>
   name: string
 }) {
+  const { t } = useTranslation()
   const updatePortfolio = useMutation(api.portfolios.updatePortfolio)
   const [portfolioName, setPortfolioName] = useState(name)
   const [saving, setSaving] = useState(false)
@@ -72,18 +75,18 @@ function PortfolioNameCard({
 
     if (!trimmed) {
       setPortfolioName(name)
-      toast.error('Portfolio name cannot be empty')
+      toast.error(t('toast.portfolioNameCannotBeEmpty'))
       return
     }
 
     setSaving(true)
     try {
       await updatePortfolio({ portfolioId, name: trimmed })
-      toast.success('Portfolio name updated')
+      toast.success(t('toast.portfolioNameUpdated'))
     } catch (error) {
       Sentry.captureException(error)
       setPortfolioName(name)
-      toast.error('Failed to update portfolio name')
+      toast.error(t('toast.failedUpdatePortfolioName'))
     } finally {
       setSaving(false)
     }
@@ -94,7 +97,9 @@ function PortfolioNameCard({
       <ItemCardItems>
         <ItemCardItem>
           <ItemCardItemContent>
-            <ItemCardItemTitle>Portfolio name</ItemCardItemTitle>
+            <ItemCardItemTitle>
+              {t('settings.portfolioGeneral.portfolioName')}
+            </ItemCardItemTitle>
           </ItemCardItemContent>
           <ItemCardItemAction>
             <Input

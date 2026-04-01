@@ -1,4 +1,5 @@
 import { TrendingDown, TrendingUp } from 'lucide-react'
+import { useTranslation } from 'react-i18next'
 import { PnLBadge } from '~/components/pnl-badge'
 import {
   Card,
@@ -27,6 +28,7 @@ export function DashboardCard({
   description,
   className,
 }: DashboardCardProps) {
+  const { t } = useTranslation()
   const Icon = pnl?.isPositive ? TrendingUp : TrendingDown
 
   return (
@@ -43,7 +45,10 @@ export function DashboardCard({
       <CardFooter className="flex-col items-start gap-1.5 text-sm">
         {pnl && (
           <div className="line-clamp-1 flex gap-2 font-medium">
-            {pnl.isPositive ? 'Trending up' : 'Trending down'} this period
+            {pnl.isPositive
+              ? t('dashboard.trendingUp')
+              : t('dashboard.trendingDown')}{' '}
+            {t('dashboard.thisPeriod')}
             <Icon className="size-4" />
           </div>
         )}

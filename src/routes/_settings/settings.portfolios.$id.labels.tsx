@@ -3,6 +3,7 @@ import type { ColumnDef } from '@tanstack/react-table'
 import { useMutation, useQuery } from 'convex/react'
 import { MoreHorizontal, Plus } from 'lucide-react'
 import * as React from 'react'
+import { useTranslation } from 'react-i18next'
 import { toast } from 'sonner'
 import { ConfirmDialog } from '~/components/confirm-dialog'
 import { DataTable, type DataTableGroup } from '~/components/data-table'
@@ -44,6 +45,7 @@ type LabelRow = {
 }
 
 function PortfolioLabelsPage() {
+  const { t } = useTranslation()
   const { id } = Route.useParams()
   const portfolioId = id as Id<'portfolios'>
   const portfolio = useQuery(api.portfolios.getPortfolio, { portfolioId })
@@ -74,8 +76,8 @@ function PortfolioLabelsPage() {
     <div className="flex h-full flex-col overflow-hidden px-10 pt-16">
       <div className="shrink-0">
         <PageHeader
-          title="Labels"
-          description="Labels available for transactions in this portfolio."
+          title={t('settings.labels.title')}
+          description={t('settings.labels.portfolioDescription')}
         />
       </div>
       <div className="mt-8 flex min-h-0 flex-1 flex-col">
@@ -98,6 +100,7 @@ function LabelsTable({
   portfolioId: Id<'portfolios'>
   workspaceId: Id<'workspaces'>
 }) {
+  const { t } = useTranslation()
   const createLabel = useMutation(api.transactionLabels.createLabel)
   const updateLabel = useMutation(api.transactionLabels.updateLabel)
   const deleteLabel = useMutation(api.transactionLabels.deleteLabel)
@@ -124,13 +127,15 @@ function LabelsTable({
         description: newDescription.trim() || undefined,
         color: newColor,
       })
-      toast.success('Label created')
+      toast.success(t('toast.labelCreated'))
       setCreateOpen(false)
       setNewName('')
       setNewDescription('')
       setNewColor('#3B82F6')
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : 'Failed to create label')
+      toast.error(
+        err instanceof Error ? err.message : t('toast.failedCreateLabel'),
+      )
     } finally {
       setSaving(false)
     }
@@ -146,13 +151,15 @@ function LabelsTable({
         description: newDescription.trim() || undefined,
         color: newColor,
       })
-      toast.success('Label updated')
+      toast.success(t('toast.labelUpdated'))
       setEditingLabel(null)
       setNewName('')
       setNewDescription('')
       setNewColor('#3B82F6')
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : 'Failed to update label')
+      toast.error(
+        err instanceof Error ? err.message : t('toast.failedUpdateLabel'),
+      )
     } finally {
       setSaving(false)
     }
@@ -162,10 +169,12 @@ function LabelsTable({
     if (!deletingLabelId) return
     try {
       await deleteLabel({ labelId: deletingLabelId })
-      toast.success('Label deleted')
+      toast.success(t('toast.labelDeleted'))
       setDeletingLabelId(null)
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : 'Failed to delete label')
+      toast.error(
+        err instanceof Error ? err.message : t('toast.failedDeleteLabel'),
+      )
     }
   }
 
@@ -174,10 +183,10 @@ function LabelsTable({
       await batchDeleteLabels({
         labelIds: ids as Id<'transactionLabels'>[],
       })
-      toast.success(`${ids.length} label${ids.length > 1 ? 's' : ''} deleted`)
+      toast.success(t('toast.labelsDeleted', { count: ids.length }))
     } catch (err) {
       toast.error(
-        err instanceof Error ? err.message : 'Failed to delete labels',
+        err instanceof Error ? err.message : t('toast.failedDeleteLabels'),
       )
     }
   }
@@ -192,7 +201,7 @@ function LabelsTable({
   const tableColumns: ColumnDef<LabelRow, unknown>[] = [
     {
       accessorKey: 'name',
-      header: 'Name',
+      header: t('settings.labels.nameHeader'),
       cell: ({ row }) => (
         <div className="flex items-center gap-3">
           <span
@@ -205,7 +214,7 @@ function LabelsTable({
     },
     {
       accessorKey: 'description',
-      header: 'Description',
+      header: t('settings.labels.descriptionHeader'),
       cell: ({ row }) => (
         <span className="text-muted-foreground">
           {row.original.description}
@@ -214,7 +223,7 @@ function LabelsTable({
     },
     {
       id: 'created',
-      header: 'Created',
+      header: t('settings.labels.createdHeader'),
       size: 100,
       cell: ({ row }) => (
         <span className="text-muted-foreground">
@@ -237,7 +246,7 @@ function LabelsTable({
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end">
                 <DropdownMenuItem onClick={() => openEdit(row.original)}>
-                  Edit
+                  {t('settings.labels.edit')}
                 </DropdownMenuItem>
                 <DropdownMenuItem
                   className="text-destructive"
@@ -247,7 +256,7 @@ function LabelsTable({
                     )
                   }
                 >
-                  Delete
+                  {t('common.delete')}
                 </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
@@ -258,9 +267,12 @@ function LabelsTable({
   ]
 
   const labelGroups: DataTableGroup<LabelRow>[] = [
-    { label: 'Portfolio', filter: (row) => isPortfolioLevel(row) },
     {
-      label: 'Inherited from workspace',
+      label: t('settings.labels.portfolioGroup'),
+      filter: (row) => isPortfolioLevel(row),
+    },
+    {
+      label: t('settings.labels.inheritedGroup'),
       filter: (row) => !isPortfolioLevel(row),
     },
   ]
@@ -271,16 +283,16 @@ function LabelsTable({
         columns={tableColumns}
         data={labels}
         filterColumn="name"
-        filterPlaceholder="Filter by name..."
+        filterPlaceholder={t('settings.labels.filterPlaceholder')}
         getRowId={(row) => row._id}
         onBatchDelete={handleBatchDelete}
         enableRowSelection={(row) => isPortfolioLevel(row)}
-        disabledRowTooltip="Inherited from workspace — manage in workspace settings"
+        disabledRowTooltip={t('settings.labels.inheritedTooltip')}
         groups={labelGroups}
         actions={
           <Button size="sm" onClick={() => setCreateOpen(true)}>
             <Plus className="size-4" />
-            Add label
+            {t('settings.labels.addLabel')}
           </Button>
         }
       />
@@ -288,9 +300,9 @@ function LabelsTable({
       <Dialog open={createOpen} onOpenChange={setCreateOpen}>
         <DialogContent className="sm:max-w-md" showCloseButton={false}>
           <DialogHeader>
-            <DialogTitle>Add Label</DialogTitle>
+            <DialogTitle>{t('settings.labels.addLabelTitle')}</DialogTitle>
             <DialogDescription>
-              Create a label for this portfolio.
+              {t('settings.labels.addLabelPortfolioDescription')}
             </DialogDescription>
           </DialogHeader>
           <LabelFormFields
@@ -306,7 +318,7 @@ function LabelsTable({
             onConfirm={handleCreate}
             disabled={saving || !newName.trim()}
             saving={saving}
-            confirmLabel="Create"
+            confirmLabel={t('common.create')}
           />
         </DialogContent>
       </Dialog>
@@ -319,9 +331,9 @@ function LabelsTable({
       >
         <DialogContent className="sm:max-w-md" showCloseButton={false}>
           <DialogHeader>
-            <DialogTitle>Edit Label</DialogTitle>
+            <DialogTitle>{t('settings.labels.editLabelTitle')}</DialogTitle>
             <DialogDescription>
-              Update label name, description or color.
+              {t('settings.labels.editLabelDescription')}
             </DialogDescription>
           </DialogHeader>
           <LabelFormFields
@@ -337,7 +349,7 @@ function LabelsTable({
             onConfirm={handleUpdate}
             disabled={saving || !newName.trim()}
             saving={saving}
-            confirmLabel="Save"
+            confirmLabel={t('common.save')}
           />
         </DialogContent>
       </Dialog>
@@ -347,9 +359,9 @@ function LabelsTable({
         onOpenChange={(open) => {
           if (!open) setDeletingLabelId(null)
         }}
-        title="Delete label?"
-        description="This action cannot be undone. This label will be removed from all transactions that use it."
-        confirmLabel="Delete"
+        title={t('settings.labels.deleteLabelTitle')}
+        description={t('settings.labels.deleteLabelDescription')}
+        confirmLabel={t('common.delete')}
         onConfirm={handleDelete}
       />
     </>

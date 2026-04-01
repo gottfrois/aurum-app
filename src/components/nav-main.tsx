@@ -3,6 +3,7 @@ import { useQuery } from 'convex/react'
 import type { LucideIcon } from 'lucide-react'
 import { ChevronRight, CirclePlus } from 'lucide-react'
 import * as React from 'react'
+import { useTranslation } from 'react-i18next'
 import {
   Collapsible,
   CollapsibleContent,
@@ -23,7 +24,11 @@ import {
 } from '~/components/ui/sidebar'
 import { useCommandRegistry } from '~/contexts/command-context'
 import { usePortfolio } from '~/contexts/portfolio-context'
-import { ACCOUNT_CATEGORIES, getCategoryKey } from '~/lib/account-categories'
+import {
+  ACCOUNT_CATEGORIES,
+  getAccountCategoryLabel,
+  getCategoryKey,
+} from '~/lib/account-categories'
 import { api } from '../../convex/_generated/api'
 
 const CONNECTION_ALERT_STATES = new Set([
@@ -43,6 +48,7 @@ export function NavMain({
     icon?: LucideIcon
   }>
 }) {
+  const { t } = useTranslation()
   const { commands } = useCommandRegistry()
   const addConnectionCommand = commands.find((c) => c.id === 'connection.add')
   const { isAllPortfolios, isTeamView, allPortfolioIds, singlePortfolioId } =
@@ -109,13 +115,15 @@ export function NavMain({
           <SidebarMenu>
             <SidebarMenuItem className="flex items-center gap-2">
               <SidebarMenuButton
-                tooltip="Add Connection"
+                tooltip={t('nav.addConnection')}
                 className="min-w-8 bg-primary text-primary-foreground duration-200 ease-linear hover:bg-primary/90 hover:text-primary-foreground active:bg-primary/90 active:text-primary-foreground disabled:opacity-50 disabled:cursor-not-allowed"
                 onClick={handleAddConnection}
                 disabled={isConnecting}
               >
                 <CirclePlus className={isConnecting ? 'animate-spin' : ''} />
-                <span>{isConnecting ? 'Connecting...' : 'Add Connection'}</span>
+                <span>
+                  {isConnecting ? t('nav.connecting') : t('nav.addConnection')}
+                </span>
                 <HotkeyDisplay className="ml-auto" hotkey={{ keys: 'c' }} />
               </SidebarMenuButton>
             </SidebarMenuItem>
@@ -123,7 +131,7 @@ export function NavMain({
         )}
         <SidebarMenu>
           {items.map((item) =>
-            item.title === 'Accounts' && activeCategories.length > 0 ? (
+            item.url === '/accounts' && activeCategories.length > 0 ? (
               <Collapsible
                 key={item.title}
                 defaultOpen
@@ -148,7 +156,7 @@ export function NavMain({
                           <SidebarMenuSubButton asChild>
                             <Link to="/accounts" search={{ type: cat.key }}>
                               <cat.icon className="size-4" />
-                              <span>{cat.label}</span>
+                              <span>{getAccountCategoryLabel(cat.key, t)}</span>
                             </Link>
                           </SidebarMenuSubButton>
                         </SidebarMenuSubItem>

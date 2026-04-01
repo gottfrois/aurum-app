@@ -10,6 +10,7 @@ import {
 } from 'date-fns'
 import { useEffect, useMemo, useState } from 'react'
 import { useHotkeys } from 'react-hotkeys-hook'
+import { useTranslation } from 'react-i18next'
 import type { DateSelectorValue } from '~/components/reui/date-selector'
 import { DateSelector } from '~/components/reui/date-selector'
 import type { CustomRendererProps } from '~/components/reui/filters'
@@ -28,6 +29,7 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from '~/components/ui/popover'
+import { useDateSelectorI18n } from '~/hooks/use-date-selector-i18n'
 
 // ---------------------------------------------------------------------------
 // Number renderer
@@ -381,6 +383,8 @@ function CustomDateDialog({
     range?: { from: string; to: string }
   }) => void
 }) {
+  const { t } = useTranslation()
+  const dateSelectorI18n = useDateSelectorI18n()
   const [dateValue, setDateValue] = useState<DateSelectorValue>({
     period: 'day',
     operator: isRange ? 'between' : 'is',
@@ -411,7 +415,9 @@ function CustomDateDialog({
       <DialogContent className="sm:max-w-fit" showCloseButton={false}>
         <DialogHeader>
           <DialogTitle>
-            {isRange ? 'Select date range' : 'Select date'}
+            {isRange
+              ? t('datePicker.rangePlaceholder')
+              : t('datePicker.selectDate')}
           </DialogTitle>
         </DialogHeader>
         <DateSelector
@@ -423,13 +429,14 @@ function CustomDateDialog({
           showTwoMonths={isRange}
           maxYear={new Date().getFullYear()}
           minYear={2015}
+          i18n={dateSelectorI18n}
         />
         <DialogFooter>
           <Button variant="outline" onClick={handleCancel}>
-            Cancel <Kbd>Esc</Kbd>
+            {t('common.cancel')} <Kbd>Esc</Kbd>
           </Button>
           <Button onClick={handleApply} disabled={!resolved}>
-            Apply <HotkeyDisplay hotkey={{ keys: 'mod+enter' }} />
+            {t('common.apply')} <HotkeyDisplay hotkey={{ keys: 'mod+enter' }} />
           </Button>
         </DialogFooter>
       </DialogContent>

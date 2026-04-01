@@ -2,6 +2,7 @@ import * as Sentry from '@sentry/tanstackstart-react'
 import { useAction } from 'convex/react'
 import { Loader2, Sparkles } from 'lucide-react'
 import * as React from 'react'
+import { useTranslation } from 'react-i18next'
 import { toast } from 'sonner'
 import type { Filter } from '~/components/reui/filters'
 import { Button } from '~/components/ui/button'
@@ -21,6 +22,7 @@ interface AskAIFilterProps {
 }
 
 export function AskAIFilter({ fields, onLoadFilters }: AskAIFilterProps) {
+  const { t } = useTranslation()
   const askAI = useAction(api.aiFilters.askAI)
   const [open, setOpen] = React.useState(false)
   const [query, setQuery] = React.useState('')
@@ -35,7 +37,7 @@ export function AskAIFilter({ fields, onLoadFilters }: AskAIFilterProps) {
       const serialized = toSerializableFields(fields)
       const result = await askAI({ query: trimmed, fields: serialized })
       if (result.length === 0) {
-        toast.info("Couldn't interpret that, try rephrasing")
+        toast.info(t('filters.aiNoResults'))
       } else {
         onLoadFilters(result)
         setQuery('')
@@ -43,7 +45,7 @@ export function AskAIFilter({ fields, onLoadFilters }: AskAIFilterProps) {
       }
     } catch (error) {
       Sentry.captureException(error)
-      toast.error('Failed to generate filters')
+      toast.error(t('toast.failedGenerateFilters'))
     } finally {
       setLoading(false)
     }
@@ -54,7 +56,7 @@ export function AskAIFilter({ fields, onLoadFilters }: AskAIFilterProps) {
       <PopoverTrigger asChild>
         <Button variant="ghost" size="sm" className="gap-1.5">
           <Sparkles className="size-3.5" />
-          Ask AI
+          {t('filters.askAi')}
         </Button>
       </PopoverTrigger>
       <PopoverContent className="w-[320px] p-2" align="end">
@@ -67,7 +69,7 @@ export function AskAIFilter({ fields, onLoadFilters }: AskAIFilterProps) {
               if (e.key === 'Enter' && !loading) void handleSubmit()
               if (e.key === 'Escape') setOpen(false)
             }}
-            placeholder="e.g. food expenses over 50€ last month"
+            placeholder={t('filters.askAiPlaceholder')}
             className="h-8 text-sm"
             disabled={loading}
           />

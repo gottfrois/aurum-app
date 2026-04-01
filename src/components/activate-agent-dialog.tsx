@@ -3,6 +3,7 @@ import { useAction, useMutation } from 'convex/react'
 import { ShieldAlert } from 'lucide-react'
 import { useCallback, useEffect, useState } from 'react'
 import { useHotkeys } from 'react-hotkeys-hook'
+import { useTranslation } from 'react-i18next'
 import { toast } from 'sonner'
 import {
   AlertDialog,
@@ -29,6 +30,7 @@ export function ActivateAgentDialog({
   open,
   onOpenChange,
 }: ActivateAgentDialogProps) {
+  const { t } = useTranslation()
   const generateKeyPair = useAction(api.agent.generateAgentKeyPairAction)
   const activateAgent = useMutation(api.agent.activateAgent)
   const { workspacePrivateKeyJwk, unlock } = useEncryption()
@@ -68,10 +70,10 @@ export function ActivateAgentDialog({
       await activateAgent({
         encryptedWorkspacePrivateKey: encryptedWsPrivateKey,
       })
-      toast.success('Bunkr Agent activated')
+      toast.success(t('toast.agentActivated'))
       handleOpenChange(false)
     },
-    [activateAgent, handleOpenChange],
+    [activateAgent, handleOpenChange, t],
   )
 
   // After passphrase unlock, the key becomes available on next render
@@ -94,14 +96,14 @@ export function ActivateAgentDialog({
       // Step 1: Unlock vault if needed
       if (!workspacePrivateKeyJwk) {
         if (!passphrase) {
-          setError('Please enter your passphrase.')
+          setError(t('toast.passphraseRequired'))
           setLoading(false)
           return
         }
         try {
           await unlock(passphrase)
         } catch {
-          setError('Invalid passphrase. Please try again.')
+          setError(t('toast.invalidPassphrase'))
           setLoading(false)
           return
         }
@@ -121,7 +123,7 @@ export function ActivateAgentDialog({
       }
     } catch (error) {
       Sentry.captureException(error)
-      toast.error('Failed to activate Bunkr Agent')
+      toast.error(t('toast.failedActivateAgent'))
       setLoading(false)
     }
   }
@@ -153,46 +155,30 @@ export function ActivateAgentDialog({
         <AlertDialogHeader>
           <AlertDialogTitle className="flex items-center gap-2">
             <ShieldAlert className="size-5 text-amber-500" />
-            Activate Bunkr Agent
+            {t('dialogs.activateAgent.title')}
           </AlertDialogTitle>
           <AlertDialogDescription asChild>
             <div className="space-y-3">
-              <p>
-                Bunkr Agent is an AI assistant that can analyze your financial
-                data, answer questions about your spending, and provide insights
-                about your portfolios.
-              </p>
-              <p>
-                To work, the agent needs server-side access to your encrypted
-                financial data. When activated:
-              </p>
+              <p>{t('dialogs.activateAgent.description1')}</p>
+              <p>{t('dialogs.activateAgent.description2')}</p>
               <ul className="list-disc space-y-1 pl-4 text-sm">
-                <li>
-                  A secure keypair is generated and the agent is added as a
-                  workspace member
-                </li>
-                <li>
-                  Our servers can decrypt your financial data for AI processing
-                </li>
-                <li>
-                  Conversations with the agent are stored{' '}
-                  <strong>unencrypted</strong> on our servers
-                </li>
-                <li>
-                  You can revoke access at any time — all agent data will be
-                  deleted
-                </li>
+                <li>{t('dialogs.activateAgent.point1')}</li>
+                <li>{t('dialogs.activateAgent.point2')}</li>
+                <li>{t('dialogs.activateAgent.point3')}</li>
+                <li>{t('dialogs.activateAgent.point4')}</li>
               </ul>
             </div>
           </AlertDialogDescription>
         </AlertDialogHeader>
         {!isVaultUnlocked && (
           <div className="grid gap-2 py-2">
-            <Label htmlFor="agent-passphrase">Passphrase</Label>
+            <Label htmlFor="agent-passphrase">
+              {t('dialogs.activateAgent.passphraseLabel')}
+            </Label>
             <Input
               id="agent-passphrase"
               type="password"
-              placeholder="Your encryption passphrase"
+              placeholder={t('dialogs.activateAgent.passphrasePlaceholder')}
               value={passphrase}
               onChange={(e) => setPassphrase(e.target.value)}
               autoFocus
@@ -205,14 +191,15 @@ export function ActivateAgentDialog({
         )}
         <AlertDialogFooter>
           <Button variant="outline" disabled={loading} onClick={handleCancel}>
-            Cancel <Kbd>Esc</Kbd>
+            {t('common.cancel')} <Kbd>Esc</Kbd>
           </Button>
           <Button
             disabled={loading || !canSubmit}
             loading={loading}
             onClick={() => void handleConfirm()}
           >
-            Activate Agent <HotkeyDisplay hotkey={{ keys: 'mod+enter' }} />
+            {t('button.activateAgent')}{' '}
+            <HotkeyDisplay hotkey={{ keys: 'mod+enter' }} />
           </Button>
         </AlertDialogFooter>
       </AlertDialogContent>

@@ -1,6 +1,7 @@
 import { useQuery } from 'convex/react'
 import { BotMessageSquare } from 'lucide-react'
 import { useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import { ActivateAgentDialog } from '~/components/activate-agent-dialog'
 import { ChatConversationTab } from '~/components/chat/chat-conversation-tab'
 import { ChatHistoryPopover } from '~/components/chat/chat-history-popover'
@@ -14,6 +15,7 @@ import {
 import { api } from '../../convex/_generated/api'
 
 export function SiteFooter() {
+  const { t } = useTranslation()
   const agentStatus = useQuery(api.agent.getAgentStatus)
   const [activateDialogOpen, setActivateDialogOpen] = useState(false)
   const dispatch = useChatDispatch()
@@ -53,7 +55,7 @@ export function SiteFooter() {
                   key={thread.threadId}
                   conversation={{
                     id: thread.threadId,
-                    title: thread.title ?? 'New chat',
+                    title: thread.title ?? t('footer.newChat'),
                   }}
                   onOpen={() => dispatch.openThread(thread.threadId)}
                   onClose={() => dispatch.closeThread(thread.threadId)}
@@ -66,14 +68,14 @@ export function SiteFooter() {
               variant="ghost"
               size="icon-sm"
               onClick={handleAskBunkr}
-              title="Ask Bunkr..."
+              title={t('footer.askBunkr')}
             >
               <BotMessageSquare className="size-4" />
             </Button>
           ) : (
             <Button variant="ghost" size="sm" onClick={handleAskBunkr}>
               <BotMessageSquare className="size-4" />
-              Ask Bunkr...
+              {t('footer.askBunkr')}
             </Button>
           )}
           {isEnabled && !mockState && (

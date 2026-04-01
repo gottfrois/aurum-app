@@ -1,6 +1,7 @@
 import { useAction } from 'convex/react'
 import { Landmark } from 'lucide-react'
 import * as React from 'react'
+import { useTranslation } from 'react-i18next'
 import { Button } from '~/components/ui/button'
 import {
   Dialog,
@@ -21,6 +22,7 @@ export function AddConnectionDialog({
   open,
   onOpenChange,
 }: AddConnectionDialogProps) {
+  const { t } = useTranslation()
   const { singlePortfolioId } = usePortfolio()
   const generateConnectUrl = useAction(api.powens.generateConnectUrl)
   const [loading, setLoading] = React.useState(false)
@@ -36,7 +38,7 @@ export function AddConnectionDialog({
       window.location.href = url
     } catch (err) {
       console.error('Failed to generate connect URL:', err)
-      setError('Something went wrong. Please try again.')
+      setError(t('dialogs.addConnection.error'))
       setLoading(false)
     }
   }
@@ -45,10 +47,9 @@ export function AddConnectionDialog({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>Add a Connection</DialogTitle>
+          <DialogTitle>{t('dialogs.addConnection.title')}</DialogTitle>
           <DialogDescription>
-            Securely connect your bank, broker, or insurance to start tracking
-            your finances.
+            {t('dialogs.addConnection.description')}
           </DialogDescription>
         </DialogHeader>
         <div className="flex flex-col items-center gap-4 py-6">
@@ -62,7 +63,7 @@ export function AddConnectionDialog({
             disabled={!singlePortfolioId}
             loading={loading}
           >
-            Add Connection
+            {t('button.addConnection')}
           </Button>
         </div>
       </DialogContent>

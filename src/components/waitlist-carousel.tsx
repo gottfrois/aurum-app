@@ -9,50 +9,47 @@ import {
 } from 'lucide-react'
 import { AnimatePresence, motion } from 'motion/react'
 import { useEffect, useRef, useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import { cn } from '~/lib/utils'
 
 interface Slide {
   icon: React.ReactNode
-  title: string
-  description: string
+  titleKey: string
+  descriptionKey: string
 }
 
 const SLIDES: Slide[] = [
   {
     icon: <ChartLine className="size-10" />,
-    title: 'Net Worth Tracking',
-    description:
-      'See your complete financial picture in one place. Track how your wealth evolves over time across all your accounts.',
+    titleKey: 'waitlist.carousel.netWorthTitle',
+    descriptionKey: 'waitlist.carousel.netWorthDescription',
   },
   {
     icon: <Lock className="size-10" />,
-    title: 'Zero-Knowledge Encryption',
-    description:
-      'Your data is encrypted end-to-end. Not even we can access it — only you hold the keys to your financial information.',
+    titleKey: 'waitlist.carousel.encryptionTitle',
+    descriptionKey: 'waitlist.carousel.encryptionDescription',
   },
   {
     icon: <Wallet className="size-10" />,
-    title: 'Bank Aggregation',
-    description:
-      'Connect all your bank accounts, brokerages, and crypto wallets. Everything syncs automatically via open banking.',
+    titleKey: 'waitlist.carousel.bankTitle',
+    descriptionKey: 'waitlist.carousel.bankDescription',
   },
   {
     icon: <PieChart className="size-10" />,
-    title: 'Portfolio Analytics',
-    description:
-      'Understand your asset allocation, track investment performance, and spot opportunities to rebalance.',
+    titleKey: 'waitlist.carousel.analyticsTitle',
+    descriptionKey: 'waitlist.carousel.analyticsDescription',
   },
   {
     icon: <RefreshCw className="size-10" />,
-    title: 'Cash Flow Insights',
-    description:
-      'Categorize transactions automatically. See where your money goes and identify patterns in your spending.',
+    titleKey: 'waitlist.carousel.cashFlowTitle',
+    descriptionKey: 'waitlist.carousel.cashFlowDescription',
   },
 ]
 
 const INTERVAL = 5000
 
 export function WaitlistCarousel({ className }: { className?: string }) {
+  const { t } = useTranslation()
   const [current, setCurrent] = useState(0)
   const [direction, setDirection] = useState(1)
   const directionRef = useRef(1)
@@ -125,9 +122,9 @@ export function WaitlistCarousel({ className }: { className?: string }) {
             <div className="flex size-16 items-center justify-center rounded-2xl bg-primary/10 text-primary">
               {slide.icon}
             </div>
-            <h2 className="text-2xl font-bold">{slide.title}</h2>
+            <h2 className="text-2xl font-bold">{t(slide.titleKey)}</h2>
             <p className="text-balance text-muted-foreground">
-              {slide.description}
+              {t(slide.descriptionKey)}
             </p>
           </motion.div>
         </AnimatePresence>
@@ -145,7 +142,7 @@ export function WaitlistCarousel({ className }: { className?: string }) {
       <div className="flex items-center gap-1.5">
         {SLIDES.map((s, i) => (
           <button
-            key={s.title}
+            key={s.titleKey}
             type="button"
             aria-label={`Go to slide ${i + 1}`}
             onClick={() => goTo(i)}

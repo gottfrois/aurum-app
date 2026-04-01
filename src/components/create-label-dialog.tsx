@@ -1,6 +1,7 @@
 import { useMutation } from 'convex/react'
 import { Info } from 'lucide-react'
 import * as React from 'react'
+import { useTranslation } from 'react-i18next'
 import { toast } from 'sonner'
 import { DialogFormFooter } from '~/components/dialog-form-footer'
 import { LabelFormFields } from '~/components/label-form-fields'
@@ -62,6 +63,7 @@ export function CreateLabelDialog({
   workspaceId,
   onCreated,
 }: CreateLabelDialogProps) {
+  const { t } = useTranslation()
   const [name, setName] = React.useState(initialName)
   const [description, setDescription] = React.useState('')
   const [color, setColor] = React.useState(initialColor)
@@ -117,7 +119,7 @@ export function CreateLabelDialog({
       onCreated(labelId)
     } catch (error) {
       toast.error(
-        error instanceof Error ? error.message : 'Failed to create label',
+        error instanceof Error ? error.message : t('toast.failedCreateLabel'),
       )
     } finally {
       setSaving(false)
@@ -130,16 +132,17 @@ export function CreateLabelDialog({
 
   const scopeLabel =
     scope === 'workspace'
-      ? 'all portfolios'
-      : (portfolios?.find((p) => p._id === scope)?.name ?? 'this portfolio')
+      ? t('dialogs.createLabel.scopeAllPortfolios')
+      : (portfolios?.find((p) => p._id === scope)?.name ??
+        t('dialogs.createLabel.scopeSinglePortfolio'))
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent showCloseButton={false} className="sm:max-w-[400px]">
         <DialogHeader>
-          <DialogTitle>Create label</DialogTitle>
+          <DialogTitle>{t('dialogs.createLabel.title')}</DialogTitle>
           <DialogDescription>
-            This label will be available in {scopeLabel}.
+            {t('dialogs.createLabel.subtitle', { scope: scopeLabel })}
           </DialogDescription>
         </DialogHeader>
         <div className="space-y-4 py-2">
@@ -153,14 +156,13 @@ export function CreateLabelDialog({
           />
           <div className="space-y-2">
             <Label className="flex items-center gap-1.5">
-              Visibility
+              {t('dialogs.createLabel.visibilityLabel')}
               <Tooltip>
                 <TooltipTrigger asChild>
                   <Info className="size-3.5 text-muted-foreground" />
                 </TooltipTrigger>
                 <TooltipContent side="right" className="max-w-[200px]">
-                  Choose whether this label is available in a single portfolio
-                  or shared across all portfolios in your workspace.
+                  {t('dialogs.createLabel.visibilityTooltip')}
                 </TooltipContent>
               </Tooltip>
             </Label>
@@ -174,7 +176,7 @@ export function CreateLabelDialog({
               <SelectContent>
                 {canCreateWorkspaceLabel && (
                   <SelectItem value="workspace">
-                    Workspace (all portfolios)
+                    {t('dialogs.createLabel.workspaceOption')}
                   </SelectItem>
                 )}
                 {portfolios?.map((p) => (
@@ -191,7 +193,7 @@ export function CreateLabelDialog({
           onConfirm={handleCreate}
           disabled={disabled}
           saving={saving}
-          confirmLabel="Create"
+          confirmLabel={t('common.create')}
         />
       </DialogContent>
     </Dialog>

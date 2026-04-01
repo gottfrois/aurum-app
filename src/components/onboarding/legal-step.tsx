@@ -1,5 +1,6 @@
 import { useMutation } from 'convex/react'
 import { useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import { toast } from 'sonner'
 import { Label } from '~/components/ui/label'
 import { Switch } from '~/components/ui/switch'
@@ -25,6 +26,7 @@ export function LegalStep({
   consents,
   onConsentsChange,
 }: LegalStepProps) {
+  const { t } = useTranslation()
   const [saving, setSaving] = useState(false)
   const saveConsents = useMutation(api.onboarding.saveConsents)
   const updateStep = useMutation(api.onboarding.updateOnboardingStep)
@@ -45,7 +47,7 @@ export function LegalStep({
       }
       goToStep(isInvited ? 'vault' : 'name')
     } catch (err) {
-      toast.error('Failed to save consents')
+      toast.error(t('toast.failedSaveConsents'))
       console.error(err)
       setSaving(false)
       setSubmitting(false)
@@ -54,24 +56,28 @@ export function LegalStep({
 
   return (
     <StepLayout
-      title="Legal agreements"
-      subtitle="Please review and accept the following to continue"
+      title={t('onboarding.legal.title')}
+      subtitle={t('onboarding.legal.subtitle')}
       onSubmit={handleNext}
-      submitLabel="Continue"
+      submitLabel={t('common.continue')}
       submitDisabled={!consents.tos || !consents.privacy}
       loading={saving}
     >
       <div className="space-y-4">
         <div className="flex items-center justify-between gap-4">
           <Label htmlFor="tos" className="flex-1 cursor-pointer">
-            I accept the{' '}
+            {
+              t('onboarding.legal.tosLabel').split(
+                t('onboarding.legal.tosLink'),
+              )[0]
+            }
             <a
               href="https://bunkr.io/terms"
               target="_blank"
               rel="noopener noreferrer"
               className="text-primary underline"
             >
-              Terms of Service
+              {t('onboarding.legal.tosLink')}
             </a>{' '}
             <span className="text-destructive">*</span>
           </Label>
@@ -83,14 +89,18 @@ export function LegalStep({
         </div>
         <div className="flex items-center justify-between gap-4">
           <Label htmlFor="privacy" className="flex-1 cursor-pointer">
-            I accept the{' '}
+            {
+              t('onboarding.legal.privacyLabel').split(
+                t('onboarding.legal.privacyLink'),
+              )[0]
+            }
             <a
               href="https://bunkr.io/privacy"
               target="_blank"
               rel="noopener noreferrer"
               className="text-primary underline"
             >
-              Privacy Policy
+              {t('onboarding.legal.privacyLink')}
             </a>{' '}
             <span className="text-destructive">*</span>
           </Label>
@@ -104,7 +114,7 @@ export function LegalStep({
         </div>
         <div className="flex items-center justify-between gap-4">
           <Label htmlFor="marketing" className="flex-1 cursor-pointer">
-            I agree to receive marketing communications
+            {t('onboarding.legal.marketingLabel')}
           </Label>
           <Switch
             id="marketing"

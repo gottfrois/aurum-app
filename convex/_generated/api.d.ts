@@ -36,6 +36,7 @@ import type * as migrations from "../migrations.js";
 import type * as onboarding from "../onboarding.js";
 import type * as portfolios from "../portfolios.js";
 import type * as powens from "../powens.js";
+import type * as preferences from "../preferences.js";
 import type * as seed from "../seed.js";
 import type * as stripe from "../stripe.js";
 import type * as team from "../team.js";
@@ -79,6 +80,7 @@ declare const fullApi: ApiFromModules<{
   onboarding: typeof onboarding;
   portfolios: typeof portfolios;
   powens: typeof powens;
+  preferences: typeof preferences;
   seed: typeof seed;
   stripe: typeof stripe;
   team: typeof team;

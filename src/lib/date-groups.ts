@@ -6,7 +6,16 @@ import {
   isToday,
   isYesterday,
 } from 'date-fns'
+import i18n from './i18n'
 
+export type DateGroupKey =
+  | 'today'
+  | 'yesterday'
+  | 'lastWeek'
+  | 'lastMonth'
+  | 'older'
+
+/** @deprecated Use DateGroupKey instead */
 export type DateGroup =
   | 'Today'
   | 'Yesterday'
@@ -14,31 +23,43 @@ export type DateGroup =
   | 'Last month'
   | 'Older'
 
-const GROUP_ORDER: DateGroup[] = [
-  'Today',
-  'Yesterday',
-  'Last week',
-  'Last month',
-  'Older',
+const GROUP_ORDER: DateGroupKey[] = [
+  'today',
+  'yesterday',
+  'lastWeek',
+  'lastMonth',
+  'older',
 ]
 
-function getDateGroup(date: Date): DateGroup {
-  if (isToday(date)) return 'Today'
-  if (isYesterday(date)) return 'Yesterday'
+const DATE_GROUP_TRANSLATION_KEYS: Record<DateGroupKey, string> = {
+  today: 'dates.today',
+  yesterday: 'dates.yesterday',
+  lastWeek: 'dates.lastWeek',
+  lastMonth: 'dates.lastMonth',
+  older: 'dates.older',
+}
+
+export function translateDateGroup(key: DateGroupKey): string {
+  return i18n.t(DATE_GROUP_TRANSLATION_KEYS[key])
+}
+
+function getDateGroupKey(date: Date): DateGroupKey {
+  if (isToday(date)) return 'today'
+  if (isYesterday(date)) return 'yesterday'
   const days = differenceInDays(new Date(), date)
-  if (days <= 7) return 'Last week'
-  if (days <= 30) return 'Last month'
-  return 'Older'
+  if (days <= 7) return 'lastWeek'
+  if (days <= 30) return 'lastMonth'
+  return 'older'
 }
 
 export function groupByDate<T>(
   items: T[],
   getDate: (item: T) => Date,
-): Array<{ group: DateGroup; items: T[] }> {
-  const groups = new Map<DateGroup, T[]>()
+): Array<{ group: string; items: T[] }> {
+  const groups = new Map<DateGroupKey, T[]>()
 
   for (const item of items) {
-    const group = getDateGroup(getDate(item))
+    const group = getDateGroupKey(getDate(item))
     if (!groups.has(group)) {
       groups.set(group, [])
     }
@@ -46,8 +67,8 @@ export function groupByDate<T>(
   }
 
   return GROUP_ORDER.filter((g) => groups.has(g)).map((g) => ({
-    group: g,
-    items: groups.get(g)!,
+    group: translateDateGroup(g),
+    items: groups.get(g) ?? [],
   }))
 }
 

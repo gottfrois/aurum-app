@@ -1,5 +1,6 @@
 import { useClerk, useUser } from '@clerk/tanstack-react-start'
 import { LogOut, MoreVertical } from 'lucide-react'
+import { useTranslation } from 'react-i18next'
 
 import { Avatar, AvatarFallback, AvatarImage } from '~/components/ui/avatar'
 import {
@@ -19,6 +20,7 @@ import {
 import { Skeleton } from '~/components/ui/skeleton'
 
 export function NavUser() {
+  const { t } = useTranslation()
   const { isMobile } = useSidebar()
   const { user, isLoaded } = useUser()
   const { signOut } = useClerk()
@@ -100,7 +102,7 @@ export function NavUser() {
             <DropdownMenuSeparator />
             <DropdownMenuItem onClick={() => signOut()}>
               <LogOut />
-              Log out
+              {t('nav.logOut')}
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>

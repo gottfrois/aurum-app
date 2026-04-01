@@ -3,6 +3,7 @@ import { useMutation, useQuery } from 'convex/react'
 import { KeyRound, ShieldCheck, TriangleAlert } from 'lucide-react'
 import { useCallback, useRef, useState } from 'react'
 import { useHotkeys } from 'react-hotkeys-hook'
+import { useTranslation } from 'react-i18next'
 import { toast } from 'sonner'
 import {
   ItemCard,
@@ -50,6 +51,7 @@ export const Route = createFileRoute('/_settings/settings/account/encryption')({
 })
 
 function EncryptionPage() {
+  const { t } = useTranslation()
   const {
     isEncryptionEnabled,
     isUnlocked,
@@ -76,26 +78,24 @@ function EncryptionPage() {
   return (
     <div className="mx-auto flex w-full max-w-3xl flex-1 flex-col px-10 py-16">
       <PageHeader
-        title="Encryption"
-        description="Manage zero-knowledge encryption for your financial data."
+        title={t('settings.encryption.title')}
+        description={t('settings.encryption.description')}
       />
       <div className="mt-8 space-y-6">
         <div>
-          <h2 className="text-lg font-medium">Zero-knowledge encryption</h2>
+          <h2 className="text-lg font-medium">
+            {t('settings.encryption.zeroKnowledge')}
+          </h2>
           <p className="text-sm text-muted-foreground">
-            Encrypt your financial data so that only workspace members can read
-            it. No one else can access your balances, IBANs, or investment
-            details — not even us.
+            {t('settings.encryption.zeroKnowledgeDescription')}
           </p>
         </div>
 
         <Alert variant="destructive">
           <TriangleAlert />
-          <AlertTitle>Important</AlertTitle>
+          <AlertTitle>{t('settings.encryption.important')}</AlertTitle>
           <AlertDescription>
-            If you forget your passphrase, your encrypted data cannot be
-            recovered. There is no reset mechanism. Store your passphrase
-            safely.
+            {t('settings.encryption.noResetWarning')}
           </AlertDescription>
         </Alert>
 
@@ -104,30 +104,30 @@ function EncryptionPage() {
             <ItemCardItem>
               <ItemCardItemContent>
                 <ItemCardItemTitle>
-                  Status
+                  {t('settings.encryption.status')}
                   <Badge variant="secondary" className="ml-2">
                     <ShieldCheck className="size-3" />
-                    Enabled
+                    {t('settings.encryption.enabled')}
                   </Badge>
                 </ItemCardItemTitle>
                 <ItemCardItemDescription>
                   {isEncryptionEnabled &&
                     !hasPersonalKey &&
-                    'Encryption is enabled. Set up your passphrase to access encrypted data.'}
+                    t('settings.encryption.statusSetup')}
                   {isEncryptionEnabled &&
                     hasPersonalKey &&
                     !hasWorkspaceAccess &&
-                    'Your passphrase is set up. Waiting for a workspace member to grant you access.'}
+                    t('settings.encryption.statusPendingAccess')}
                   {isEncryptionEnabled &&
                     isUnlocked &&
-                    'Your vault is unlocked. Data is being decrypted in your browser.'}
+                    t('settings.encryption.statusUnlocked')}
                   {isEncryptionEnabled &&
                     hasPersonalKey &&
                     hasWorkspaceAccess &&
                     !isUnlocked &&
-                    'Your vault is locked. Enter your passphrase to view data.'}
+                    t('settings.encryption.statusLocked')}
                   {!isEncryptionEnabled &&
-                    'Encryption is always enabled for all workspaces.'}
+                    t('settings.encryption.statusAlwaysEnabled')}
                 </ItemCardItemDescription>
               </ItemCardItemContent>
             </ItemCardItem>
@@ -135,16 +135,17 @@ function EncryptionPage() {
             {isEncryptionEnabled && isUnlocked && role === 'owner' && (
               <ItemCardItem>
                 <ItemCardItemContent>
-                  <ItemCardItemTitle>Key rotation</ItemCardItemTitle>
+                  <ItemCardItemTitle>
+                    {t('settings.encryption.keyRotation')}
+                  </ItemCardItemTitle>
                   <ItemCardItemDescription>
-                    Generate a new workspace keypair and re-encrypt all data.
-                    Other members will need to be re-granted access.
+                    {t('settings.encryption.keyRotationDescription')}
                   </ItemCardItemDescription>
                 </ItemCardItemContent>
                 <ItemCardItemAction>
                   <Button variant="outline" onClick={() => setRotateOpen(true)}>
                     <KeyRound className="size-4" />
-                    Rotate keys
+                    {t('settings.encryption.rotateKeys')}
                   </Button>
                 </ItemCardItemAction>
               </ItemCardItem>
@@ -167,6 +168,7 @@ function KeyRotationDialog({
   open: boolean
   onOpenChange: (open: boolean) => void
 }) {
+  const { t } = useTranslation()
   const { privateKey, workspacePublicKey } = useEncryption()
   const { allPortfolioIds } = usePortfolio()
 
@@ -253,7 +255,7 @@ function KeyRotationDialog({
 
     const ownerMember = membersStatus.find((m) => m.role === 'owner')
     if (!ownerMember?.publicKey) {
-      toast.error('Could not find owner personal public key')
+      toast.error(t('toast.ownerKeyNotFound'))
       return
     }
 
@@ -449,23 +451,19 @@ function KeyRotationDialog({
       }
 
       if (isCancelled()) {
-        toast.info(
-          `Key rotation paused — ${done} of ${total} records re-encrypted. Please complete the rotation.`,
-        )
+        toast.info(t('toast.keyRotationPaused', { processed: done, total }))
       } else {
         await completeRotation()
 
         const newWsKey = await importPrivateKey(newWsPrivateKeyJwk)
         await storePrivateKey(newWsKey)
 
-        toast.success(
-          'Key rotation complete. Other members need to be re-granted access.',
-        )
+        toast.success(t('toast.keyRotationComplete'))
         onOpenChange(false)
         window.location.reload()
       }
     } catch (err) {
-      toast.error('Key rotation failed')
+      toast.error(t('toast.keyRotationFailed'))
       console.error(err)
     } finally {
       setRotating(false)
@@ -476,10 +474,9 @@ function KeyRotationDialog({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent showCloseButton={false}>
         <DialogHeader>
-          <DialogTitle>Rotate encryption keys</DialogTitle>
+          <DialogTitle>{t('settings.encryption.rotateKeysTitle')}</DialogTitle>
           <DialogDescription>
-            Generate a new workspace keypair and re-encrypt all data. All other
-            workspace members will lose access and need to be re-granted.
+            {t('settings.encryption.rotateKeysDescription')}
           </DialogDescription>
         </DialogHeader>
         <div className="space-y-4 py-2">
@@ -487,10 +484,11 @@ function KeyRotationDialog({
             <>
               <Alert>
                 <TriangleAlert />
-                <AlertTitle>Warning</AlertTitle>
+                <AlertTitle>
+                  {t('settings.encryption.rotateKeysWarningTitle')}
+                </AlertTitle>
                 <AlertDescription>
-                  All workspace members except you will lose access after
-                  rotation. You will need to re-grant access to each member.
+                  {t('settings.encryption.rotateKeysWarning')}
                 </AlertDescription>
               </Alert>
               <div className="space-y-2">
@@ -498,12 +496,12 @@ function KeyRotationDialog({
                   htmlFor="rotation-passphrase"
                   className="text-sm font-medium"
                 >
-                  Enter your passphrase
+                  {t('settings.encryption.enterPassphrase')}
                 </label>
                 <Input
                   id="rotation-passphrase"
                   type="password"
-                  placeholder="Your encryption passphrase"
+                  placeholder={t('settings.encryption.passphrasePlaceholder')}
                   value={passphrase}
                   onChange={(e) => setPassphrase(e.target.value)}
                   autoCapitalize="off"
@@ -513,9 +511,9 @@ function KeyRotationDialog({
               </div>
               {totalRecords > 0 && (
                 <p className="text-sm text-muted-foreground">
-                  {totalRecords} encrypted{' '}
-                  {totalRecords === 1 ? 'record' : 'records'} will be
-                  re-encrypted with the new key.
+                  {t('settings.encryption.recordsToReencrypt', {
+                    count: totalRecords,
+                  })}
                 </p>
               )}
             </>
@@ -531,7 +529,10 @@ function KeyRotationDialog({
                 />
               </div>
               <p className="mt-1 text-xs text-muted-foreground">
-                Re-encrypting: {progress.done} / {progress.total}
+                {t('settings.encryption.reencryptingProgress', {
+                  processed: progress.done,
+                  total: progress.total,
+                })}
               </p>
             </div>
           )}
@@ -539,7 +540,7 @@ function KeyRotationDialog({
         <DialogFooter>
           {rotating ? (
             <Button variant="outline" onClick={handleCancel}>
-              Stop
+              {t('settings.encryption.stop')}
             </Button>
           ) : (
             <RotationFooter
@@ -563,6 +564,7 @@ function RotationFooter({
   onConfirm: () => void
   disabled: boolean
 }) {
+  const { t } = useTranslation()
   const handleConfirm = useCallback(() => {
     if (!disabled) onConfirm()
   }, [disabled, onConfirm])
@@ -581,10 +583,11 @@ function RotationFooter({
   return (
     <>
       <Button variant="outline" onClick={onCancel}>
-        Cancel <Kbd>Esc</Kbd>
+        {t('common.cancel')} <Kbd>Esc</Kbd>
       </Button>
       <Button onClick={handleConfirm} disabled={disabled}>
-        Rotate keys <HotkeyDisplay hotkey={{ keys: 'mod+enter' }} />
+        {t('settings.encryption.rotateKeys')}{' '}
+        <HotkeyDisplay hotkey={{ keys: 'mod+enter' }} />
       </Button>
     </>
   )

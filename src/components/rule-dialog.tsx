@@ -2,6 +2,7 @@ import * as Sentry from '@sentry/tanstackstart-react'
 import { useMutation, useQuery } from 'convex/react'
 import { ChevronsUpDown, Loader2, Search } from 'lucide-react'
 import * as React from 'react'
+import { useTranslation } from 'react-i18next'
 import { toast } from 'sonner'
 import { CategoryCombobox } from '~/components/category-combobox'
 import { DialogFormFooter } from '~/components/dialog-form-footer'
@@ -67,6 +68,7 @@ export function RuleDialog({
   onCreated,
   portfolioId,
 }: RuleDialogProps) {
+  const { t } = useTranslation()
   const isEdit = !!rule
   const [pattern, setPattern] = React.useState(defaultPattern)
   const [matchType, setMatchType] = React.useState<'contains' | 'regex'>(
@@ -179,7 +181,7 @@ export function RuleDialog({
           customDescription: customDescription.trim() || '',
           accountIds: accountIdsArg ?? ([] as Array<Id<'bankAccounts'>>),
         })
-        toast.success('Rule updated')
+        toast.success(t('toast.ruleUpdated'))
       } else {
         const ruleId = await createRule({
           pattern: pattern.trim(),
@@ -194,10 +196,10 @@ export function RuleDialog({
           portfolioId,
           accountIds: accountIdsArg,
         })
-        toast.success('Rule created', {
+        toast.success(t('toast.ruleCreated'), {
           description: applyRetroactively
-            ? 'Existing transactions are being updated.'
-            : 'New transactions will be processed automatically.',
+            ? t('toast.ruleCreatedRetroactive')
+            : t('toast.ruleCreatedNewOnly'),
           action: onCreated
             ? {
                 label: 'Edit',
@@ -225,7 +227,9 @@ export function RuleDialog({
       onOpenChange(false)
     } catch (error) {
       Sentry.captureException(error)
-      toast.error(isEdit ? 'Failed to update rule' : 'Failed to create rule')
+      toast.error(
+        isEdit ? t('toast.failedUpdateRule') : t('toast.failedCreateRule'),
+      )
     } finally {
       setSaving(false)
     }
@@ -248,7 +252,9 @@ export function RuleDialog({
       <DialogContent className="sm:max-w-lg" showCloseButton={false}>
         <DialogHeader>
           <DialogTitle>
-            {isEdit ? 'Edit Automation Rule' : 'Create Automation Rule'}
+            {isEdit
+              ? t('dialogs.rule.editTitle')
+              : t('dialogs.rule.createTitle')}
           </DialogTitle>
         </DialogHeader>
 
@@ -259,7 +265,7 @@ export function RuleDialog({
               <div className="flex items-center gap-3">
                 <div className="h-px flex-1 bg-border" />
                 <span className="text-xs uppercase tracking-wide text-muted-foreground">
-                  when transaction
+                  {t('dialogs.rule.conditionLabel')}
                 </span>
                 <div className="h-px flex-1 bg-border" />
               </div>
@@ -273,8 +279,8 @@ export function RuleDialog({
                   onChange={(e) => setPattern(e.target.value)}
                   placeholder={
                     matchType === 'regex'
-                      ? 'e.g. CARREFOUR|LECLERC or ^CB\\s.*'
-                      : 'e.g. CARREFOUR'
+                      ? t('dialogs.rule.patternPlaceholderRegex')
+                      : t('dialogs.rule.patternPlaceholderContains')
                   }
                   className="rounded-l-none border-l-0 font-mono"
                   autoFocus
@@ -284,7 +290,7 @@ export function RuleDialog({
               {/* Account filter */}
               {activeBankAccounts.length > 0 && (
                 <div className="space-y-2">
-                  <Label>From account</Label>
+                  <Label>{t('dialogs.rule.accountLabel')}</Label>
                   <AccountMultiSelect
                     accounts={activeBankAccounts}
                     selectedAccountIds={selectedAccountIds}
@@ -314,14 +320,14 @@ export function RuleDialog({
               <div className="flex items-center gap-3">
                 <div className="h-px flex-1 bg-border" />
                 <span className="text-xs text-muted-foreground uppercase tracking-wide">
-                  then
+                  {t('dialogs.rule.actionsLabel')}
                 </span>
                 <div className="h-px flex-1 bg-border" />
               </div>
 
               {/* Assign category */}
               <div className="space-y-2">
-                <Label>Assign category</Label>
+                <Label>{t('dialogs.rule.categoryLabel')}</Label>
                 <CategoryCombobox
                   value={categoryKey}
                   onChange={(key) => setCategoryKey(key)}
@@ -344,7 +350,7 @@ export function RuleDialog({
                         </span>
                       ) : (
                         <span className="text-muted-foreground">
-                          No category
+                          {t('dialogs.rule.noCategory')}
                         </span>
                       )}
                       <ChevronsUpDown className="ml-auto size-4 shrink-0 opacity-50" />
@@ -356,7 +362,7 @@ export function RuleDialog({
               {/* Add labels */}
               {labels && labels.length > 0 && (
                 <div className="space-y-2">
-                  <Label>Add labels</Label>
+                  <Label>{t('dialogs.rule.labelsLabel')}</Label>
                   <LabelMultiSelect
                     labels={labels}
                     selectedLabelIds={selectedLabelIds}
@@ -368,18 +374,18 @@ export function RuleDialog({
 
               {/* Change description */}
               <div className="space-y-2">
-                <Label>Change description to</Label>
+                <Label>{t('dialogs.rule.descriptionLabel')}</Label>
                 <Input
                   value={customDescription}
                   onChange={(e) => setCustomDescription(e.target.value)}
-                  placeholder="Custom description"
+                  placeholder={t('dialogs.rule.descriptionPlaceholder')}
                 />
               </div>
 
               {/* Exclude from budget */}
               <div className="flex items-center justify-between">
                 <Label htmlFor="exclude-budget" className="font-normal">
-                  Exclude from budget
+                  {t('dialogs.rule.excludeBudget')}
                 </Label>
                 <Switch
                   id="exclude-budget"
@@ -400,7 +406,7 @@ export function RuleDialog({
                   }
                 />
                 <Label htmlFor="apply-retroactively" className="font-normal">
-                  Apply to existing transactions
+                  {t('dialogs.rule.applyRetroactively')}
                 </Label>
               </div>
             )}
@@ -412,7 +418,7 @@ export function RuleDialog({
           onConfirm={handleSave}
           disabled={saving || !pattern.trim() || !hasAction}
           saving={saving}
-          confirmLabel={isEdit ? 'Save rule' : 'Create rule'}
+          confirmLabel={isEdit ? t('button.saveRule') : t('button.createRule')}
         />
       </DialogContent>
     </Dialog>
@@ -426,6 +432,7 @@ function MatchTypePicker({
   matchType: 'contains' | 'regex'
   onChange: (v: 'contains' | 'regex') => void
 }) {
+  const { t } = useTranslation()
   const [open, setOpen] = React.useState(false)
 
   return (
@@ -435,7 +442,9 @@ function MatchTypePicker({
           type="button"
           className="inline-flex h-9 shrink-0 items-center gap-1 rounded-l-md border bg-muted/50 px-3 text-sm font-medium transition-colors hover:bg-accent"
         >
-          {matchType === 'contains' ? 'contains' : 'matches'}
+          {matchType === 'contains'
+            ? t('dialogs.rule.matchContains')
+            : t('dialogs.rule.matchRegex').split(' ')[0]}
           <ChevronsUpDown className="size-3 opacity-50" />
         </button>
       </PopoverTrigger>
@@ -451,7 +460,7 @@ function MatchTypePicker({
             setOpen(false)
           }}
         >
-          contains
+          {t('dialogs.rule.matchContains')}
         </button>
         <button
           type="button"
@@ -464,7 +473,7 @@ function MatchTypePicker({
             setOpen(false)
           }}
         >
-          matches (regex)
+          {t('dialogs.rule.matchRegex')}
         </button>
       </PopoverContent>
     </Popover>
@@ -484,6 +493,7 @@ function RulePreview({
   selectedAccountIds: string[]
   preview: ReturnType<typeof useRulePreview>
 }) {
+  const { t } = useTranslation()
   const handleTest = () => {
     preview.scan({
       pattern: pattern.trim(),
@@ -511,21 +521,22 @@ function RulePreview({
         {preview.isScanning ? (
           <>
             <Loader2 className="size-3.5 animate-spin" />
-            Scanning...
+            {t('dialogs.rule.scanning')}
           </>
         ) : (
           <>
             <Search className="size-3.5" />
-            Test rule
+            {t('dialogs.rule.testRule')}
           </>
         )}
       </Button>
 
       {preview.isScanning && preview.totalScanned > 0 && (
         <p className="text-xs text-muted-foreground">
-          {preview.totalMatched} match
-          {preview.totalMatched !== 1 ? 'es' : ''} found —{' '}
-          {preview.totalScanned} scanned...
+          {t('dialogs.rule.scanProgress', {
+            matched: preview.totalMatched,
+            scanned: preview.totalScanned,
+          })}
         </p>
       )}
 
@@ -536,12 +547,11 @@ function RulePreview({
       {hasResults && (
         <div className="min-w-0 space-y-2">
           <p className="text-xs text-muted-foreground">
-            <span className="font-medium text-foreground">
-              {preview.totalMatched}
-            </span>{' '}
-            transaction{preview.totalMatched !== 1 ? 's' : ''} match
-            {preview.totalMatched === 1 ? 'es' : ''} out of{' '}
-            {preview.totalScanned}
+            {t('dialogs.rule.scanResults', {
+              matched: preview.totalMatched,
+              scanned: preview.totalScanned,
+              count: preview.totalMatched,
+            })}
           </p>
 
           {preview.matches.length > 0 && (
@@ -560,7 +570,9 @@ function RulePreview({
               </table>
               {preview.totalMatched > preview.matches.length && (
                 <div className="border-t px-3 py-1.5 text-xs text-muted-foreground">
-                  ... and {preview.totalMatched - preview.matches.length} more
+                  {t('dialogs.rule.scanMore', {
+                    count: preview.totalMatched - preview.matches.length,
+                  })}
                 </div>
               )}
             </div>
@@ -614,6 +626,7 @@ function LabelMultiSelect({
   selectedLabels: Array<Doc<'transactionLabels'>>
   onToggle: (labelId: string) => void
 }) {
+  const { t } = useTranslation()
   const [open, setOpen] = React.useState(false)
 
   return (
@@ -648,7 +661,9 @@ function LabelMultiSelect({
               ))}
             </span>
           ) : (
-            <span className="text-muted-foreground">No labels</span>
+            <span className="text-muted-foreground">
+              {t('dialogs.rule.noLabels')}
+            </span>
           )}
           <ChevronsUpDown className="ml-auto size-4 shrink-0 opacity-50" />
         </Button>
@@ -658,9 +673,9 @@ function LabelMultiSelect({
         align="start"
       >
         <Command>
-          <CommandInput placeholder="Search labels..." />
+          <CommandInput placeholder={t('dialogs.rule.searchLabels')} />
           <CommandList>
-            <CommandEmpty>No labels found.</CommandEmpty>
+            <CommandEmpty>{t('dialogs.rule.noLabelsFound')}</CommandEmpty>
             <CommandGroup>
               {labels.map((label) => (
                 <CommandItem
@@ -705,6 +720,7 @@ function AccountMultiSelect({
   selectedAccountIds: string[]
   onToggle: (accountId: string) => void
 }) {
+  const { t } = useTranslation()
   const [open, setOpen] = React.useState(false)
 
   const selectedAccounts = accounts.filter((a) =>
@@ -734,7 +750,9 @@ function AccountMultiSelect({
               ))}
             </span>
           ) : (
-            <span className="text-muted-foreground">All accounts</span>
+            <span className="text-muted-foreground">
+              {t('dialogs.rule.allAccounts')}
+            </span>
           )}
           <ChevronsUpDown className="ml-auto size-4 shrink-0 opacity-50" />
         </Button>
@@ -744,9 +762,9 @@ function AccountMultiSelect({
         align="start"
       >
         <Command>
-          <CommandInput placeholder="Search accounts..." />
+          <CommandInput placeholder={t('dialogs.rule.searchAccounts')} />
           <CommandList>
-            <CommandEmpty>No accounts found.</CommandEmpty>
+            <CommandEmpty>{t('dialogs.rule.noAccountsFound')}</CommandEmpty>
             <CommandGroup>
               {accounts.map((account) => (
                 <CommandItem

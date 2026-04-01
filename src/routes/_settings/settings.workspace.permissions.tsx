@@ -1,5 +1,6 @@
 import { createFileRoute } from '@tanstack/react-router'
 import { useMutation, useQuery } from 'convex/react'
+import { useTranslation } from 'react-i18next'
 import { toast } from 'sonner'
 import {
   ItemCard,
@@ -29,13 +30,14 @@ export const Route = createFileRoute(
 })
 
 function PermissionsPage() {
+  const { t } = useTranslation()
   return (
     <RequireOwner>
       <div className="mx-auto flex w-full max-w-3xl flex-1 flex-col px-10 py-16">
         <div className="shrink-0">
           <PageHeader
-            title="Permissions"
-            description="Control who can create workspace-level resources."
+            title={t('settings.permissions.title')}
+            description={t('settings.permissions.description')}
           />
         </div>
         <div className="mt-8 space-y-6">
@@ -47,6 +49,7 @@ function PermissionsPage() {
 }
 
 function PermissionsSettings() {
+  const { t } = useTranslation()
   const workspace = useQuery(api.workspaces.getMyWorkspace)
   const updatePolicies = useMutation(api.workspaces.updateWorkspacePolicies)
 
@@ -71,10 +74,10 @@ function PermissionsSettings() {
         labelCreation: field === 'labelCreation' ? value : labelCreation,
         ruleCreation: field === 'ruleCreation' ? value : ruleCreation,
       })
-      toast.success('Permissions updated')
+      toast.success(t('toast.permissionsUpdated'))
     } catch (err) {
       toast.error(
-        err instanceof Error ? err.message : 'Failed to update permissions',
+        err instanceof Error ? err.message : t('toast.failedUpdatePermissions'),
       )
     }
   }
@@ -84,9 +87,11 @@ function PermissionsSettings() {
       <ItemCardItems>
         <ItemCardItem>
           <ItemCardItemContent>
-            <ItemCardItemTitle>Category creation</ItemCardItemTitle>
+            <ItemCardItemTitle>
+              {t('settings.permissions.categoryCreation')}
+            </ItemCardItemTitle>
             <ItemCardItemDescription>
-              Who can create new categories assigned to the workspace
+              {t('settings.permissions.categoryCreationDescription')}
             </ItemCardItemDescription>
           </ItemCardItemContent>
           <ItemCardItemAction>
@@ -103,17 +108,23 @@ function PermissionsSettings() {
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="owners_only">Owners only</SelectItem>
-                <SelectItem value="all_members">All members</SelectItem>
+                <SelectItem value="owners_only">
+                  {t('settings.permissions.ownersOnly')}
+                </SelectItem>
+                <SelectItem value="all_members">
+                  {t('settings.permissions.allMembers')}
+                </SelectItem>
               </SelectContent>
             </Select>
           </ItemCardItemAction>
         </ItemCardItem>
         <ItemCardItem>
           <ItemCardItemContent>
-            <ItemCardItemTitle>Label creation</ItemCardItemTitle>
+            <ItemCardItemTitle>
+              {t('settings.permissions.labelCreation')}
+            </ItemCardItemTitle>
             <ItemCardItemDescription>
-              Who can create new labels assigned to the workspace
+              {t('settings.permissions.labelCreationDescription')}
             </ItemCardItemDescription>
           </ItemCardItemContent>
           <ItemCardItemAction>
@@ -130,17 +141,23 @@ function PermissionsSettings() {
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="owners_only">Owners only</SelectItem>
-                <SelectItem value="all_members">All members</SelectItem>
+                <SelectItem value="owners_only">
+                  {t('settings.permissions.ownersOnly')}
+                </SelectItem>
+                <SelectItem value="all_members">
+                  {t('settings.permissions.allMembers')}
+                </SelectItem>
               </SelectContent>
             </Select>
           </ItemCardItemAction>
         </ItemCardItem>
         <ItemCardItem>
           <ItemCardItemContent>
-            <ItemCardItemTitle>Automation rules</ItemCardItemTitle>
+            <ItemCardItemTitle>
+              {t('settings.permissions.automationRules')}
+            </ItemCardItemTitle>
             <ItemCardItemDescription>
-              Who can create new transaction automation rules for the workspace
+              {t('settings.permissions.automationRulesDescription')}
             </ItemCardItemDescription>
           </ItemCardItemContent>
           <ItemCardItemAction>
@@ -154,8 +171,12 @@ function PermissionsSettings() {
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="owners_only">Owners only</SelectItem>
-                <SelectItem value="all_members">All members</SelectItem>
+                <SelectItem value="owners_only">
+                  {t('settings.permissions.ownersOnly')}
+                </SelectItem>
+                <SelectItem value="all_members">
+                  {t('settings.permissions.allMembers')}
+                </SelectItem>
               </SelectContent>
             </Select>
           </ItemCardItemAction>

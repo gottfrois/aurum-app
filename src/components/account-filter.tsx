@@ -1,5 +1,6 @@
 import { Check, ListFilter } from 'lucide-react'
 import type * as React from 'react'
+import { useTranslation } from 'react-i18next'
 import { Badge } from '~/components/ui/badge'
 import { Button } from '~/components/ui/button'
 import {
@@ -26,12 +27,13 @@ export function AccountFilter({
   selected,
   onChange,
 }: AccountFilterProps) {
+  const { t } = useTranslation()
   return (
     <Popover>
       <PopoverTrigger asChild>
         <Button variant="outline" size="sm" className="gap-1.5">
           <ListFilter className="size-3.5" />
-          Accounts
+          {t('filters.accounts')}
           {selected.size > 0 && (
             <Badge
               variant="secondary"
@@ -85,7 +87,7 @@ export function AccountFilter({
                 className="px-2 py-1.5 text-sm text-muted-foreground hover:text-foreground"
                 onClick={() => onChange(new Set())}
               >
-                Clear filter
+                {t('filters.clearFilter')}
               </button>
             </>
           )}

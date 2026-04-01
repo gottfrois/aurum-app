@@ -3,6 +3,7 @@ import * as Sentry from '@sentry/tanstackstart-react'
 import { createFileRoute, useNavigate } from '@tanstack/react-router'
 import { useAction, useQuery } from 'convex/react'
 import { useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import { toast } from 'sonner'
 import { ConfirmDialog } from '~/components/confirm-dialog'
 import {
@@ -27,6 +28,7 @@ export const Route = createFileRoute('/_settings/settings/account/profile')({
 })
 
 function ProfilePage() {
+  const { t } = useTranslation()
   const { user, isLoaded } = useUser()
 
   if (!isLoaded) {
@@ -47,8 +49,8 @@ function ProfilePage() {
   return (
     <div className="mx-auto flex w-full max-w-3xl flex-1 flex-col px-10 py-16">
       <PageHeader
-        title="Profile"
-        description="Your personal information and display settings."
+        title={t('settings.profile.title')}
+        description={t('settings.profile.description')}
       />
       <div className="mt-8 space-y-6">
         <ItemCard>
@@ -65,6 +67,7 @@ function ProfilePage() {
 }
 
 function ProfilePictureItem() {
+  const { t } = useTranslation()
   const { user } = useUser()
   if (!user) return null
 
@@ -79,7 +82,7 @@ function ProfilePictureItem() {
   return (
     <ItemCardItem>
       <ItemCardItemContent>
-        <ItemCardItemTitle>Profile picture</ItemCardItemTitle>
+        <ItemCardItemTitle>{t('settings.profile.picture')}</ItemCardItemTitle>
       </ItemCardItemContent>
       <ItemCardItemAction>
         <Avatar className="size-10 rounded-full">
@@ -92,13 +95,14 @@ function ProfilePictureItem() {
 }
 
 function EmailItem() {
+  const { t } = useTranslation()
   const { user } = useUser()
   if (!user) return null
 
   return (
     <ItemCardItem>
       <ItemCardItemContent>
-        <ItemCardItemTitle>Email</ItemCardItemTitle>
+        <ItemCardItemTitle>{t('settings.profile.email')}</ItemCardItemTitle>
       </ItemCardItemContent>
       <ItemCardItemAction>
         <span className="text-sm text-muted-foreground">
@@ -110,6 +114,7 @@ function EmailItem() {
 }
 
 function FullNameItem() {
+  const { t } = useTranslation()
   const { user } = useUser()
   const [fullName, setFullName] = useState(user?.fullName ?? '')
   const [saving, setSaving] = useState(false)
@@ -123,7 +128,7 @@ function FullNameItem() {
 
     if (!trimmed) {
       setFullName(user?.fullName ?? '')
-      toast.error('Name cannot be empty')
+      toast.error(t('toast.nameCannotBeEmpty'))
       return
     }
 
@@ -133,11 +138,11 @@ function FullNameItem() {
         firstName: trimmed.split(' ')[0],
         lastName: trimmed.split(' ').slice(1).join(' ') || undefined,
       })
-      toast.success('Profile updated')
+      toast.success(t('toast.profileUpdated'))
     } catch (error) {
       Sentry.captureException(error)
       setFullName(user?.fullName ?? '')
-      toast.error('Failed to update name')
+      toast.error(t('toast.failedUpdateName'))
     } finally {
       setSaving(false)
     }
@@ -146,7 +151,7 @@ function FullNameItem() {
   return (
     <ItemCardItem>
       <ItemCardItemContent>
-        <ItemCardItemTitle>Full name</ItemCardItemTitle>
+        <ItemCardItemTitle>{t('settings.profile.fullName')}</ItemCardItemTitle>
       </ItemCardItemContent>
       <ItemCardItemAction>
         <Input
@@ -176,6 +181,7 @@ function WorkspaceSection() {
 }
 
 function LeaveWorkspaceCard({ workspaceName }: { workspaceName: string }) {
+  const { t } = useTranslation()
   const leaveWorkspace = useAction(api.workspaces.leaveWorkspace)
   const navigate = useNavigate()
   const [confirmOpen, setConfirmOpen] = useState(false)
@@ -185,11 +191,11 @@ function LeaveWorkspaceCard({ workspaceName }: { workspaceName: string }) {
     setLoading(true)
     try {
       await leaveWorkspace()
-      toast.success('You have left the workspace')
+      toast.success(t('toast.leftWorkspace'))
       navigate({ to: '/' })
     } catch (error) {
       Sentry.captureException(error)
-      toast.error('Failed to leave workspace')
+      toast.error(t('toast.failedLeaveWorkspace'))
     } finally {
       setLoading(false)
     }
@@ -197,14 +203,18 @@ function LeaveWorkspaceCard({ workspaceName }: { workspaceName: string }) {
 
   return (
     <section>
-      <h2 className="mb-4 text-lg font-semibold">Workspace access</h2>
+      <h2 className="mb-4 text-lg font-semibold">
+        {t('settings.profile.workspaceAccess')}
+      </h2>
       <ItemCard>
         <ItemCardItems>
           <ItemCardItem>
             <ItemCardItemContent>
-              <ItemCardItemTitle>Leave workspace</ItemCardItemTitle>
+              <ItemCardItemTitle>
+                {t('settings.profile.leaveWorkspace')}
+              </ItemCardItemTitle>
               <ItemCardItemDescription>
-                You will lose access to all shared data in this workspace.
+                {t('settings.profile.leaveWorkspaceDescription')}
               </ItemCardItemDescription>
             </ItemCardItemContent>
             <ItemCardItemAction>
@@ -214,7 +224,7 @@ function LeaveWorkspaceCard({ workspaceName }: { workspaceName: string }) {
                 className="text-destructive hover:bg-destructive/10 hover:text-destructive"
                 onClick={() => setConfirmOpen(true)}
               >
-                Leave
+                {t('common.leave')}
               </Button>
             </ItemCardItemAction>
           </ItemCardItem>
@@ -222,10 +232,12 @@ function LeaveWorkspaceCard({ workspaceName }: { workspaceName: string }) {
         <ConfirmDialog
           open={confirmOpen}
           onOpenChange={setConfirmOpen}
-          title="Leave workspace"
-          description={`Are you sure you want to leave ${workspaceName}? You will lose access to all shared data.`}
+          title={t('settings.profile.leaveWorkspace')}
+          description={t('settings.profile.leaveWorkspaceConfirm', {
+            name: workspaceName,
+          })}
           confirmValue={workspaceName}
-          confirmLabel="Leave"
+          confirmLabel={t('common.leave')}
           loading={loading}
           onConfirm={handleLeave}
         />
@@ -235,6 +247,7 @@ function LeaveWorkspaceCard({ workspaceName }: { workspaceName: string }) {
 }
 
 function DeleteWorkspaceCard({ workspaceName }: { workspaceName: string }) {
+  const { t } = useTranslation()
   const deleteWorkspace = useAction(api.workspaces.deleteWorkspace)
   const navigate = useNavigate()
   const [confirmOpen, setConfirmOpen] = useState(false)
@@ -244,11 +257,11 @@ function DeleteWorkspaceCard({ workspaceName }: { workspaceName: string }) {
     setLoading(true)
     try {
       await deleteWorkspace()
-      toast.success('Workspace deleted')
+      toast.success(t('toast.workspaceDeleted'))
       navigate({ to: '/' })
     } catch (error) {
       Sentry.captureException(error)
-      toast.error('Failed to delete workspace')
+      toast.error(t('toast.failedDeleteWorkspace'))
     } finally {
       setLoading(false)
     }
@@ -256,15 +269,18 @@ function DeleteWorkspaceCard({ workspaceName }: { workspaceName: string }) {
 
   return (
     <section>
-      <h2 className="mb-4 text-lg font-semibold">Workspace access</h2>
+      <h2 className="mb-4 text-lg font-semibold">
+        {t('settings.profile.workspaceAccess')}
+      </h2>
       <ItemCard>
         <ItemCardItems>
           <ItemCardItem>
             <ItemCardItemContent>
-              <ItemCardItemTitle>Delete workspace</ItemCardItemTitle>
+              <ItemCardItemTitle>
+                {t('settings.profile.deleteWorkspace')}
+              </ItemCardItemTitle>
               <ItemCardItemDescription>
-                Permanently delete this workspace and all associated data. This
-                action cannot be undone.
+                {t('settings.profile.deleteWorkspaceDescription')}
               </ItemCardItemDescription>
             </ItemCardItemContent>
             <ItemCardItemAction>
@@ -274,7 +290,7 @@ function DeleteWorkspaceCard({ workspaceName }: { workspaceName: string }) {
                 className="text-destructive hover:bg-destructive/10 hover:text-destructive"
                 onClick={() => setConfirmOpen(true)}
               >
-                Delete
+                {t('common.delete')}
               </Button>
             </ItemCardItemAction>
           </ItemCardItem>
@@ -282,10 +298,12 @@ function DeleteWorkspaceCard({ workspaceName }: { workspaceName: string }) {
         <ConfirmDialog
           open={confirmOpen}
           onOpenChange={setConfirmOpen}
-          title="Delete workspace"
-          description={`This will permanently delete ${workspaceName} and all associated data including connections, transactions, investments, and member data. This action cannot be undone.`}
+          title={t('settings.profile.deleteWorkspace')}
+          description={t('settings.profile.deleteWorkspaceConfirm', {
+            name: workspaceName,
+          })}
           confirmValue={workspaceName}
-          confirmLabel="Delete"
+          confirmLabel={t('common.delete')}
           loading={loading}
           onConfirm={handleDelete}
         />

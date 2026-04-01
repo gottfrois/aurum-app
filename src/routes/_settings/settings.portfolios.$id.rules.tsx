@@ -4,6 +4,7 @@ import { createFileRoute } from '@tanstack/react-router'
 import { useMutation, useQuery } from 'convex/react'
 import { Plus, Zap } from 'lucide-react'
 import * as React from 'react'
+import { useTranslation } from 'react-i18next'
 import { toast } from 'sonner'
 import { ConfirmDialog } from '~/components/confirm-dialog'
 import { RuleCard } from '~/components/rule-card'
@@ -38,6 +39,7 @@ export const Route = createFileRoute(
 })
 
 function PortfolioRulesPage() {
+  const { t } = useTranslation()
   const { id } = Route.useParams()
   const portfolioId = id as Id<'portfolios'>
   const portfolio = useQuery(api.portfolios.getPortfolio, { portfolioId })
@@ -59,8 +61,8 @@ function PortfolioRulesPage() {
     <div className="flex h-full flex-col overflow-hidden px-10 pt-16">
       <div className="shrink-0">
         <PageHeader
-          title="Automation Rules"
-          description="Portfolio rules are processed first, then workspace rules. The first matching rule assigns the category."
+          title={t('settings.rules.title')}
+          description={t('settings.rules.portfolioDescription')}
         />
       </div>
       <div className="mt-8 flex min-h-0 flex-1 flex-col">
@@ -75,6 +77,7 @@ function PortfolioRulesList({
 }: {
   portfolioId: Id<'portfolios'>
 }) {
+  const { t } = useTranslation()
   const rules = useQuery(api.transactionRules.listRules, { portfolioId })
   const categories = useQuery(api.categories.listCategories, { portfolioId })
   const workspace = useQuery(api.workspaces.getMyWorkspace)
@@ -164,11 +167,11 @@ function PortfolioRulesList({
     setDeleting(true)
     try {
       await deleteRule({ ruleId: deletingRule._id })
-      toast.success('Rule deleted')
+      toast.success(t('toast.ruleDeleted'))
       setDeletingRule(undefined)
     } catch (error) {
       Sentry.captureException(error)
-      toast.error('Failed to delete rule')
+      toast.error(t('toast.failedDeleteRule'))
     } finally {
       setDeleting(false)
     }
@@ -182,7 +185,7 @@ function PortfolioRulesList({
     )
     toggleRule({ ruleId: rule._id, enabled }).catch((error) => {
       Sentry.captureException(error)
-      toast.error('Failed to toggle rule')
+      toast.error(t('toast.failedToggleRule'))
       setLocalRules((prev) =>
         (prev ?? rules ?? []).map((r) =>
           r._id === rule._id ? { ...r, enabled: !enabled } : r,
@@ -200,7 +203,7 @@ function PortfolioRulesList({
     reorderRules({ orderedRuleIds: orderedIds, portfolioId })
       .catch((error) => {
         Sentry.captureException(error)
-        toast.error('Failed to reorder rules')
+        toast.error(t('toast.failedReorderRules'))
         setLocalRules(rules ?? null)
       })
       .finally(() => {
@@ -214,7 +217,7 @@ function PortfolioRulesList({
     <>
       <div className="mb-4 flex items-center gap-2">
         <Input
-          placeholder="Filter by pattern..."
+          placeholder={t('settings.rules.filterPlaceholder')}
           value={filter}
           onChange={(e) => setFilter(e.target.value)}
           className="max-w-xs"
@@ -222,7 +225,7 @@ function PortfolioRulesList({
         <div className="flex-1" />
         <Button size="sm" onClick={() => setCreateOpen(true)}>
           <Plus className="size-4" />
-          Add rule
+          {t('settings.rules.addRule')}
         </Button>
       </div>
 
@@ -233,20 +236,19 @@ function PortfolioRulesList({
               <EmptyMedia variant="icon">
                 <Zap />
               </EmptyMedia>
-              <EmptyTitle>No automation rules yet</EmptyTitle>
+              <EmptyTitle>{t('settings.rules.emptyTitle')}</EmptyTitle>
               <EmptyDescription>
-                Create portfolio-specific rules or manage workspace rules in
-                workspace settings.
+                {t('settings.rules.emptyPortfolioDescription')}
               </EmptyDescription>
             </EmptyHeader>
             <Button size="sm" onClick={() => setCreateOpen(true)}>
               <Plus className="size-4" />
-              Add rule
+              {t('settings.rules.addRule')}
             </Button>
           </Empty>
         ) : totalRules === 0 && isFiltering ? (
           <p className="py-8 text-center text-sm text-muted-foreground">
-            No rules match "{filter}"
+            {t('settings.rules.noMatch', { pattern: filter })}
           </p>
         ) : (
           <div className="space-y-6 pb-8">
@@ -254,7 +256,7 @@ function PortfolioRulesList({
             {portfolioRules.length > 0 && (
               <section>
                 <h3 className="mb-2 text-xs font-medium uppercase tracking-wide text-muted-foreground">
-                  Portfolio
+                  {t('settings.rules.portfolioGroup')}
                 </h3>
                 <Sortable
                   value={portfolioRules}
@@ -286,7 +288,7 @@ function PortfolioRulesList({
             {inheritedRules.length > 0 && (
               <section>
                 <h3 className="mb-2 text-xs font-medium uppercase tracking-wide text-muted-foreground">
-                  Inherited from workspace
+                  {t('settings.rules.inheritedGroup')}
                 </h3>
                 <div className="space-y-2 opacity-60">
                   {inheritedRules.map((rule, index) => (
@@ -332,9 +334,9 @@ function PortfolioRulesList({
         onOpenChange={(open) => {
           if (!open) setDeletingRule(undefined)
         }}
-        title="Delete rule?"
-        description="This automation rule will be permanently deleted. Transactions already processed by this rule will not be affected."
-        confirmLabel="Delete"
+        title={t('settings.rules.deleteTitle')}
+        description={t('settings.rules.deleteDescription')}
+        confirmLabel={t('common.delete')}
         loading={deleting}
         onConfirm={handleDelete}
       />

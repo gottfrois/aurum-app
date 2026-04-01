@@ -2,6 +2,7 @@ import { createFileRoute, Link } from '@tanstack/react-router'
 import { useAction, useQuery } from 'convex/react'
 import { ExternalLink } from 'lucide-react'
 import { useEffect, useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import {
   ItemCard,
   ItemCardFooter,
@@ -48,6 +49,7 @@ interface Invoice {
 }
 
 function BillingPage() {
+  const { t } = useTranslation()
   const subscription = useQuery(api.billing.getSubscriptionStatus)
   const createPortalSession = useAction(api.billing.createPortalSession)
   const listRecentInvoices = useAction(api.billing.listRecentInvoices)
@@ -97,8 +99,8 @@ function BillingPage() {
     <RequireOwner>
       <div className="mx-auto flex w-full max-w-3xl flex-1 flex-col px-10 py-16">
         <PageHeader
-          title="Billing"
-          description="Manage your plan and billing"
+          title={t('settings.billing.title')}
+          description={t('settings.billing.description')}
           action={
             subscription.isActive && (
               <button
@@ -107,7 +109,9 @@ function BillingPage() {
                 disabled={portalLoading}
                 className="inline-flex items-center gap-1.5 text-sm text-muted-foreground transition-colors hover:text-foreground"
               >
-                {portalLoading ? 'Loading...' : 'Manage subscription'}
+                {portalLoading
+                  ? t('common.loading')
+                  : t('settings.billing.manageSubscription')}
                 <ExternalLink className="size-3.5" />
               </button>
             )
@@ -122,9 +126,11 @@ function BillingPage() {
                   <span className="text-sm font-medium">
                     Bunkr {planConfig?.name ?? ''}
                   </span>
-                  <Badge>Current</Badge>
+                  <Badge>{t('settings.billing.current')}</Badge>
                   {subscription.isTrial && (
-                    <Badge variant="secondary">Trial</Badge>
+                    <Badge variant="secondary">
+                      {t('settings.billing.trial')}
+                    </Badge>
                   )}
                 </div>
                 <p className="mt-1 text-sm text-muted-foreground">
@@ -132,22 +138,29 @@ function BillingPage() {
                     ? `${(subscription.interval === 'yearly' ? planConfig.yearly : planConfig.monthly) / 100}\u20AC`
                     : ''}
                   {subscription.interval === 'yearly'
-                    ? '/yr \u2014 billed annually'
-                    : '/mo'}
+                    ? t('settings.billing.perYear')
+                    : t('settings.billing.perMonth')}
                 </p>
               </div>
 
               <div className="text-right">
-                <p className="text-sm font-medium">Seats</p>
+                <p className="text-sm font-medium">
+                  {t('settings.billing.seats')}
+                </p>
                 <p className="mt-1 text-sm text-muted-foreground">
-                  {subscription.currentSeats} of {subscription.seats}
+                  {t('settings.billing.seatsUsage', {
+                    used: subscription.currentSeats,
+                    total: subscription.seats,
+                  })}
                   {subscription.pendingInvitations > 0 &&
-                    ` (${subscription.pendingInvitations} pending)`}
+                    ` ${t('settings.billing.pending', { count: subscription.pendingInvitations })}`}
                 </p>
               </div>
 
               <div className="text-right">
-                <p className="text-sm font-medium">Next renewal</p>
+                <p className="text-sm font-medium">
+                  {t('settings.billing.nextRenewal')}
+                </p>
                 {subscription.isTrial && subscription.trialEndsAt ? (
                   <p className="mt-1 text-sm text-muted-foreground">
                     {(() => {
@@ -159,8 +172,8 @@ function BillingPage() {
                         ),
                       )
                       return days === 0
-                        ? 'Trial expires today'
-                        : `${days} day${days !== 1 ? 's' : ''} left in trial`
+                        ? t('settings.billing.trialExpiresToday')
+                        : t('settings.billing.trialDaysLeft', { count: days })
                     })()}
                   </p>
                 ) : subscription.renewsAt ? (
@@ -183,17 +196,17 @@ function BillingPage() {
 
               {subscription.cancelAtPeriodEnd && (
                 <div className="col-span-3 border-t pt-4 text-sm text-muted-foreground">
-                  Subscription will cancel at the end of the current period.
+                  {t('settings.billing.cancelAtPeriodEnd')}
                 </div>
               )}
             </div>
           ) : (
             <div className="flex items-center justify-between rounded-lg border p-6">
               <p className="text-sm text-muted-foreground">
-                Your subscription has expired.
+                {t('settings.billing.expired')}
               </p>
               <Button asChild size="sm">
-                <Link to="/checkout">Resubscribe</Link>
+                <Link to="/checkout">{t('settings.billing.resubscribe')}</Link>
               </Button>
             </div>
           )}
@@ -226,7 +239,7 @@ function BillingPage() {
                   disabled={portalLoading}
                   className="inline-flex items-center gap-1.5 text-sm text-muted-foreground transition-colors hover:text-foreground"
                 >
-                  More invoices
+                  {t('settings.billing.moreInvoices')}
                   <ExternalLink className="size-3.5" />
                 </button>
               </ItemCardFooter>

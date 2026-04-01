@@ -4,6 +4,7 @@ import { useMutation, useQuery } from 'convex/react'
 import { ConvexError } from 'convex/values'
 import { Lock, MoreHorizontal, Plus } from 'lucide-react'
 import * as React from 'react'
+import { useTranslation } from 'react-i18next'
 import { toast } from 'sonner'
 import { CategoryFormFields } from '~/components/category-form-fields'
 import { ConfirmDialog } from '~/components/confirm-dialog'
@@ -47,13 +48,14 @@ type CategoryRow = {
 }
 
 function CategoriesPage() {
+  const { t } = useTranslation()
   return (
     <RequireOwner>
       <div className="flex h-full flex-col overflow-hidden px-10 pt-16">
         <div className="shrink-0">
           <PageHeader
-            title="Categories"
-            description="Define transaction categories shared across all portfolios."
+            title={t('settings.categories.title')}
+            description={t('settings.categories.workspaceDescription')}
           />
         </div>
         <div className="mt-8 flex min-h-0 flex-1 flex-col">
@@ -65,6 +67,7 @@ function CategoriesPage() {
 }
 
 function CategoriesList() {
+  const { t } = useTranslation()
   const categories = useQuery(api.categories.listCategories, {})
   const createCategory = useMutation(api.categories.createCategory)
   const deleteCategory = useMutation(api.categories.deleteCategory)
@@ -92,7 +95,7 @@ function CategoriesList() {
         description: newDescription.trim() || undefined,
         color: newColor,
       })
-      toast.success('Category created')
+      toast.success(t('toast.categoryCreated', { label: newLabel.trim() }))
       setCreateOpen(false)
       setNewLabel('')
       setNewDescription('')
@@ -100,7 +103,7 @@ function CategoriesList() {
       toast.error(
         err instanceof ConvexError
           ? (err.data as string)
-          : 'Failed to create category',
+          : t('toast.failedCreateCategory'),
       )
     } finally {
       setSaving(false)
@@ -111,13 +114,13 @@ function CategoriesList() {
     if (!deletingCategoryId) return
     try {
       await deleteCategory({ categoryId: deletingCategoryId })
-      toast.success('Category deleted')
+      toast.success(t('toast.categoryDeleted'))
       setDeletingCategoryId(null)
     } catch (err) {
       toast.error(
         err instanceof ConvexError
           ? (err.data as string)
-          : 'Failed to delete category',
+          : t('toast.failedDeleteCategory'),
       )
     }
   }
@@ -127,14 +130,12 @@ function CategoriesList() {
       await batchDeleteCategories({
         categoryIds: ids as Id<'transactionCategories'>[],
       })
-      toast.success(
-        `${ids.length} categor${ids.length > 1 ? 'ies' : 'y'} deleted`,
-      )
+      toast.success(t('toast.categoriesDeleted', { count: ids.length }))
     } catch (err) {
       toast.error(
         err instanceof ConvexError
           ? (err.data as string)
-          : 'Failed to delete categories',
+          : t('toast.failedDeleteCategories'),
       )
     }
   }
@@ -142,7 +143,7 @@ function CategoriesList() {
   const tableColumns: ColumnDef<CategoryRow, unknown>[] = [
     {
       accessorKey: 'label',
-      header: 'Name',
+      header: t('settings.categories.nameHeader'),
       cell: ({ row }) => (
         <div className="flex items-center gap-3">
           <span
@@ -158,7 +159,7 @@ function CategoriesList() {
     },
     {
       accessorKey: 'description',
-      header: 'Description',
+      header: t('settings.categories.descriptionHeader'),
       cell: ({ row }) => (
         <span className="text-muted-foreground">
           {row.original.description}
@@ -167,7 +168,7 @@ function CategoriesList() {
     },
     {
       id: 'created',
-      header: 'Created',
+      header: t('settings.categories.createdHeader'),
       size: 100,
       cell: ({ row }) => (
         <span className="text-muted-foreground">
@@ -215,18 +216,24 @@ function CategoriesList() {
         columns={tableColumns}
         data={categories as CategoryRow[]}
         filterColumn="label"
-        filterPlaceholder="Filter by name..."
+        filterPlaceholder={t('settings.categories.filterPlaceholder')}
         getRowId={(row) => row._id}
         onBatchDelete={handleBatchDelete}
         enableRowSelection={(row) => !row.builtIn}
         groups={[
-          { label: 'Custom', filter: (row) => !row.builtIn },
-          { label: 'Default', filter: (row) => row.builtIn },
+          {
+            label: t('settings.categories.customGroup'),
+            filter: (row) => !row.builtIn,
+          },
+          {
+            label: t('settings.categories.defaultGroup'),
+            filter: (row) => row.builtIn,
+          },
         ]}
         actions={
           <Button size="sm" onClick={() => setCreateOpen(true)}>
             <Plus className="size-4" />
-            Add category
+            {t('settings.categories.addCategory')}
           </Button>
         }
       />
@@ -234,9 +241,11 @@ function CategoriesList() {
       <Dialog open={createOpen} onOpenChange={setCreateOpen}>
         <DialogContent className="sm:max-w-md" showCloseButton={false}>
           <DialogHeader>
-            <DialogTitle>Add Category</DialogTitle>
+            <DialogTitle>
+              {t('settings.categories.addCategoryTitle')}
+            </DialogTitle>
             <DialogDescription>
-              Create a custom transaction category.
+              {t('settings.categories.addCategoryDescription')}
             </DialogDescription>
           </DialogHeader>
           <CategoryFormFields
@@ -252,7 +261,7 @@ function CategoriesList() {
             onConfirm={handleCreate}
             disabled={saving || !newLabel.trim()}
             saving={saving}
-            confirmLabel="Create"
+            confirmLabel={t('common.create')}
           />
         </DialogContent>
       </Dialog>
@@ -262,9 +271,9 @@ function CategoriesList() {
         onOpenChange={(open) => {
           if (!open) setDeletingCategoryId(null)
         }}
-        title="Delete category?"
-        description="This action cannot be undone. This category will be permanently deleted."
-        confirmLabel="Delete"
+        title={t('settings.categories.deleteCategoryTitle')}
+        description={t('settings.categories.deleteCategoryDescription')}
+        confirmLabel={t('common.delete')}
         onConfirm={handleDelete}
       />
     </>

@@ -1,5 +1,6 @@
 import { Check, Loader2, Pause, Play, X, XCircle } from 'lucide-react'
 import { AnimatePresence, motion } from 'motion/react'
+import { useTranslation } from 'react-i18next'
 
 type BulkOperationStatus =
   | 'idle'
@@ -35,6 +36,7 @@ export function DynamicIsland({
   onCancel,
   onDismiss,
 }: DynamicIslandProps) {
+  const { t } = useTranslation()
   const visible = status !== 'idle'
   const progress = total > 0 ? (processed / total) * 100 : 0
 
@@ -53,14 +55,10 @@ export function DynamicIsland({
 
             <div className="flex flex-col gap-1">
               <span className="whitespace-nowrap">
-                {status === 'complete' && (
-                  <>
-                    Done &mdash; {(updated ?? processed).toLocaleString()}{' '}
-                    transactions updated
-                  </>
-                )}
-                {status === 'cancelled' && <>Cancelled</>}
-                {status === 'error' && (error ?? 'An error occurred')}
+                {status === 'complete' &&
+                  t('status.bulkComplete', { count: updated ?? processed })}
+                {status === 'cancelled' && t('status.cancelled')}
+                {status === 'error' && (error ?? t('status.errorOccurred'))}
                 {(status === 'processing' || status === 'paused') && (
                   <>
                     {processed.toLocaleString()} of {total.toLocaleString()}

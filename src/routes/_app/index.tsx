@@ -2,6 +2,7 @@ import { createFileRoute, useNavigate } from '@tanstack/react-router'
 import { useQuery } from 'convex/react'
 import { Landmark } from 'lucide-react'
 import * as React from 'react'
+import { useTranslation } from 'react-i18next'
 import { AllocationChart, CATEGORY_COLORS } from '~/components/allocation-chart'
 import { BalanceChart } from '~/components/balance-chart'
 import { SiteHeader } from '~/components/site-header'
@@ -24,7 +25,11 @@ import { usePortfolio } from '~/contexts/portfolio-context'
 import { useFormatCurrency } from '~/contexts/privacy-context'
 import { useAggregatedBalances } from '~/hooks/use-aggregated-balances'
 import { useCachedDecryptRecords } from '~/hooks/use-cached-decrypt'
-import { ACCOUNT_CATEGORIES, getCategoryKey } from '~/lib/account-categories'
+import {
+  ACCOUNT_CATEGORIES,
+  getAccountCategoryLabel,
+  getCategoryKey,
+} from '~/lib/account-categories'
 import type { Period } from '~/lib/chart-periods'
 import { getStartTimestamp } from '~/lib/chart-periods'
 import { fillMissingDates } from '~/lib/fill-missing-dates'
@@ -66,6 +71,7 @@ function Dashboard() {
 }
 
 function BankAccountsSection() {
+  const { t } = useTranslation()
   const navigate = useNavigate()
   const {
     isLoading: portfolioLoading,
@@ -199,13 +205,13 @@ function BankAccountsSection() {
     }
     return Object.entries(ACCOUNT_CATEGORIES)
       .filter(([key]) => categoryTotals.has(key))
-      .map(([key, cat]) => ({
+      .map(([key]) => ({
         key,
-        label: cat.label,
+        label: getAccountCategoryLabel(key, t),
         value: categoryTotals.get(key) ?? 0,
         color: CATEGORY_COLORS[key] ?? 'var(--color-chart-5)',
       }))
-  }, [activeAccounts])
+  }, [activeAccounts, t])
 
   if (portfolioLoading || bankAccounts === undefined) {
     return (
@@ -243,16 +249,13 @@ function BankAccountsSection() {
           <EmptyMedia variant="icon">
             <Landmark />
           </EmptyMedia>
-          <EmptyTitle>No Accounts Yet</EmptyTitle>
-          <EmptyDescription>
-            You haven&apos;t connected any financial accounts yet. Get started
-            by adding your first connection.
-          </EmptyDescription>
+          <EmptyTitle>{t('dashboard.emptyTitle')}</EmptyTitle>
+          <EmptyDescription>{t('dashboard.emptyDescription')}</EmptyDescription>
         </EmptyHeader>
         {!isTeamView && (
           <EmptyContent>
             <Button onClick={() => addConnectionCommand?.handler()}>
-              Add Connection <Kbd>C</Kbd>
+              {t('button.addConnection')} <Kbd>C</Kbd>
             </Button>
           </EmptyContent>
         )}
@@ -273,7 +276,7 @@ function BankAccountsSection() {
             isLoading={decryptedSnapshots === undefined}
             period={period}
             onPeriodChange={setPeriod}
-            title="Net Worth"
+            title={t('dashboard.netWorth')}
             description={formatCurrency(totalBalance, currency)}
           />
         </div>
@@ -292,7 +295,7 @@ function BankAccountsSection() {
       {investments && investments.length > 0 && (
         <Card>
           <CardHeader>
-            <CardTitle>Winners & Losers</CardTitle>
+            <CardTitle>{t('dashboard.winnersLosers')}</CardTitle>
           </CardHeader>
           <CardContent>
             <WinnersLosers investments={investments} currency={currency} />

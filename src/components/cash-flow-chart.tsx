@@ -1,4 +1,5 @@
 import * as React from 'react'
+import { useTranslation } from 'react-i18next'
 import { Bar, BarChart, CartesianGrid, XAxis, YAxis } from 'recharts'
 import { Card, CardContent, CardHeader, CardTitle } from '~/components/ui/card'
 import type { ChartConfig } from '~/components/ui/chart'
@@ -10,6 +11,7 @@ import {
 import { Skeleton } from '~/components/ui/skeleton'
 import { usePrivacy } from '~/contexts/privacy-context'
 
+// chartConfig labels are resolved dynamically via i18n
 const chartConfig = {
   income: {
     label: 'Income',
@@ -45,6 +47,7 @@ export function CashFlowChart({
   currency,
   isLoading,
 }: CashFlowChartProps) {
+  const { t } = useTranslation()
   const { isPrivate } = usePrivacy()
   const formatCurrency = React.useMemo(
     () => (isPrivate ? () => '••••••' : currencyFormatter(currency)),
@@ -54,14 +57,14 @@ export function CashFlowChart({
   return (
     <Card className="@container/card flex h-full flex-col">
       <CardHeader>
-        <CardTitle>Cash Flow</CardTitle>
+        <CardTitle>{t('charts.cashFlow')}</CardTitle>
       </CardHeader>
       <CardContent className="flex-1 px-2 pt-4 sm:px-6 sm:pt-6">
         {isLoading ? (
           <Skeleton className="h-full min-h-[250px] w-full" />
         ) : data.length === 0 ? (
           <div className="flex h-full min-h-[250px] items-center justify-center text-sm text-muted-foreground">
-            Not enough data to display a chart
+            {t('charts.notEnoughData')}
           </div>
         ) : (
           <ChartContainer

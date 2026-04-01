@@ -1,4 +1,5 @@
 import { BotMessageSquare } from 'lucide-react'
+import { useTranslation } from 'react-i18next'
 import { Button } from '~/components/ui/button'
 import {
   Empty,
@@ -9,37 +10,39 @@ import {
   EmptyTitle,
 } from '~/components/ui/empty'
 
-const SUGGESTIONS = [
-  'Any unusual spending this month?',
-  'What are my recurring expenses?',
-  "What's my savings rate?",
-  'Where do I spend the most?',
-]
+const SUGGESTION_KEYS = [
+  'chat.suggestion.unusualSpending',
+  'chat.suggestion.recurringExpenses',
+  'chat.suggestion.savingsRate',
+  'chat.suggestion.topSpending',
+] as const
 
 interface ChatEmptyStateProps {
   onSuggestionClick: (suggestion: string) => void
 }
 
 export function ChatEmptyState({ onSuggestionClick }: ChatEmptyStateProps) {
+  const { t } = useTranslation()
+
   return (
     <Empty className="border-none">
       <EmptyHeader>
         <EmptyMedia variant="icon">
           <BotMessageSquare />
         </EmptyMedia>
-        <EmptyTitle>Welcome to Bunkr Agent</EmptyTitle>
-        <EmptyDescription>Ask anything about your finances</EmptyDescription>
+        <EmptyTitle>{t('chat.emptyTitle')}</EmptyTitle>
+        <EmptyDescription>{t('chat.emptyDescription')}</EmptyDescription>
       </EmptyHeader>
       <EmptyContent>
         <div className="flex flex-wrap justify-center gap-2">
-          {SUGGESTIONS.map((suggestion) => (
+          {SUGGESTION_KEYS.map((key) => (
             <Button
-              key={suggestion}
+              key={key}
               variant="outline"
               size="sm"
-              onClick={() => onSuggestionClick(suggestion)}
+              onClick={() => onSuggestionClick(t(key))}
             >
-              {suggestion}
+              {t(key)}
             </Button>
           ))}
         </div>

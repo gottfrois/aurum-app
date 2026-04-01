@@ -2,6 +2,7 @@ import { createFileRoute } from '@tanstack/react-router'
 import { useQuery } from 'convex/react'
 import { ListFilter } from 'lucide-react'
 import * as React from 'react'
+import { useTranslation } from 'react-i18next'
 import { AllocationChart } from '~/components/allocation-chart'
 import { BalanceChart } from '~/components/balance-chart'
 import type { Investment } from '~/components/holdings-table'
@@ -19,6 +20,7 @@ import {
   useCachedDecryptRecord,
   useCachedDecryptRecords,
 } from '~/hooks/use-cached-decrypt'
+import { useFilterI18n } from '~/hooks/use-filter-i18n'
 import { useFilters } from '~/hooks/use-filters'
 import { isInvestmentAccount } from '~/lib/account-categories'
 import { useCategories } from '~/lib/categories'
@@ -79,6 +81,8 @@ const CHART_COLORS = [
 ]
 
 function AccountDetailPage() {
+  const { t } = useTranslation()
+  const filterI18n = useFilterI18n()
   const { accountId } = Route.useParams()
   const [period, setPeriod] = React.useState<Period>('1M')
   const startTimestamp = React.useMemo(
@@ -181,8 +185,9 @@ function AccountDetailPage() {
         labelOptions,
         transactionTypeOptions,
         excludeFields: ['account'],
+        t,
       }),
-    [categoryOptions, labelOptions, transactionTypeOptions],
+    [categoryOptions, labelOptions, transactionTypeOptions, t],
   )
 
   const reuiFields = React.useMemo(
@@ -256,7 +261,7 @@ function AccountDetailPage() {
     <>
       <SiteHeader
         breadcrumbs={[
-          { label: 'Accounts', href: '/accounts' },
+          { label: t('accounts.title'), href: '/accounts' },
           {
             label:
               bankAccount?.customName ??
@@ -295,7 +300,7 @@ function AccountDetailPage() {
             </div>
           ) : bankAccount === null ? (
             <div className="text-center text-muted-foreground py-12">
-              Account not found.
+              {t('accounts.accountNotFound')}
             </div>
           ) : (
             <>
@@ -338,7 +343,7 @@ function AccountDetailPage() {
               {isInvestment && investments && investments.length > 0 && (
                 <Card>
                   <CardHeader>
-                    <CardTitle>Holdings</CardTitle>
+                    <CardTitle>{t('accounts.holdings')}</CardTitle>
                   </CardHeader>
                   <CardContent>
                     <HoldingsTable investments={investments} />
@@ -357,6 +362,7 @@ function AccountDetailPage() {
                     fields={reuiFields}
                     onChange={setFilters}
                     size="sm"
+                    i18n={filterI18n}
                     trigger={
                       <Button
                         variant="ghost"
@@ -375,6 +381,7 @@ function AccountDetailPage() {
                         filters={filters}
                         fields={reuiFields}
                         onChange={setFilters}
+                        i18n={filterI18n}
                       />
                       <div className="ml-auto">
                         <Button
@@ -382,7 +389,7 @@ function AccountDetailPage() {
                           size="sm"
                           onClick={() => setFilters([])}
                         >
-                          Clear
+                          {t('button.clearFilter')}
                         </Button>
                       </div>
                     </div>

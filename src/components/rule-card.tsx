@@ -1,5 +1,6 @@
 import { GripVertical, MoreHorizontal } from 'lucide-react'
 import * as React from 'react'
+import { useTranslation } from 'react-i18next'
 import { Badge } from '~/components/ui/badge'
 import { Button } from '~/components/ui/button'
 import {
@@ -42,6 +43,7 @@ export function RuleCard({
   onDelete,
   onToggle,
 }: RuleCardProps) {
+  const { t } = useTranslation()
   const category = rule.categoryKey
     ? categoryMap.get(rule.categoryKey)
     : undefined
@@ -51,9 +53,10 @@ export function RuleCard({
 
   const isRegex = rule.matchType === 'regex'
   const patternDisplay = isRegex ? `/${rule.pattern}/` : `"${rule.pattern}"`
-  const matchVerb = isRegex ? 'matches' : 'contains'
+  const matchVerb = isRegex ? t('rules.matches') : t('rules.contains')
 
   const actions = buildActions(
+    t,
     category,
     ruleLabels,
     rule.excludeFromBudget,
@@ -75,14 +78,16 @@ export function RuleCard({
 
       <div className={`min-w-0 flex-1 ${!isEnabled ? 'opacity-50' : ''}`}>
         <div className="flex flex-wrap items-center gap-1.5">
-          <span className="text-muted-foreground">When transaction</span>
+          <span className="text-muted-foreground">
+            {t('rules.whenTransaction')}
+          </span>
           <Badge variant="outline" className="rounded-md text-xs">
             {matchVerb}
           </Badge>
           <span className="truncate font-mono">{patternDisplay}</span>
           {rule.accountIds && rule.accountIds.length > 0 && bankAccountMap && (
             <>
-              <span className="text-muted-foreground">from</span>
+              <span className="text-muted-foreground">{t('rules.from')}</span>
               {rule.accountIds.length === 1 ? (
                 <Badge variant="outline" className="rounded-md text-xs">
                   {bankAccountMap.get(rule.accountIds[0]) ?? 'Unknown'}
@@ -94,7 +99,7 @@ export function RuleCard({
                     name: bankAccountMap.get(id) ?? 'Unknown',
                   }))}
                   count={rule.accountIds.length}
-                  noun="account"
+                  noun={t('rules.accounts')}
                 />
               )}
             </>
@@ -107,9 +112,9 @@ export function RuleCard({
               <React.Fragment key={action.key}>
                 <span className="text-muted-foreground">
                   {i === 0
-                    ? `then ${action.connector}`
+                    ? `${t('rules.then')} ${action.connector}`
                     : i === actions.length - 1
-                      ? `and ${action.connector}`
+                      ? `& ${action.connector}`
                       : action.connector}
                 </span>
                 {action.element}
@@ -148,9 +153,11 @@ export function RuleCard({
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end">
-              <DropdownMenuItem onClick={onEdit}>Edit</DropdownMenuItem>
+              <DropdownMenuItem onClick={onEdit}>
+                {t('common.edit')}
+              </DropdownMenuItem>
               <DropdownMenuItem className="text-destructive" onClick={onDelete}>
-                Delete
+                {t('common.delete')}
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
@@ -167,6 +174,7 @@ interface RuleAction {
 }
 
 function buildActions(
+  t: (key: string) => string,
   category: Doc<'transactionCategories'> | undefined,
   labels: Doc<'transactionLabels'>[],
   excludeFromBudget: boolean | undefined,
@@ -177,7 +185,7 @@ function buildActions(
   if (category) {
     actions.push({
       key: 'category',
-      connector: 'assign',
+      connector: t('rules.categorizeAs'),
       element: (
         <Badge variant="outline" className="rounded-md">
           <span
@@ -193,7 +201,7 @@ function buildActions(
   if (labels.length === 1) {
     actions.push({
       key: `label-${labels[0]._id}`,
-      connector: 'add',
+      connector: t('rules.add'),
       element: (
         <Badge variant="outline" className="rounded-md">
           <span
@@ -207,12 +215,12 @@ function buildActions(
   } else if (labels.length > 1) {
     actions.push({
       key: 'labels',
-      connector: 'add',
+      connector: t('rules.add'),
       element: (
         <CollapsedBadges
           items={labels.map((l) => ({ color: l.color, name: l.name }))}
           count={labels.length}
-          noun="label"
+          noun={t('rules.labels')}
         />
       ),
     })
@@ -221,19 +229,15 @@ function buildActions(
   if (excludeFromBudget) {
     actions.push({
       key: 'budget',
-      connector: 'exclude from',
-      element: (
-        <Badge variant="outline" className="rounded-md">
-          Budget
-        </Badge>
-      ),
+      connector: t('rules.excludeBudget'),
+      element: null,
     })
   }
 
   if (customDescription) {
     actions.push({
       key: 'description',
-      connector: 'change description to',
+      connector: t('rules.changeDescription'),
       element: (
         <Badge variant="outline" className="rounded-md">
           {customDescription}
@@ -261,7 +265,7 @@ function CollapsedBadges({
           variant="outline"
           className="cursor-pointer rounded-md hover:bg-accent"
         >
-          {count} {noun}s
+          {count} {noun}
         </Badge>
       </PopoverTrigger>
       <PopoverContent className="w-auto min-w-40 p-2">

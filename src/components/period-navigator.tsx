@@ -10,6 +10,7 @@ import {
 import { CalendarDays, ChevronLeft, ChevronRight } from 'lucide-react'
 import * as React from 'react'
 import { useHotkeys } from 'react-hotkeys-hook'
+import { useTranslation } from 'react-i18next'
 import type { DateSelectorValue } from '~/components/reui/date-selector'
 import { DateSelector } from '~/components/reui/date-selector'
 import { Button } from '~/components/ui/button'
@@ -25,6 +26,9 @@ import { HotkeyDisplay, Kbd } from '~/components/ui/kbd'
 import { ToggleGroup, ToggleGroupItem } from '~/components/ui/toggle-group'
 import type { TransactionPeriod } from '~/hooks/use-date-range'
 import { TRANSACTION_PERIODS } from '~/hooks/use-date-range'
+import { useDateSelectorI18n } from '~/hooks/use-date-selector-i18n'
+import { getDateLocale } from '~/lib/date-locale'
+import i18n from '~/lib/i18n'
 
 interface PeriodNavigatorProps {
   start: Date
@@ -40,6 +44,7 @@ interface PeriodNavigatorProps {
 function formatRangeLabel(start: Date, end: Date): string {
   const today = startOfDay(new Date())
   const sameYear = start.getFullYear() === end.getFullYear()
+  const locale = getDateLocale()
 
   // Full year: "2025"
   if (
@@ -47,7 +52,7 @@ function formatRangeLabel(start: Date, end: Date): string {
     isSameDay(end, endOfYear(start)) &&
     sameYear
   ) {
-    return format(start, 'yyyy')
+    return format(start, 'yyyy', { locale })
   }
 
   // Full single month: "Mar 2026"
@@ -57,16 +62,18 @@ function formatRangeLabel(start: Date, end: Date): string {
     start.getMonth() === end.getMonth() &&
     sameYear
   ) {
-    return format(start, 'MMM yyyy')
+    return format(start, 'MMM yyyy', { locale })
   }
 
   const endLabel = isSameDay(end, today)
-    ? 'Today'
-    : format(end, sameYear ? 'MMM d' : 'MMM d, yyyy')
-  const startLabel = format(start, sameYear ? 'MMM d' : 'MMM d, yyyy')
+    ? i18n.t('periodNavigator.today')
+    : format(end, sameYear ? 'MMM d' : 'MMM d, yyyy', { locale })
+  const startLabel = format(start, sameYear ? 'MMM d' : 'MMM d, yyyy', {
+    locale,
+  })
 
   if (sameYear && !isSameDay(end, today)) {
-    return `${startLabel} – ${endLabel}, ${format(end, 'yyyy')}`
+    return `${startLabel} – ${endLabel}, ${format(end, 'yyyy', { locale })}`
   }
   return `${startLabel} – ${endLabel}`
 }
@@ -184,6 +191,8 @@ export function PeriodNavigator({
   onPrev,
   onNext,
 }: PeriodNavigatorProps) {
+  const { t } = useTranslation()
+  const dateSelectorI18n = useDateSelectorI18n()
   const [open, setOpen] = React.useState(false)
   const [dateValue, setDateValue] = React.useState<DateSelectorValue>({
     period: 'day',
@@ -225,7 +234,7 @@ export function PeriodNavigator({
           variant="ghost"
           size="icon-sm"
           onClick={onPrev}
-          aria-label="Previous period"
+          aria-label={t('periodNavigator.previousPeriod')}
         >
           <ChevronLeft className="size-4" />
         </Button>
@@ -239,7 +248,7 @@ export function PeriodNavigator({
           </DialogTrigger>
           <DialogContent className="sm:max-w-fit" showCloseButton={false}>
             <DialogHeader>
-              <DialogTitle>Select date range</DialogTitle>
+              <DialogTitle>{t('periodNavigator.selectDateRange')}</DialogTitle>
             </DialogHeader>
             <DateSelector
               value={dateValue}
@@ -250,6 +259,7 @@ export function PeriodNavigator({
               showTwoMonths
               maxYear={new Date().getFullYear()}
               minYear={2015}
+              i18n={dateSelectorI18n}
             />
             <CustomRangeFooter
               onCancel={() => setOpen(false)}
@@ -264,7 +274,7 @@ export function PeriodNavigator({
           size="icon-sm"
           onClick={onNext}
           disabled={!canGoNext}
-          aria-label="Next period"
+          aria-label={t('periodNavigator.nextPeriod')}
         >
           <ChevronRight className="size-4" />
         </Button>
@@ -317,6 +327,7 @@ function CustomRangeFooter({
   onConfirm: () => void
   disabled: boolean
 }) {
+  const { t } = useTranslation()
   const handleConfirm = React.useCallback(() => {
     if (!disabled) onConfirm()
   }, [disabled, onConfirm])
@@ -335,10 +346,10 @@ function CustomRangeFooter({
   return (
     <DialogFooter>
       <Button variant="outline" onClick={onCancel}>
-        Cancel <Kbd>Esc</Kbd>
+        {t('common.cancel')} <Kbd>Esc</Kbd>
       </Button>
       <Button onClick={handleConfirm} disabled={disabled}>
-        Apply <HotkeyDisplay hotkey={{ keys: 'mod+enter' }} />
+        {t('common.apply')} <HotkeyDisplay hotkey={{ keys: 'mod+enter' }} />
       </Button>
     </DialogFooter>
   )

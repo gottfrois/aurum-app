@@ -1,5 +1,6 @@
 import { ArrowUp, Square } from 'lucide-react'
 import { useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import { Button } from '~/components/ui/button'
 import {
   PromptInput,
@@ -23,6 +24,7 @@ export function ChatInput({
   variant = 'default',
   hasMessages = false,
 }: ChatInputProps) {
+  const { t } = useTranslation()
   const [value, setValue] = useState('')
 
   function handleSubmit() {
@@ -50,7 +52,9 @@ export function ChatInput({
       >
         <PromptInputTextarea
           autoFocus
-          placeholder={hasMessages ? 'Reply...' : 'Ask Bunkr...'}
+          placeholder={
+            hasMessages ? t('chat.replyPlaceholder') : t('chat.askPlaceholder')
+          }
           className="dark:bg-transparent"
         />
         <PromptInputActions className="justify-end px-2 pb-2">

@@ -4,6 +4,7 @@ import { createFileRoute } from '@tanstack/react-router'
 import { useMutation, useQuery } from 'convex/react'
 import { Plus, Zap } from 'lucide-react'
 import * as React from 'react'
+import { useTranslation } from 'react-i18next'
 import { toast } from 'sonner'
 import { ConfirmDialog } from '~/components/confirm-dialog'
 import { RequireOwner } from '~/components/require-owner'
@@ -38,13 +39,14 @@ export const Route = createFileRoute('/_settings/settings/workspace/rules')({
 })
 
 function RulesPage() {
+  const { t } = useTranslation()
   return (
     <RequireOwner>
       <div className="flex h-full flex-col overflow-hidden px-10 pt-16">
         <div className="shrink-0">
           <PageHeader
-            title="Automation Rules"
-            description="Rules are processed top-to-bottom. The first matching rule assigns the category. Labels and budget exclusions are applied from all matching rules."
+            title={t('settings.rules.title')}
+            description={t('settings.rules.workspaceDescription')}
           />
         </div>
         <div className="mt-8 flex min-h-0 flex-1 flex-col">
@@ -56,6 +58,7 @@ function RulesPage() {
 }
 
 function RulesList() {
+  const { t } = useTranslation()
   const rules = useQuery(api.transactionRules.listRules, {})
   const categories = useQuery(api.categories.listCategories, {})
   const workspace = useQuery(api.workspaces.getMyWorkspace)
@@ -142,11 +145,11 @@ function RulesList() {
     setDeleting(true)
     try {
       await deleteRule({ ruleId: deletingRule._id })
-      toast.success('Rule deleted')
+      toast.success(t('toast.ruleDeleted'))
       setDeletingRule(undefined)
     } catch (error) {
       Sentry.captureException(error)
-      toast.error('Failed to delete rule')
+      toast.error(t('toast.failedDeleteRule'))
     } finally {
       setDeleting(false)
     }
@@ -160,7 +163,7 @@ function RulesList() {
     )
     toggleRule({ ruleId: rule._id, enabled }).catch((error) => {
       Sentry.captureException(error)
-      toast.error('Failed to toggle rule')
+      toast.error(t('toast.failedToggleRule'))
       setLocalRules((prev) =>
         (prev ?? rules ?? []).map((r) =>
           r._id === rule._id ? { ...r, enabled: !enabled } : r,
@@ -176,7 +179,7 @@ function RulesList() {
     reorderRules({ orderedRuleIds: orderedIds })
       .catch((error) => {
         Sentry.captureException(error)
-        toast.error('Failed to reorder rules')
+        toast.error(t('toast.failedReorderRules'))
         setLocalRules(rules ?? null)
       })
       .finally(() => {
@@ -188,7 +191,7 @@ function RulesList() {
     <>
       <div className="mb-4 flex items-center gap-2">
         <Input
-          placeholder="Filter by pattern..."
+          placeholder={t('settings.rules.filterPlaceholder')}
           value={filter}
           onChange={(e) => setFilter(e.target.value)}
           className="max-w-xs"
@@ -196,7 +199,7 @@ function RulesList() {
         <div className="flex-1" />
         <Button size="sm" onClick={() => setCreateOpen(true)}>
           <Plus className="size-4" />
-          Add rule
+          {t('settings.rules.addRule')}
         </Button>
       </div>
 
@@ -207,20 +210,19 @@ function RulesList() {
               <EmptyMedia variant="icon">
                 <Zap />
               </EmptyMedia>
-              <EmptyTitle>No automation rules yet</EmptyTitle>
+              <EmptyTitle>{t('settings.rules.emptyTitle')}</EmptyTitle>
               <EmptyDescription>
-                Rules automatically categorize, label, and exclude transactions
-                based on their description.
+                {t('settings.rules.emptyWorkspaceDescription')}
               </EmptyDescription>
             </EmptyHeader>
             <Button size="sm" onClick={() => setCreateOpen(true)}>
               <Plus className="size-4" />
-              Add rule
+              {t('settings.rules.addRule')}
             </Button>
           </Empty>
         ) : filteredRules.length === 0 && isFiltering ? (
           <p className="py-8 text-center text-sm text-muted-foreground">
-            No rules match "{filter}"
+            {t('settings.rules.noMatch', { pattern: filter })}
           </p>
         ) : (
           <Sortable
@@ -268,9 +270,9 @@ function RulesList() {
         onOpenChange={(open) => {
           if (!open) setDeletingRule(undefined)
         }}
-        title="Delete rule?"
-        description="This automation rule will be permanently deleted. Transactions already processed by this rule will not be affected."
-        confirmLabel="Delete"
+        title={t('settings.rules.deleteTitle')}
+        description={t('settings.rules.deleteDescription')}
+        confirmLabel={t('common.delete')}
         loading={deleting}
         onConfirm={handleDelete}
       />

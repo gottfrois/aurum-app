@@ -5,6 +5,7 @@ import { useBulkOperationOptional } from '~/contexts/bulk-operation-context'
 import { useEncryption } from '~/contexts/encryption-context'
 import { usePortfolio } from '~/contexts/portfolio-context'
 import { decryptFieldGroups, encryptData, importPublicKey } from '~/lib/crypto'
+import i18n from '~/lib/i18n'
 import { api } from '../../convex/_generated/api'
 import type { Id } from '../../convex/_generated/dataModel'
 
@@ -50,7 +51,7 @@ export function useRetroactiveRuleApplication() {
       accountIds?: Array<Id<'bankAccounts'>>
     }) => {
       if (!privateKey || !workspacePublicKey) {
-        bulkOp?.setError('Encryption not unlocked')
+        bulkOp?.setError(i18n.t('error.encryptionNotUnlocked'))
         return
       }
 
@@ -212,7 +213,7 @@ export function useRetroactiveRuleApplication() {
               try {
                 await batchUpdateCategories({ items: categoryItems })
               } catch {
-                bulkOp?.setError('Failed to save batch')
+                bulkOp?.setError(i18n.t('error.failedSaveBatch'))
                 return
               }
             }
@@ -221,7 +222,7 @@ export function useRetroactiveRuleApplication() {
               try {
                 await batchUpdateDetails({ items: detailItems })
               } catch {
-                bulkOp?.setError('Failed to save batch')
+                bulkOp?.setError(i18n.t('error.failedSaveBatch'))
                 return
               }
             }
@@ -233,7 +234,7 @@ export function useRetroactiveRuleApplication() {
                   excludedFromBudget: true,
                 })
               } catch {
-                bulkOp?.setError('Failed to save batch')
+                bulkOp?.setError(i18n.t('error.failedSaveBatch'))
                 return
               }
             }
@@ -251,7 +252,7 @@ export function useRetroactiveRuleApplication() {
                   >,
                 })
               } catch {
-                bulkOp?.setError('Failed to save batch')
+                bulkOp?.setError(i18n.t('error.failedSaveBatch'))
                 return
               }
             }

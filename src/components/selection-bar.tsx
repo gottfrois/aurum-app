@@ -1,4 +1,5 @@
 import { Command, X } from 'lucide-react'
+import { useTranslation } from 'react-i18next'
 import { Button } from '~/components/ui/button'
 import { useCommandRegistry } from '~/contexts/command-context'
 
@@ -19,6 +20,7 @@ export function SelectionBar({
   onClear,
   commandGroup,
 }: SelectionBarProps) {
+  const { t } = useTranslation()
   const { openPalette } = useCommandRegistry()
 
   if (count === 0) return null
@@ -29,7 +31,7 @@ export function SelectionBar({
     <div className="fixed bottom-8 left-1/2 z-50 -translate-x-1/2 animate-in fade-in slide-in-from-bottom-2">
       <div className="flex items-center gap-2 rounded-full border bg-background px-2 py-2 shadow-xl">
         <Button variant="outline" className="pointer-events-none rounded-full">
-          {count} selected
+          {t('selectionBar.countSelected', { count })}
         </Button>
 
         {canSelectAll && (
@@ -38,7 +40,7 @@ export function SelectionBar({
             className="rounded-full"
             onClick={onSelectAllMatching}
           >
-            Select all {totalMatchingCount}
+            {t('selectionBar.selectAll', { total: totalMatchingCount })}
           </Button>
         )}
 
@@ -59,7 +61,7 @@ export function SelectionBar({
           onClick={() => openPalette({ group: commandGroup })}
         >
           <Command />
-          Actions
+          {t('common.actions')}
         </Button>
       </div>
     </div>

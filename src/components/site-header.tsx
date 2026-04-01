@@ -1,6 +1,7 @@
 import { Link } from '@tanstack/react-router'
 import { Eye, EyeOff, Lock, ShieldCheck } from 'lucide-react'
 import * as React from 'react'
+import { useTranslation } from 'react-i18next'
 import {
   Breadcrumb,
   BreadcrumbItem as BreadcrumbItemUI,
@@ -38,6 +39,7 @@ export function SiteHeader({
   actions?: React.ReactNode
   children?: React.ReactNode
 }) {
+  const { t } = useTranslation()
   const { isPrivate, togglePrivacy } = usePrivacy()
   const { isUnlocked, lock } = useEncryption()
 
@@ -49,7 +51,7 @@ export function SiteHeader({
             <SidebarTrigger className="-ml-1" />
           </TooltipTrigger>
           <TooltipContent className="flex items-center gap-2">
-            <span>Toggle sidebar</span>
+            <span>{t('header.toggleSidebar')}</span>
             <HotkeyDisplay hotkey={{ keys: 'mod+b' }} />
           </TooltipContent>
         </Tooltip>
@@ -92,7 +94,11 @@ export function SiteHeader({
                 variant="outline"
                 size="icon-sm"
                 onClick={togglePrivacy}
-                aria-label={isPrivate ? 'Show balances' : 'Hide balances'}
+                aria-label={
+                  isPrivate
+                    ? t('header.showBalances')
+                    : t('header.hideBalances')
+                }
               >
                 {isPrivate ? (
                   <EyeOff className="size-4" />
@@ -102,7 +108,11 @@ export function SiteHeader({
               </Button>
             </TooltipTrigger>
             <TooltipContent className="flex items-center gap-2">
-              <span>{isPrivate ? 'Show balances' : 'Hide balances'}</span>
+              <span>
+                {isPrivate
+                  ? t('header.showBalances')
+                  : t('header.hideBalances')}
+              </span>
               <HotkeyDisplay hotkey={{ keys: 'alt+h' }} />
             </TooltipContent>
           </Tooltip>
@@ -113,6 +123,7 @@ export function SiteHeader({
 }
 
 function EncryptionStatusButton({ onLock }: { onLock: () => void }) {
+  const { t } = useTranslation()
   return (
     <div className="flex items-center">
       <div className="flex h-8 items-center divide-x divide-border rounded-md border">
@@ -120,12 +131,10 @@ function EncryptionStatusButton({ onLock }: { onLock: () => void }) {
           <TooltipTrigger asChild>
             <span className="inline-flex items-center gap-1.5 rounded-l-md px-2.5 py-1.5 text-xs font-medium text-emerald-600 dark:text-emerald-400">
               <ShieldCheck className="size-3.5" />
-              <span className="hidden sm:inline">Encrypted</span>
+              <span className="hidden sm:inline">{t('header.encrypted')}</span>
             </span>
           </TooltipTrigger>
-          <TooltipContent>
-            Your data is encrypted using zero-knowledge encryption
-          </TooltipContent>
+          <TooltipContent>{t('header.zeroKnowledgeTooltip')}</TooltipContent>
         </Tooltip>
         <Tooltip>
           <TooltipTrigger asChild>
@@ -133,13 +142,13 @@ function EncryptionStatusButton({ onLock }: { onLock: () => void }) {
               type="button"
               onClick={onLock}
               className="inline-flex items-center rounded-r-md px-2 py-1.5 text-foreground transition-colors hover:bg-accent"
-              aria-label="Lock vault"
+              aria-label={t('header.lockVault')}
             >
               <Lock className="size-3.5" />
             </button>
           </TooltipTrigger>
           <TooltipContent className="flex items-center gap-2">
-            <span>Lock vault</span>
+            <span>{t('header.lockVault')}</span>
             <HotkeyDisplay hotkey={{ keys: 'alt+l' }} />
           </TooltipContent>
         </Tooltip>

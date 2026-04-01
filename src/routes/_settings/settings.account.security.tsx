@@ -4,6 +4,7 @@ import * as Sentry from '@sentry/tanstackstart-react'
 import { createFileRoute } from '@tanstack/react-router'
 import { createServerFn } from '@tanstack/react-start'
 import { useCallback, useEffect, useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import { toast } from 'sonner'
 import {
   ItemCard,
@@ -34,6 +35,7 @@ export const Route = createFileRoute('/_settings/settings/account/security')({
 })
 
 function SecurityPage() {
+  const { t } = useTranslation()
   const { user } = useUser()
   const { session: currentSession } = useSession()
   const [sessions, setSessions] = useState<
@@ -75,24 +77,26 @@ function SecurityPage() {
     try {
       await revokeSessionsFn({ data: others.map((s) => s.id) as Array<string> })
       setSessions((prev) => prev.filter((s) => s.id === currentSession?.id))
-      toast.success('All other sessions revoked')
+      toast.success(t('toast.allSessionsRevoked'))
     } catch (error) {
       Sentry.captureException(error)
-      toast.error('Failed to revoke sessions')
+      toast.error(t('toast.failedRevokeSessions'))
     }
   }
 
   return (
     <div className="mx-auto flex w-full max-w-3xl flex-1 flex-col px-10 py-16">
       <PageHeader
-        title="Security & access"
-        description="Manage your sessions and security settings."
+        title={t('settings.security.title')}
+        description={t('settings.security.description')}
       />
       <div className="mt-8 space-y-6">
         <div>
-          <h2 className="text-lg font-medium">Sessions</h2>
+          <h2 className="text-lg font-medium">
+            {t('settings.security.sessions')}
+          </h2>
           <p className="text-sm text-muted-foreground">
-            Devices logged into your account
+            {t('settings.security.sessionsDescription')}
           </p>
         </div>
         {current && (
@@ -108,13 +112,14 @@ function SecurityPage() {
               <ItemCardItem>
                 <ItemCardItemContent>
                   <ItemCardItemTitle className="text-sm text-muted-foreground">
-                    {others.length} other{' '}
-                    {others.length === 1 ? 'session' : 'sessions'}
+                    {t('settings.security.otherSession', {
+                      count: others.length,
+                    })}
                   </ItemCardItemTitle>
                 </ItemCardItemContent>
                 <ItemCardItemAction>
                   <Button variant="ghost" size="sm" onClick={revokeAll}>
-                    Revoke all
+                    {t('settings.security.revokeAll')}
                   </Button>
                 </ItemCardItemAction>
               </ItemCardItem>
@@ -129,10 +134,13 @@ function SecurityPage() {
   )
 }
 
-function formatDeviceName(session: SessionWithActivitiesResource): string {
+function formatDeviceName(
+  session: SessionWithActivitiesResource,
+  t: (key: string) => string,
+): string {
   const { browserName, deviceType } = session.latestActivity
-  const browser = browserName ?? 'Unknown browser'
-  const os = deviceType ?? 'Unknown device'
+  const browser = browserName ?? t('settings.security.unknownBrowser')
+  const os = deviceType ?? t('settings.security.unknownDevice')
   return `${browser} on ${os}`
 }
 
@@ -144,17 +152,22 @@ function formatLocation(session: SessionWithActivitiesResource): string {
   return parts.join(', ')
 }
 
-function formatLastSeen(date: Date): string {
+function formatLastSeen(
+  date: Date,
+  t: (key: string, opts?: Record<string, unknown>) => string,
+): string {
   const now = new Date()
   const diffMs = now.getTime() - date.getTime()
   const diffMinutes = Math.floor(diffMs / 60_000)
   const diffHours = Math.floor(diffMs / 3_600_000)
   const diffDays = Math.floor(diffMs / 86_400_000)
 
-  if (diffMinutes < 1) return 'Just now'
-  if (diffMinutes < 60) return `Last seen ${diffMinutes}m ago`
-  if (diffHours < 24) return `Last seen ${diffHours}h ago`
-  return `Last seen ${diffDays}d ago`
+  if (diffMinutes < 1) return t('settings.security.justNow')
+  if (diffMinutes < 60)
+    return t('settings.security.lastSeenMinutes', { count: diffMinutes })
+  if (diffHours < 24)
+    return t('settings.security.lastSeenHours', { count: diffHours })
+  return t('settings.security.lastSeenDays', { count: diffDays })
 }
 
 function SessionItem({
@@ -164,21 +177,24 @@ function SessionItem({
   session: SessionWithActivitiesResource
   isCurrent?: boolean
 }) {
+  const { t } = useTranslation()
   const location = formatLocation(session)
 
   const locationParts: Array<string> = []
   if (location) locationParts.push(location)
-  if (!isCurrent) locationParts.push(formatLastSeen(session.lastActiveAt))
+  if (!isCurrent) locationParts.push(formatLastSeen(session.lastActiveAt, t))
 
   return (
     <ItemCardItem>
       <ItemCardItemContent>
-        <ItemCardItemTitle>{formatDeviceName(session)}</ItemCardItemTitle>
+        <ItemCardItemTitle>{formatDeviceName(session, t)}</ItemCardItemTitle>
         <ItemCardItemDescription className="flex items-center gap-1.5">
           {isCurrent && (
             <>
               <span className="inline-block size-2 shrink-0 rounded-full bg-success" />
-              <span className="text-success">Current session</span>
+              <span className="text-success">
+                {t('settings.security.currentSession')}
+              </span>
             </>
           )}
           {isCurrent && locationParts.length > 0 && <span>{'\u00B7'}</span>}

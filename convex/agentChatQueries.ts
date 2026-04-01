@@ -186,10 +186,11 @@ export const sendMessage = mutation({
       workspaceId: metadata.workspaceId,
     })
 
-    // Schedule title generation
+    // Schedule title generation (pass user language for localized titles)
     await ctx.scheduler.runAfter(0, internal.agentChat.generateTitle, {
       threadId,
       prompt,
+      language: membership.language,
     })
   },
 })
@@ -302,6 +303,18 @@ export const getThreadMetadata = internalQuery({
       .query('agentThreadMetadata')
       .withIndex('by_threadId', (q) => q.eq('threadId', threadId))
       .first()
+  },
+})
+
+export const getMemberLanguage = internalQuery({
+  args: { workspaceId: v.id('workspaces'), userId: v.string() },
+  handler: async (ctx, { workspaceId, userId }) => {
+    const member = await ctx.db
+      .query('workspaceMembers')
+      .withIndex('by_workspaceId', (q) => q.eq('workspaceId', workspaceId))
+      .filter((q) => q.eq(q.field('userId'), userId))
+      .first()
+    return member?.language ?? null
   },
 })
 

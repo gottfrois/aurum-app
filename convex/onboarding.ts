@@ -178,6 +178,7 @@ export const saveConsents = mutation({
 export const createWorkspaceOnboarding = mutation({
   args: {
     workspaceName: v.string(),
+    language: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
     const userId = await requireAuthUserId(ctx)
@@ -215,6 +216,7 @@ export const createWorkspaceOnboarding = mutation({
       userId,
       role: 'owner',
       onboardingStep: 'invite',
+      ...(args.language ? { language: args.language } : {}),
     })
 
     await ctx.scheduler.runAfter(0, internal.categories.seedDefaultCategories, {

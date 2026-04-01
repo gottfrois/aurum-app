@@ -1,4 +1,5 @@
 import { ChevronLeft } from 'lucide-react'
+import { useTranslation } from 'react-i18next'
 import { Button } from '~/components/ui/button'
 
 interface StepLayoutProps {
@@ -25,9 +26,11 @@ export function StepLayout({
   submitDisabled,
   loading,
   onSkip,
-  skipLabel = "I'll do this later",
+  skipLabel,
   skipDisabled,
 }: StepLayoutProps) {
+  const { t } = useTranslation()
+  const resolvedSkipLabel = skipLabel ?? t('common.skip')
   return (
     <div className="flex flex-col gap-6">
       <div className="flex flex-col items-center gap-1 text-center">
@@ -44,7 +47,7 @@ export function StepLayout({
           onClick={onSkip}
           disabled={skipDisabled || loading}
         >
-          {skipLabel}
+          {resolvedSkipLabel}
         </button>
       )}
 
@@ -56,7 +59,7 @@ export function StepLayout({
             disabled={loading || skipDisabled}
           >
             <ChevronLeft className="size-4" />
-            Back
+            {t('common.back')}
           </Button>
           <Button
             disabled={submitDisabled}

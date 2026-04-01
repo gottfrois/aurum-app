@@ -2,6 +2,7 @@ import { useMutation, useQuery } from 'convex/react'
 import { ConvexError } from 'convex/values'
 import { Info } from 'lucide-react'
 import * as React from 'react'
+import { useTranslation } from 'react-i18next'
 import { toast } from 'sonner'
 import { DialogFormFooter } from '~/components/dialog-form-footer'
 import { Alert, AlertDescription } from '~/components/ui/alert'
@@ -55,6 +56,7 @@ export function CreateCategoryDialog({
   defaultPortfolioId,
   onCreated,
 }: CreateCategoryDialogProps) {
+  const { t } = useTranslation()
   const [name, setName] = React.useState(initialName)
   const [description, setDescription] = React.useState('')
   const [color, setColor] = React.useState(initialColor)
@@ -129,12 +131,12 @@ export function CreateCategoryDialog({
       const categoryKey = deriveCategoryKey(label)
       onOpenChange(false)
       onCreated(categoryKey, label)
-      toast.success(`Category "${label}" created`)
+      toast.success(t('toast.categoryCreated', { label }))
     } catch (error) {
       toast.error(
         error instanceof ConvexError
           ? (error.data as string)
-          : 'Failed to create category',
+          : t('toast.failedCreateCategory'),
       )
     } finally {
       setSaving(false)
@@ -149,14 +151,12 @@ export function CreateCategoryDialog({
       await promoteCategoryMutation({ categoryId: conflict.categoryId })
       onOpenChange(false)
       onCreated(key, name.trim())
-      toast.success(
-        `Category "${name.trim()}" is now available across all portfolios`,
-      )
+      toast.success(t('toast.categoryPromoted', { label: name.trim() }))
     } catch (error) {
       toast.error(
         error instanceof ConvexError
           ? (error.data as string)
-          : 'Failed to promote category',
+          : t('toast.failedPromoteCategory'),
       )
     } finally {
       setSaving(false)
@@ -169,21 +169,22 @@ export function CreateCategoryDialog({
 
   const scopeLabel =
     scope === 'workspace'
-      ? 'all portfolios'
-      : (portfolios?.find((p) => p._id === scope)?.name ?? 'this portfolio')
+      ? t('dialogs.createCategory.scopeAllPortfolios')
+      : (portfolios?.find((p) => p._id === scope)?.name ??
+        t('dialogs.createCategory.scopeSinglePortfolio'))
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent showCloseButton={false} className="sm:max-w-[400px]">
         <DialogHeader>
-          <DialogTitle>Create category</DialogTitle>
+          <DialogTitle>{t('dialogs.createCategory.title')}</DialogTitle>
           <DialogDescription>
-            This category will be available in {scopeLabel}.
+            {t('dialogs.createCategory.subtitle', { scope: scopeLabel })}
           </DialogDescription>
         </DialogHeader>
         <div className="space-y-4 py-2">
           <div className="space-y-2">
-            <Label htmlFor="create-cat-name">Name</Label>
+            <Label htmlFor="create-cat-name">{t('form.name')}</Label>
             <Input
               id="create-cat-name"
               value={name}
@@ -191,34 +192,35 @@ export function CreateCategoryDialog({
                 setName(e.target.value)
                 setShowPromote(false)
               }}
-              placeholder="e.g. Coffee Shops"
+              placeholder={t('form.categoryNamePlaceholder')}
               autoFocus
             />
           </div>
           <div className="space-y-2">
-            <Label htmlFor="create-cat-description">Description</Label>
+            <Label htmlFor="create-cat-description">
+              {t('form.description')}
+            </Label>
             <Textarea
               id="create-cat-description"
               value={description}
               onChange={(e) => setDescription(e.target.value)}
-              placeholder="e.g. Daily coffee expenses"
+              placeholder={t('form.descriptionPlaceholder')}
               rows={2}
             />
           </div>
           <div className="space-y-2">
-            <Label>Color</Label>
+            <Label>{t('form.color')}</Label>
             <ColorPicker color={color} onChange={setColor} />
           </div>
           <div className="space-y-2">
             <Label className="flex items-center gap-1.5">
-              Visibility
+              {t('dialogs.createCategory.visibilityLabel')}
               <Tooltip>
                 <TooltipTrigger asChild>
                   <Info className="size-3.5 text-muted-foreground" />
                 </TooltipTrigger>
                 <TooltipContent side="right" className="max-w-[200px]">
-                  Choose whether this category is available in a single
-                  portfolio or shared across all portfolios in your workspace.
+                  {t('dialogs.createCategory.visibilityTooltip')}
                 </TooltipContent>
               </Tooltip>
             </Label>
@@ -235,7 +237,7 @@ export function CreateCategoryDialog({
               <SelectContent>
                 {canCreateWorkspaceCategory && (
                   <SelectItem value="workspace">
-                    Workspace (all portfolios)
+                    {t('dialogs.createCategory.workspaceOption')}
                   </SelectItem>
                 )}
                 {portfolios?.map((p) => (
@@ -250,20 +252,21 @@ export function CreateCategoryDialog({
             <Alert>
               <AlertDescription className="space-y-3">
                 <p>
-                  "{name.trim()}" already exists in{' '}
-                  <span className="font-medium">{conflict.portfolioName}</span>.
-                  Would you like to make it available across all portfolios?
+                  {t('dialogs.createCategory.promoteMessage', {
+                    name: name.trim(),
+                    portfolio: conflict.portfolioName,
+                  })}
                 </p>
                 <div className="flex gap-2">
                   <Button size="sm" onClick={handlePromote} loading={saving}>
-                    Make workspace-wide
+                    {t('dialogs.createCategory.promoteButton')}
                   </Button>
                   <Button
                     size="sm"
                     variant="outline"
                     onClick={() => setShowPromote(false)}
                   >
-                    Cancel
+                    {t('common.cancel')}
                   </Button>
                 </div>
               </AlertDescription>
@@ -276,7 +279,7 @@ export function CreateCategoryDialog({
             onConfirm={handleCreate}
             disabled={disabled}
             saving={saving}
-            confirmLabel="Create"
+            confirmLabel={t('common.create')}
           />
         )}
       </DialogContent>

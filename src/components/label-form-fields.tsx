@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next'
 import { ColorPicker } from '~/components/ui/color-picker'
 import { Input } from '~/components/ui/input'
 import { Label } from '~/components/ui/label'
@@ -20,35 +21,36 @@ export function LabelFormFields({
   onDescriptionChange,
   onColorChange,
 }: LabelFormFieldsProps) {
+  const { t } = useTranslation()
   return (
     <div className="space-y-4">
       <div className="space-y-2">
         <Label htmlFor="label-name" className="flex items-center">
-          Name
+          {t('form.name')}
           <span className="ml-auto font-normal text-muted-foreground">
-            Required
+            {t('form.required')}
           </span>
         </Label>
         <Input
           id="label-name"
           value={name}
           onChange={(e) => onNameChange(e.target.value)}
-          placeholder="e.g. Urgent"
+          placeholder={t('form.labelNamePlaceholder')}
           required
         />
       </div>
       <div className="space-y-2">
-        <Label htmlFor="label-description">Description</Label>
+        <Label htmlFor="label-description">{t('form.description')}</Label>
         <Textarea
           id="label-description"
           value={description}
           onChange={(e) => onDescriptionChange(e.target.value)}
-          placeholder="e.g. Mark transactions that need attention"
+          placeholder={t('form.labelDescriptionPlaceholder')}
           rows={2}
         />
       </div>
       <div className="space-y-2">
-        <Label>Color</Label>
+        <Label>{t('form.color')}</Label>
         <ColorPicker color={color} onChange={onColorChange} />
       </div>
     </div>

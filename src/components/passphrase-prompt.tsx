@@ -1,12 +1,14 @@
 import { Clock, Lock } from 'lucide-react'
 import { useState } from 'react'
 import { useHotkeys } from 'react-hotkeys-hook'
+import { useTranslation } from 'react-i18next'
 import { Button } from '~/components/ui/button'
 import { Input } from '~/components/ui/input'
 import { HotkeyDisplay } from '~/components/ui/kbd'
 import { useEncryption } from '~/contexts/encryption-context'
 
 export function PassphrasePrompt() {
+  const { t } = useTranslation()
   const {
     isEncryptionEnabled,
     isUnlocked,
@@ -48,10 +50,11 @@ export function PassphrasePrompt() {
             <div className="flex size-12 items-center justify-center rounded-full bg-muted">
               <Clock className="size-6 text-muted-foreground" />
             </div>
-            <h2 className="text-xl font-semibold">Waiting for access</h2>
+            <h2 className="text-xl font-semibold">
+              {t('dialogs.passphrasePrompt.waitingTitle')}
+            </h2>
             <p className="text-sm text-muted-foreground">
-              Your passphrase is set up. A workspace member with access needs to
-              grant you permission to decrypt data.
+              {t('dialogs.passphrasePrompt.waitingDescription')}
             </p>
           </div>
         </div>
@@ -71,7 +74,7 @@ export function PassphrasePrompt() {
       await unlock(passphrase)
       setPassphrase('')
     } catch {
-      setError('Incorrect passphrase')
+      setError(t('toast.incorrectPassphrase'))
     } finally {
       setUnlocking(false)
     }
@@ -84,16 +87,18 @@ export function PassphrasePrompt() {
           <div className="flex size-12 items-center justify-center rounded-full bg-muted">
             <Lock className="size-6 text-muted-foreground" />
           </div>
-          <h2 className="text-xl font-semibold">Unlock your vault</h2>
+          <h2 className="text-xl font-semibold">
+            {t('dialogs.passphrasePrompt.title')}
+          </h2>
           <p className="text-sm text-muted-foreground">
-            Enter your encryption passphrase to access your financial data.
+            {t('dialogs.passphrasePrompt.description')}
           </p>
         </div>
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="space-y-2">
             <Input
               type="password"
-              placeholder="Passphrase"
+              placeholder={t('dialogs.passphrasePrompt.placeholder')}
               value={passphrase}
               onChange={(e) => setPassphrase(e.target.value)}
               autoFocus
@@ -107,7 +112,7 @@ export function PassphrasePrompt() {
           </div>
           <Button type="submit" className="w-full" loading={unlocking}>
             <span className="flex items-center justify-between gap-2">
-              <span>Unlock</span>
+              <span>{t('common.unlock')}</span>
               <HotkeyDisplay hotkey={{ keys: 'mod+enter' }} />
             </span>
           </Button>

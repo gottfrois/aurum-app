@@ -10,6 +10,7 @@ import {
   Workflow,
 } from 'lucide-react'
 import * as React from 'react'
+import { useTranslation } from 'react-i18next'
 import { toast } from 'sonner'
 import { ConfirmDialog } from '~/components/confirm-dialog'
 import {
@@ -33,6 +34,7 @@ export const Route = createFileRoute('/_settings/settings/portfolios/$id/')({
 })
 
 function PortfolioSettingsPage() {
+  const { t } = useTranslation()
   const { id } = Route.useParams()
   const portfolio = useQuery(api.portfolios.getPortfolio, {
     portfolioId: id as Id<'portfolios'>,
@@ -64,36 +66,36 @@ function PortfolioSettingsPage() {
               to="/settings/portfolios/$id/general"
               params={{ id: portfolio._id }}
               icon={Settings}
-              title="General"
-              subtitle="Name and broader settings"
+              title={t('settings.portfolioOverview.general')}
+              subtitle={t('settings.portfolioOverview.generalDescription')}
             />
             <NavItem
               to="/settings/portfolios/$id/connections"
               params={{ id: portfolio._id }}
               icon={Link2}
-              title="Connections"
-              subtitle="Manage portfolio connections"
+              title={t('settings.portfolioOverview.connections')}
+              subtitle={t('settings.portfolioOverview.connectionsDescription')}
             />
             <NavItem
               to="/settings/portfolios/$id/categories"
               params={{ id: portfolio._id }}
               icon={Tag}
-              title="Categories"
-              subtitle="Categories available to this portfolio"
+              title={t('settings.portfolioOverview.categories')}
+              subtitle={t('settings.portfolioOverview.categoriesDescription')}
             />
             <NavItem
               to="/settings/portfolios/$id/labels"
               params={{ id: portfolio._id }}
               icon={Sticker}
-              title="Labels"
-              subtitle="Labels available to this portfolio"
+              title={t('settings.portfolioOverview.labels')}
+              subtitle={t('settings.portfolioOverview.labelsDescription')}
             />
             <NavItem
               to="/settings/portfolios/$id/rules"
               params={{ id: portfolio._id }}
               icon={Workflow}
-              title="Rules"
-              subtitle="Automation rules for this portfolio"
+              title={t('settings.portfolioOverview.rules')}
+              subtitle={t('settings.portfolioOverview.rulesDescription')}
             />
           </ItemCardItems>
         </ItemCard>
@@ -146,6 +148,7 @@ function DeletePortfolioCard({
   portfolioId: Id<'portfolios'>
   portfolioName: string
 }) {
+  const { t } = useTranslation()
   const deletePortfolio = useMutation(api.portfolios.deletePortfolio)
   const navigate = useNavigate()
   const [confirmOpen, setConfirmOpen] = React.useState(false)
@@ -155,11 +158,11 @@ function DeletePortfolioCard({
     setLoading(true)
     try {
       await deletePortfolio({ portfolioId })
-      toast.success('Portfolio deleted')
+      toast.success(t('toast.portfolioDeleted'))
       navigate({ to: '/settings/account' })
     } catch (err) {
       toast.error(
-        err instanceof Error ? err.message : 'Failed to delete portfolio',
+        err instanceof Error ? err.message : t('toast.failedDeletePortfolio'),
       )
     } finally {
       setLoading(false)
@@ -168,15 +171,18 @@ function DeletePortfolioCard({
 
   return (
     <section>
-      <h2 className="mb-4 text-lg font-semibold">Danger zone</h2>
+      <h2 className="mb-4 text-lg font-semibold">
+        {t('settings.portfolioOverview.dangerZone')}
+      </h2>
       <ItemCard>
         <ItemCardItems>
           <ItemCardItem>
             <ItemCardItemContent>
-              <ItemCardItemTitle>Delete portfolio</ItemCardItemTitle>
+              <ItemCardItemTitle>
+                {t('settings.portfolioOverview.deletePortfolio')}
+              </ItemCardItemTitle>
               <ItemCardItemDescription>
-                Permanently delete this portfolio and all associated data. This
-                action cannot be undone.
+                {t('settings.portfolioOverview.deletePortfolioDescription')}
               </ItemCardItemDescription>
             </ItemCardItemContent>
             <ItemCardItemAction>
@@ -186,7 +192,7 @@ function DeletePortfolioCard({
                 className="text-destructive hover:bg-destructive/10 hover:text-destructive"
                 onClick={() => setConfirmOpen(true)}
               >
-                Delete
+                {t('common.delete')}
               </Button>
             </ItemCardItemAction>
           </ItemCardItem>
@@ -194,10 +200,12 @@ function DeletePortfolioCard({
         <ConfirmDialog
           open={confirmOpen}
           onOpenChange={setConfirmOpen}
-          title="Delete portfolio"
-          description={`This will permanently delete "${portfolioName}" and all associated data including connections, bank accounts, transactions, and investments. This action cannot be undone.`}
+          title={t('settings.portfolioOverview.deletePortfolio')}
+          description={t('settings.portfolioOverview.deletePortfolioConfirm', {
+            name: portfolioName,
+          })}
           confirmValue={portfolioName}
-          confirmLabel="Delete"
+          confirmLabel={t('common.delete')}
           loading={loading}
           onConfirm={handleDelete}
         />

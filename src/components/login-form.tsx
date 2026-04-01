@@ -2,6 +2,7 @@ import { useSignIn, useSignUp } from '@clerk/tanstack-react-start/legacy'
 import { Link, useNavigate } from '@tanstack/react-router'
 import { Loader2 } from 'lucide-react'
 import { useCallback, useEffect, useRef, useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import { Button } from '~/components/ui/button'
 import {
   Field,
@@ -26,6 +27,7 @@ export function LoginForm({
   className,
   ...props
 }: React.ComponentProps<'div'>) {
+  const { t } = useTranslation()
   const [step, setStep] = useState<Step>('email')
   const [mode, setMode] = useState<Mode>('sign-in')
   const [email, setEmail] = useState('')
@@ -89,9 +91,7 @@ export function LoginForm({
         setStep('code')
         startCooldown()
       } else {
-        setError(
-          'Email code sign-in is not available. Please use Google sign-in.',
-        )
+        setError(t('login.emailCodeUnavailable'))
       }
     } catch (err: unknown) {
       const clerkErr = err as {
@@ -131,21 +131,16 @@ export function LoginForm({
             return
           }
           if (alreadyExists) {
-            setError(
-              'An account with this email already exists. Please use Google sign-in or try again.',
-            )
+            setError(t('login.accountExistsOauth'))
           } else {
             setError(
               signUpClerkErr.errors?.[0]?.longMessage ??
-                'Could not send code. Please try again.',
+                t('login.sendCodeFailed'),
             )
           }
         }
       } else {
-        setError(
-          clerkErr.errors?.[0]?.longMessage ??
-            'Could not send code. Please try again.',
-        )
+        setError(clerkErr.errors?.[0]?.longMessage ?? t('login.sendCodeFailed'))
       }
     } finally {
       setLoading(false)
@@ -180,14 +175,13 @@ export function LoginForm({
       } catch (err: unknown) {
         const clerkErr = err as { errors?: Array<{ longMessage?: string }> }
         setError(
-          clerkErr.errors?.[0]?.longMessage ??
-            'Verification failed. Please try again.',
+          clerkErr.errors?.[0]?.longMessage ?? t('login.verificationFailed'),
         )
       } finally {
         setLoading(false)
       }
     },
-    [mode, signIn, signUp, setSignInActive, setSignUpActive, navigate],
+    [mode, signIn, signUp, setSignInActive, setSignUpActive, navigate, t],
   )
 
   async function handleVerifyCode(e: React.FormEvent) {
@@ -219,10 +213,7 @@ export function LoginForm({
       startCooldown()
     } catch (err: unknown) {
       const clerkErr = err as { errors?: Array<{ longMessage?: string }> }
-      setError(
-        clerkErr.errors?.[0]?.longMessage ??
-          'Could not resend code. Please try again.',
-      )
+      setError(clerkErr.errors?.[0]?.longMessage ?? t('login.resendFailed'))
     } finally {
       setLoading(false)
     }
@@ -258,9 +249,11 @@ export function LoginForm({
         <form onSubmit={handleVerifyCode}>
           <FieldGroup>
             <div className="flex flex-col items-center gap-1 text-center">
-              <h1 className="text-2xl font-bold">Check your email</h1>
+              <h1 className="text-2xl font-bold">
+                {t('login.checkYourEmail')}
+              </h1>
               <p className="text-balance text-sm text-muted-foreground">
-                We sent a verification code to {email}
+                {t('login.verificationCodeSent', { email })}
               </p>
             </div>
             <Field className="items-center">
@@ -290,13 +283,13 @@ export function LoginForm({
                 {loading ? (
                   <Loader2 className="size-4 animate-spin" />
                 ) : (
-                  'Verify'
+                  t('login.verify')
                 )}
               </Button>
             </Field>
             <FieldDescription className="text-center">
               {cooldown > 0 ? (
-                <span>Resend code in {cooldown}s</span>
+                <span>{t('login.resendCodeIn', { seconds: cooldown })}</span>
               ) : (
                 <button
                   type="button"
@@ -304,7 +297,7 @@ export function LoginForm({
                   onClick={handleResendCode}
                   disabled={loading}
                 >
-                  Resend code
+                  {t('login.resendCode')}
                 </button>
               )}
               {' · '}
@@ -317,7 +310,7 @@ export function LoginForm({
                   setError(null)
                 }}
               >
-                Use a different email
+                {t('login.useDifferentEmail')}
               </button>
             </FieldDescription>
           </FieldGroup>
@@ -331,9 +324,9 @@ export function LoginForm({
       <form onSubmit={handleSendCode}>
         <FieldGroup>
           <div className="flex flex-col items-center gap-1 text-center">
-            <h1 className="text-2xl font-bold">Welcome to Bunkr</h1>
+            <h1 className="text-2xl font-bold">{t('login.welcomeTitle')}</h1>
             <p className="text-balance text-sm text-muted-foreground">
-              Sign in or create an account to get started
+              {t('login.welcomeSubtitle')}
             </p>
           </div>
           <Field>
@@ -353,16 +346,16 @@ export function LoginForm({
                   fill="currentColor"
                 />
               </svg>
-              Continue with Google
+              {t('login.continueWithGoogle')}
             </Button>
           </Field>
-          <FieldSeparator>Or continue with</FieldSeparator>
+          <FieldSeparator>{t('login.orContinueWith')}</FieldSeparator>
           <Field>
-            <FieldLabel htmlFor="email">Email</FieldLabel>
+            <FieldLabel htmlFor="email">{t('form.email')}</FieldLabel>
             <Input
               id="email"
               type="email"
-              placeholder="you@example.com"
+              placeholder={t('form.emailPlaceholder')}
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               required
@@ -375,13 +368,13 @@ export function LoginForm({
               {loading ? (
                 <Loader2 className="size-4 animate-spin" />
               ) : (
-                'Continue with email'
+                t('login.continueWithEmail')
               )}
             </Button>
           </Field>
           <FieldDescription className="text-center">
             <Link to="/waitlist" className="underline underline-offset-4">
-              Join the waitlist
+              {t('login.joinWaitlist')}
             </Link>
           </FieldDescription>
         </FieldGroup>

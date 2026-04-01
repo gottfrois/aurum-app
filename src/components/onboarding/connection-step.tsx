@@ -1,6 +1,7 @@
 import { useNavigate } from '@tanstack/react-router'
 import { useAction, useMutation, useQuery } from 'convex/react'
 import { useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import { toast } from 'sonner'
 import { api } from '../../../convex/_generated/api'
 import { StepLayout } from './step-layout'
@@ -10,6 +11,7 @@ export function ConnectionStep({
   goToStep,
   setSubmitting,
 }: OnboardingStepProps) {
+  const { t } = useTranslation()
   const navigate = useNavigate()
   const [loading, setLoading] = useState(false)
   const [skipping, setSkipping] = useState(false)
@@ -25,7 +27,7 @@ export function ConnectionStep({
       const url = await generateUrl({ portfolioId: portfolios[0]._id })
       window.location.href = url
     } catch (err) {
-      toast.error('Failed to start bank connection')
+      toast.error(t('toast.failedBankConnection'))
       console.error(err)
       setLoading(false)
       setSubmitting(false)
@@ -39,7 +41,7 @@ export function ConnectionStep({
       await completeOnboarding()
       void navigate({ to: '/' })
     } catch (err) {
-      toast.error('Failed to complete onboarding')
+      toast.error(t('toast.failedCompleteOnboarding'))
       console.error(err)
       setSkipping(false)
       setSubmitting(false)
@@ -48,11 +50,11 @@ export function ConnectionStep({
 
   return (
     <StepLayout
-      title="Connect your bank"
-      subtitle="Link your bank accounts to start tracking your finances automatically"
+      title={t('onboarding.connection.title')}
+      subtitle={t('onboarding.connection.subtitle')}
       onBack={() => goToStep('portfolio')}
       onSubmit={handleConnect}
-      submitLabel="Connect bank"
+      submitLabel={t('button.connectBank')}
       submitDisabled={!portfolios || portfolios.length === 0}
       loading={loading}
       onSkip={handleSkip}

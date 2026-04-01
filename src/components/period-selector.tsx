@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next'
 import {
   Select,
   SelectContent,
@@ -18,6 +19,8 @@ export function PeriodSelector({
   period,
   onPeriodChange,
 }: PeriodSelectorProps) {
+  const { t } = useTranslation()
+
   return (
     <>
       <ToggleGroup
@@ -32,7 +35,7 @@ export function PeriodSelector({
       >
         {PERIODS.map((p) => (
           <ToggleGroupItem key={p} value={p}>
-            {p}
+            {t(`periods.${p}`)}
           </ToggleGroupItem>
         ))}
       </ToggleGroup>
@@ -46,7 +49,7 @@ export function PeriodSelector({
         <SelectContent>
           {PERIODS.map((p) => (
             <SelectItem key={p} value={p}>
-              {p}
+              {t(`periods.${p}`)}
             </SelectItem>
           ))}
         </SelectContent>

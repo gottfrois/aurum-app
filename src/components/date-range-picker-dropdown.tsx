@@ -9,9 +9,9 @@ import {
 import { CalendarDays, ChevronDown } from 'lucide-react'
 import * as React from 'react'
 import { useHotkeys } from 'react-hotkeys-hook'
+import { useTranslation } from 'react-i18next'
 import type { DateSelectorValue } from '~/components/reui/date-selector'
 import { DateSelector } from '~/components/reui/date-selector'
-
 import { Button } from '~/components/ui/button'
 import {
   Dialog,
@@ -22,6 +22,9 @@ import {
   DialogTrigger,
 } from '~/components/ui/dialog'
 import { HotkeyDisplay, Kbd } from '~/components/ui/kbd'
+import { useDateSelectorI18n } from '~/hooks/use-date-selector-i18n'
+import { getDateLocale } from '~/lib/date-locale'
+import i18n from '~/lib/i18n'
 
 interface DateRangePickerDropdownProps {
   start: Date
@@ -30,8 +33,11 @@ interface DateRangePickerDropdownProps {
 }
 
 function formatLabel(start: Date, end: Date): string {
-  const startStr = format(start, 'MMM d, yyyy')
-  const endStr = isToday(end) ? 'Today' : format(end, 'MMM d, yyyy')
+  const locale = getDateLocale()
+  const startStr = format(start, 'MMM d, yyyy', { locale })
+  const endStr = isToday(end)
+    ? i18n.t('periodNavigator.today')
+    : format(end, 'MMM d, yyyy', { locale })
   return `${startStr} – ${endStr}`
 }
 
@@ -143,6 +149,8 @@ export function DateRangePickerDropdown({
   end,
   onRangeChange,
 }: DateRangePickerDropdownProps) {
+  const { t } = useTranslation()
+  const dateSelectorI18n = useDateSelectorI18n()
   const [open, setOpen] = React.useState(false)
   const [dateValue, setDateValue] = React.useState<DateSelectorValue>({
     period: 'day',
@@ -184,7 +192,7 @@ export function DateRangePickerDropdown({
       </DialogTrigger>
       <DialogContent className="sm:max-w-fit" showCloseButton={false}>
         <DialogHeader>
-          <DialogTitle>Select date range</DialogTitle>
+          <DialogTitle>{t('periodNavigator.selectDateRange')}</DialogTitle>
         </DialogHeader>
         <DateSelector
           value={dateValue}
@@ -195,6 +203,7 @@ export function DateRangePickerDropdown({
           showTwoMonths
           maxYear={new Date().getFullYear()}
           minYear={2015}
+          i18n={dateSelectorI18n}
         />
         <DateRangeFooter
           onCancel={() => setOpen(false)}
@@ -215,6 +224,7 @@ function DateRangeFooter({
   onConfirm: () => void
   disabled: boolean
 }) {
+  const { t } = useTranslation()
   const handleConfirm = React.useCallback(() => {
     if (!disabled) onConfirm()
   }, [disabled, onConfirm])
@@ -231,10 +241,10 @@ function DateRangeFooter({
   return (
     <DialogFooter>
       <Button variant="outline" onClick={onCancel}>
-        Cancel <Kbd>Esc</Kbd>
+        {t('common.cancel')} <Kbd>Esc</Kbd>
       </Button>
       <Button onClick={handleConfirm} disabled={disabled}>
-        Apply <HotkeyDisplay hotkey={{ keys: 'mod+enter' }} />
+        {t('common.apply')} <HotkeyDisplay hotkey={{ keys: 'mod+enter' }} />
       </Button>
     </DialogFooter>
   )
