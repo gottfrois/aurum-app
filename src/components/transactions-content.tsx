@@ -441,27 +441,35 @@ export function TransactionsContent({
     }> = []
 
     if (deficit > 0) {
-      // Expenses exceed income: split each category between Income and Deficit
-      const incomeRatio = totalIncome / totalExpenses
-      const deficitRatio = deficit / totalExpenses
+      // Expenses exceed income: income covers categories top-down,
+      // deficit covers only the remainder that income can't reach
+      let remainingIncome = totalIncome
 
       for (let i = 0; i < sortedEntries.length; i++) {
         const [key, value] = sortedEntries[i]
         const cat = getCategory(key)
         const targetIndex = targetOffset + i
 
-        links.push({
-          source: 0,
-          target: targetIndex,
-          value: round(value * incomeRatio),
-          stroke: cat.color,
-        })
-        links.push({
-          source: 1,
-          target: targetIndex,
-          value: round(value * deficitRatio),
-          stroke: 'hsl(0 84% 60%)',
-        })
+        const fromIncome = round(Math.min(remainingIncome, value))
+        const fromDeficit = round(value - fromIncome)
+        remainingIncome = round(remainingIncome - fromIncome)
+
+        if (fromIncome > 0) {
+          links.push({
+            source: 0,
+            target: targetIndex,
+            value: fromIncome,
+            stroke: cat.color,
+          })
+        }
+        if (fromDeficit > 0) {
+          links.push({
+            source: 1,
+            target: targetIndex,
+            value: fromDeficit,
+            stroke: 'hsl(0 84% 60%)',
+          })
+        }
       }
     } else {
       // Income covers expenses: link each category from Income
