@@ -30,6 +30,7 @@ import {
 } from '~/components/ui/message'
 import { ScrollButton } from '~/components/ui/scroll-button'
 import { Tool, type ToolPart } from '~/components/ui/tool'
+import { useChatDispatch, useChatState } from '~/contexts/chat-context'
 import { cn } from '~/lib/utils'
 import { api } from '../../../convex/_generated/api'
 
@@ -190,6 +191,8 @@ function ChatMessageBubble({
 }) {
   const { t } = useTranslation()
   const navigate = useNavigate()
+  const { panelMode } = useChatState()
+  const { collapseChat } = useChatDispatch()
   const isUser = message.role === 'user'
   const parts = message.parts ?? []
   const hasToolParts = parts.some(isToolUIPart)
@@ -217,6 +220,10 @@ function ChatMessageBubble({
         'bunkr:period:transactions',
         JSON.stringify({ mode: 'custom', start: startDate, end: endDate }),
       )
+    }
+
+    if (panelMode === 'expanded') {
+      collapseChat()
     }
 
     void navigate({ to: '/transactions' }).then(() => {
