@@ -139,7 +139,7 @@ export const viewTransactions = createTool({
 export const getSpendingSummary = createTool({
   title: 'Get Spending Summary',
   description:
-    'Get a summary of spending and income for a date range, optionally filtered by category. Returns totals and a breakdown by category. Always call listCategories first to know available category keys.',
+    'Get a summary of spending and income for a date range, optionally filtered by category. Returns totals and a breakdown by category. Always call searchCategories first to know available category keys.',
   inputSchema: z.object({
     startDate: z
       .string()
@@ -149,7 +149,7 @@ export const getSpendingSummary = createTool({
       .string()
       .optional()
       .describe(
-        'EXACT category key from listCategories (e.g. "food_and_restaurants"). You MUST call listCategories first to get valid keys. Do NOT guess category names.',
+        'EXACT category key from searchCategories (e.g. "food_and_restaurants"). You MUST call searchCategories first to get valid keys. Do NOT guess category names.',
       ),
     portfolioId: z
       .string()
@@ -298,7 +298,7 @@ export const searchTransactions = createTool({
       .string()
       .optional()
       .describe(
-        'EXACT category key from listCategories. You MUST call listCategories first.',
+        'EXACT category key from searchCategories. You MUST call searchCategories first.',
       ),
     portfolioId: z
       .string()
