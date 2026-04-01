@@ -527,19 +527,24 @@ export const patchTransactionFieldGroups = internalMutation({
     items: v.array(
       v.object({
         id: v.id('transactions'),
-        encryptedDetails: v.string(),
+        encryptedDetails: v.optional(v.string()),
         encryptedFinancials: v.string(),
-        encryptedCategories: v.string(),
+        encryptedCategories: v.optional(v.string()),
       }),
     ),
   },
   handler: async (ctx, args) => {
     for (const item of args.items) {
-      await ctx.db.patch('transactions', item.id, {
-        encryptedDetails: item.encryptedDetails,
+      const patch: Record<string, string> = {
         encryptedFinancials: item.encryptedFinancials,
-        encryptedCategories: item.encryptedCategories,
-      })
+      }
+      if (item.encryptedDetails !== undefined) {
+        patch.encryptedDetails = item.encryptedDetails
+      }
+      if (item.encryptedCategories !== undefined) {
+        patch.encryptedCategories = item.encryptedCategories
+      }
+      await ctx.db.patch('transactions', item.id, patch)
     }
   },
 })

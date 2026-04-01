@@ -1338,6 +1338,7 @@ export const upsertTransactions = internalMutation({
     const transactionIds: Array<{
       powensTransactionId: number
       id: Id<'transactions'>
+      isNew: boolean
     }> = []
     for (const txn of args.transactions) {
       const existing = await ctx.db
@@ -1349,8 +1350,16 @@ export const upsertTransactions = internalMutation({
 
       let transactionId: Id<'transactions'>
       if (existing) {
+        // Only update non-encrypted metadata fields to preserve
+        // user-customized encrypted data (customDescription, userCategoryKey)
+        const {
+          encryptedDetails: _ed,
+          encryptedFinancials: _ef,
+          encryptedCategories: _ec,
+          ...metadata
+        } = txn
         await ctx.db.patch('transactions', existing._id, {
-          ...txn,
+          ...metadata,
           bankAccountId: args.bankAccountId,
           portfolioId: args.portfolioId,
         })
@@ -1367,6 +1376,7 @@ export const upsertTransactions = internalMutation({
       transactionIds.push({
         powensTransactionId: txn.powensTransactionId,
         id: transactionId,
+        isNew: !existing,
       })
     }
 
@@ -1507,14 +1517,26 @@ export const syncTransactionsFromWebhook = internalAction({
             portfolioId: args.portfolioId,
             transactions: placeholderTransactions,
           },
-        )) as Array<{ powensTransactionId: number; id: Id<'transactions'> }>
+        )) as Array<{
+          powensTransactionId: number
+          id: Id<'transactions'>
+          isNew: boolean
+        }>
+
+        // Build set of powensTransactionIds that had rules applied
+        const ruleMatchedIds = new Set(
+          ruleMatches.map((m) => m.powensTransactionId),
+        )
 
         // Step 2: Encrypt with field groups using record IDs, then patch
+        // For existing transactions, only update encryptedFinancials to preserve
+        // user-customized categories and descriptions. Exception: if a transaction
+        // rule matched, update all fields since rules set user overrides.
         const patches: Array<{
           id: Id<'transactions'>
-          encryptedDetails: string
+          encryptedDetails?: string
           encryptedFinancials: string
-          encryptedCategories: string
+          encryptedCategories?: string
         }> = []
         for (const txn of rawTransactions) {
           const idEntry = transactionIds.find(
@@ -1522,36 +1544,58 @@ export const syncTransactionsFromWebhook = internalAction({
           )
           if (!idEntry) continue
 
-          const groups = await encryptFieldGroups(
-            {
-              encryptedDetails: {
-                wording: txn.wording,
-                originalWording: txn.originalWording,
-                simplifiedWording: txn.simplifiedWording,
-                counterparty: txn.counterparty,
-                card: txn.card,
-                comment: txn.comment,
-                customDescription: txn.customDescription,
+          const shouldUpdateAllFields =
+            idEntry.isNew || ruleMatchedIds.has(txn.powensTransactionId)
+
+          if (shouldUpdateAllFields) {
+            const groups = await encryptFieldGroups(
+              {
+                encryptedDetails: {
+                  wording: txn.wording,
+                  originalWording: txn.originalWording,
+                  simplifiedWording: txn.simplifiedWording,
+                  counterparty: txn.counterparty,
+                  card: txn.card,
+                  comment: txn.comment,
+                  customDescription: txn.customDescription,
+                },
+                encryptedFinancials: {
+                  value: txn.value,
+                  originalValue: txn.originalValue,
+                },
+                encryptedCategories: {
+                  category: txn.category,
+                  categoryParent: txn.categoryParent,
+                  userCategoryKey: txn.userCategoryKey,
+                },
               },
-              encryptedFinancials: {
-                value: txn.value,
-                originalValue: txn.originalValue,
+              publicKey,
+              idEntry.id,
+            )
+            patches.push({
+              id: idEntry.id,
+              encryptedDetails: groups.encryptedDetails,
+              encryptedFinancials: groups.encryptedFinancials,
+              encryptedCategories: groups.encryptedCategories,
+            })
+          } else {
+            // Existing transaction without rule match: only update financials
+            // to preserve user-customized encryptedDetails and encryptedCategories
+            const groups = await encryptFieldGroups(
+              {
+                encryptedFinancials: {
+                  value: txn.value,
+                  originalValue: txn.originalValue,
+                },
               },
-              encryptedCategories: {
-                category: txn.category,
-                categoryParent: txn.categoryParent,
-                userCategoryKey: txn.userCategoryKey,
-              },
-            },
-            publicKey,
-            idEntry.id,
-          )
-          patches.push({
-            id: idEntry.id,
-            encryptedDetails: groups.encryptedDetails,
-            encryptedFinancials: groups.encryptedFinancials,
-            encryptedCategories: groups.encryptedCategories,
-          })
+              publicKey,
+              idEntry.id,
+            )
+            patches.push({
+              id: idEntry.id,
+              encryptedFinancials: groups.encryptedFinancials,
+            })
+          }
         }
 
         if (patches.length > 0) {
@@ -1701,14 +1745,26 @@ export const backfillTransactions = internalAction({
             portfolioId: args.portfolioId,
             transactions: placeholderTransactions,
           },
-        )) as Array<{ powensTransactionId: number; id: Id<'transactions'> }>
+        )) as Array<{
+          powensTransactionId: number
+          id: Id<'transactions'>
+          isNew: boolean
+        }>
+
+        // Build set of powensTransactionIds that had rules applied
+        const backfillRuleMatchedIds = new Set(
+          backfillRuleMatches.map((m) => m.powensTransactionId),
+        )
 
         // Step 2: Encrypt with field groups using record IDs, then patch
+        // For existing transactions, only update encryptedFinancials to preserve
+        // user-customized categories and descriptions. Exception: if a transaction
+        // rule matched, update all fields since rules set user overrides.
         const patches: Array<{
           id: Id<'transactions'>
-          encryptedDetails: string
+          encryptedDetails?: string
           encryptedFinancials: string
-          encryptedCategories: string
+          encryptedCategories?: string
         }> = []
         for (const txn of rawTransactions) {
           const idEntry = transactionIds.find(
@@ -1716,36 +1772,58 @@ export const backfillTransactions = internalAction({
           )
           if (!idEntry) continue
 
-          const groups = await encryptFieldGroups(
-            {
-              encryptedDetails: {
-                wording: txn.wording,
-                originalWording: txn.originalWording,
-                simplifiedWording: txn.simplifiedWording,
-                counterparty: txn.counterparty,
-                card: txn.card,
-                comment: txn.comment,
-                customDescription: txn.customDescription,
+          const shouldUpdateAllFields =
+            idEntry.isNew || backfillRuleMatchedIds.has(txn.powensTransactionId)
+
+          if (shouldUpdateAllFields) {
+            const groups = await encryptFieldGroups(
+              {
+                encryptedDetails: {
+                  wording: txn.wording,
+                  originalWording: txn.originalWording,
+                  simplifiedWording: txn.simplifiedWording,
+                  counterparty: txn.counterparty,
+                  card: txn.card,
+                  comment: txn.comment,
+                  customDescription: txn.customDescription,
+                },
+                encryptedFinancials: {
+                  value: txn.value,
+                  originalValue: txn.originalValue,
+                },
+                encryptedCategories: {
+                  category: txn.category,
+                  categoryParent: txn.categoryParent,
+                  userCategoryKey: txn.userCategoryKey,
+                },
               },
-              encryptedFinancials: {
-                value: txn.value,
-                originalValue: txn.originalValue,
+              publicKey,
+              idEntry.id,
+            )
+            patches.push({
+              id: idEntry.id,
+              encryptedDetails: groups.encryptedDetails,
+              encryptedFinancials: groups.encryptedFinancials,
+              encryptedCategories: groups.encryptedCategories,
+            })
+          } else {
+            // Existing transaction without rule match: only update financials
+            // to preserve user-customized encryptedDetails and encryptedCategories
+            const groups = await encryptFieldGroups(
+              {
+                encryptedFinancials: {
+                  value: txn.value,
+                  originalValue: txn.originalValue,
+                },
               },
-              encryptedCategories: {
-                category: txn.category,
-                categoryParent: txn.categoryParent,
-                userCategoryKey: txn.userCategoryKey,
-              },
-            },
-            publicKey,
-            idEntry.id,
-          )
-          patches.push({
-            id: idEntry.id,
-            encryptedDetails: groups.encryptedDetails,
-            encryptedFinancials: groups.encryptedFinancials,
-            encryptedCategories: groups.encryptedCategories,
-          })
+              publicKey,
+              idEntry.id,
+            )
+            patches.push({
+              id: idEntry.id,
+              encryptedFinancials: groups.encryptedFinancials,
+            })
+          }
         }
 
         if (patches.length > 0) {
