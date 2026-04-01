@@ -149,6 +149,23 @@ export function TransactionsList({
     { id: 'date', desc: true },
   ])
   const [globalFilter, setGlobalFilter] = React.useState('')
+  const shouldResetPageIndex = React.useRef(false)
+
+  // Reset page index when filters, sorting, or the dataset size changes,
+  // but NOT when individual rows are updated (e.g. editing a transaction).
+  const prevGlobalFilter = React.useRef(globalFilter)
+  const prevSorting = React.useRef(sorting)
+  const prevDataLength = React.useRef(data.length)
+  if (
+    globalFilter !== prevGlobalFilter.current ||
+    sorting !== prevSorting.current ||
+    data.length !== prevDataLength.current
+  ) {
+    shouldResetPageIndex.current = true
+    prevGlobalFilter.current = globalFilter
+    prevSorting.current = sorting
+    prevDataLength.current = data.length
+  }
   const [rowSelection, setRowSelection] = React.useState<RowSelectionState>({})
   const [selectAllMatching, setSelectAllMatching] = React.useState(false)
   const [selectedTransactionId, setSelectedTransactionId] = React.useState<
@@ -481,12 +498,17 @@ export function TransactionsList({
     getSortedRowModel: getSortedRowModel(),
     getFilteredRowModel: getFilteredRowModel(),
     getPaginationRowModel: getPaginationRowModel(),
-    autoResetPageIndex: true,
+    autoResetPageIndex: shouldResetPageIndex.current,
     initialState: { pagination: { pageSize: 25 } },
     globalFilterFn: (row, _columnId, filterValue: string) => {
       const wording = row.original.wording.toLowerCase()
       return wording.includes(filterValue.toLowerCase())
     },
+  })
+
+  // Reset the flag after React Table has consumed it
+  React.useEffect(() => {
+    shouldResetPageIndex.current = false
   })
 
   const { pageIndex, pageSize } = table.getState().pagination
