@@ -6,6 +6,12 @@ import { ActivateAgentDialog } from '~/components/activate-agent-dialog'
 import { ChatConversationTab } from '~/components/chat/chat-conversation-tab'
 import { ChatHistoryPopover } from '~/components/chat/chat-history-popover'
 import { Button } from '~/components/ui/button'
+import { HotkeyDisplay } from '~/components/ui/kbd'
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from '~/components/ui/tooltip'
 import {
   useChatDispatch,
   useMinimizedThreads,
@@ -63,21 +69,24 @@ export function SiteFooter() {
               ))}
             </div>
           )}
-          {minimized.length > 0 ? (
-            <Button
-              variant="ghost"
-              size="icon-sm"
-              onClick={handleAskBunkr}
-              title={t('footer.askBunkr')}
-            >
-              <BotMessageSquare className="size-4" />
-            </Button>
-          ) : (
-            <Button variant="ghost" size="sm" onClick={handleAskBunkr}>
-              <BotMessageSquare className="size-4" />
-              {t('footer.askBunkr')}
-            </Button>
-          )}
+          <Tooltip>
+            <TooltipTrigger asChild>
+              {minimized.length > 0 ? (
+                <Button variant="ghost" size="icon-sm" onClick={handleAskBunkr}>
+                  <BotMessageSquare className="size-4" />
+                </Button>
+              ) : (
+                <Button variant="ghost" size="sm" onClick={handleAskBunkr}>
+                  <BotMessageSquare className="size-4" />
+                  {t('footer.askBunkr')}
+                </Button>
+              )}
+            </TooltipTrigger>
+            <TooltipContent className="flex items-center gap-2">
+              <span>{t('footer.askBunkr')}</span>
+              <HotkeyDisplay hotkey={{ keys: 'mod+j' }} />
+            </TooltipContent>
+          </Tooltip>
           {isEnabled && !mockState && (
             <ChatHistoryPopover onOpenThread={dispatch.openThread} />
           )}

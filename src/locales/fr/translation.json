@@ -434,6 +434,7 @@
   "commands.lockVault": "Verrouiller le coffre",
   "commands.toggleBalances": "Afficher/masquer les soldes",
   "commands.askAiFilter": "Demander à l'IA de filtrer...",
+  "commands.openAgentChat": "Demander à Bunkr",
   "commands.keyboardShortcuts": "Raccourcis clavier",
   "commands.switchToLight": "Passer au thème clair",
   "commands.switchToDark": "Passer au thème sombre",

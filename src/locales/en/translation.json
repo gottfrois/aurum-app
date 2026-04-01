@@ -434,6 +434,7 @@
   "commands.lockVault": "Lock vault",
   "commands.toggleBalances": "Toggle balances visibility",
   "commands.askAiFilter": "Ask AI to filter...",
+  "commands.openAgentChat": "Ask Bunkr",
   "commands.keyboardShortcuts": "Keyboard shortcuts",
   "commands.switchToLight": "Switch to light theme",
   "commands.switchToDark": "Switch to dark theme",

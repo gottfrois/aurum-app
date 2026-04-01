@@ -1,5 +1,6 @@
 import {
   ArrowLeftRight,
+  BotMessageSquare,
   Command,
   Eye,
   EyeOff,
@@ -14,7 +15,6 @@ import {
   Pencil,
   Plus,
   Settings,
-  Sparkles,
   Star,
   Sticker,
   Sun,
@@ -172,11 +172,13 @@ export const COMMAND_DEFINITIONS: Record<string, CommandDefinition> = {
     icon: Eye,
     hotkey: { keys: 'alt+h', scope: 'global' },
   },
-  'ai.filter': {
-    id: 'ai.filter',
-    labelKey: 'commands.askAiFilter',
+  'ai.chat': {
+    id: 'ai.chat',
+    labelKey: 'commands.openAgentChat',
     groupKey: 'commands.groups.ai',
-    icon: Sparkles,
+    icon: BotMessageSquare,
+    hotkey: { keys: 'mod+j', scope: 'global' },
+    keywords: ['agent', 'chat', 'ai', 'assistant', 'bunkr'],
   },
   'shortcuts.show': {
     id: 'shortcuts.show',

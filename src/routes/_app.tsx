@@ -21,7 +21,11 @@ import {
   SidebarProvider,
   useSidebar,
 } from '~/components/ui/sidebar'
-import { ChatProvider, useChatState } from '~/contexts/chat-context'
+import {
+  ChatProvider,
+  useChatDispatch,
+  useChatState,
+} from '~/contexts/chat-context'
 import { CommandProvider, useCommandDispatch } from '~/contexts/command-context'
 import { useEncryption } from '~/contexts/encryption-context'
 import { usePrivacy } from '~/contexts/privacy-context'
@@ -39,6 +43,7 @@ function AppCommands() {
   const { lock, isUnlocked } = useEncryption()
   const { togglePrivacy } = usePrivacy()
   const { setTheme } = useTheme()
+  const { openNewChat } = useChatDispatch()
   const [shortcutsOpen, setShortcutsOpen] = React.useState(false)
   const [connectionDialogOpen, setConnectionDialogOpen] = React.useState(false)
 
@@ -79,6 +84,10 @@ function AppCommands() {
 
   useCommand('theme.system', {
     handler: () => setTheme('system'),
+  })
+
+  useCommand('ai.chat', {
+    handler: openNewChat,
   })
 
   useNavigationCommands()
