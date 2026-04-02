@@ -8,7 +8,7 @@ const meta = {
   decorators: [
     (Story) => (
       <PrivacyProvider>
-        <div className="max-w-3xl">
+        <div className="h-[400px] max-w-3xl">
           <Story />
         </div>
       </PrivacyProvider>

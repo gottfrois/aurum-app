@@ -1,5 +1,6 @@
 import { withThemeByClassName } from '@storybook/addon-themes'
 import type { Preview } from '@storybook/react-vite'
+import '../src/lib/i18n'
 import { TooltipProvider } from '../src/components/ui/tooltip'
 import '../src/styles/app.css'
 
