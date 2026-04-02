@@ -161,7 +161,10 @@ function OnboardingPage() {
                 value={i18n.language}
                 onValueChange={(v) => i18n.changeLanguage(v)}
               >
-                <SelectTrigger className="w-fit gap-1.5 border-none shadow-none focus:ring-0">
+                <SelectTrigger
+                  size="sm"
+                  className="w-fit gap-1.5 border-none shadow-none focus:ring-0"
+                >
                   <Globe className="size-4" />
                 </SelectTrigger>
                 <SelectContent position="popper">
