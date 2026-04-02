@@ -8,45 +8,56 @@ import {
 } from '@tanstack/react-router'
 import { TrialBanner } from '../trial-banner'
 
-const rootRoute = createRootRoute({
-  component: () => null,
-})
-const indexRoute = createRoute({ getParentRoute: () => rootRoute, path: '/' })
-const router = createRouter({
-  routeTree: rootRoute.addChildren([indexRoute]),
-  history: createMemoryHistory({ initialEntries: ['/'] }),
-})
+interface TrialBannerDemoProps {
+  daysRemaining: number
+}
+
+function TrialBannerDemo({ daysRemaining }: TrialBannerDemoProps) {
+  return (
+    <TrialBanner
+      trialEndsAt={Date.now() + daysRemaining * 24 * 60 * 60 * 1000}
+    />
+  )
+}
 
 const meta = {
   title: 'Feedback/TrialBanner',
-  component: TrialBanner,
+  component: TrialBannerDemo,
   decorators: [
-    (Story) => (
-      // @ts-expect-error -- router type mismatch with app's registered router
-      <RouterProvider router={router}>
-        <Story />
-      </RouterProvider>
-    ),
+    (Story) => {
+      const rootRoute = createRootRoute({
+        component: () => <Story />,
+      })
+      const indexRoute = createRoute({
+        getParentRoute: () => rootRoute,
+        path: '/',
+      })
+      const router = createRouter({
+        routeTree: rootRoute.addChildren([indexRoute]),
+        history: createMemoryHistory({ initialEntries: ['/'] }),
+      })
+      return <RouterProvider router={router} />
+    },
   ],
-} satisfies Meta<typeof TrialBanner>
+  argTypes: {
+    daysRemaining: {
+      control: { type: 'number', min: 0, max: 30 },
+      description: 'Days until trial expires',
+    },
+  },
+} satisfies Meta<typeof TrialBannerDemo>
 
 export default meta
 type Story = StoryObj<typeof meta>
 
 export const SevenDaysLeft: Story = {
-  args: {
-    trialEndsAt: Date.now() + 7 * 24 * 60 * 60 * 1000,
-  },
+  args: { daysRemaining: 7 },
 }
 
 export const OneDayLeft: Story = {
-  args: {
-    trialEndsAt: Date.now() + 1 * 24 * 60 * 60 * 1000,
-  },
+  args: { daysRemaining: 1 },
 }
 
 export const ExpiresToday: Story = {
-  args: {
-    trialEndsAt: Date.now(),
-  },
+  args: { daysRemaining: 0 },
 }
