@@ -11,7 +11,7 @@ import {
   query,
 } from './_generated/server'
 import { chatModel } from './lib/aiModels'
-import { requireAuthUserId } from './lib/auth'
+import { getAuthUserId, requireAuthUserId } from './lib/auth'
 
 // Agent instance for saveMessage (no LLM calls, just message persistence)
 const chatAgent = new Agent(components.agent, {
@@ -26,7 +26,8 @@ const chatAgent = new Agent(components.agent, {
 export const listThreads = query({
   args: {},
   handler: async (ctx) => {
-    const userId = await requireAuthUserId(ctx)
+    const userId = await getAuthUserId(ctx)
+    if (!userId) return []
 
     const metadataRows = await ctx.db
       .query('agentThreadMetadata')
