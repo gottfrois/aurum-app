@@ -1,6 +1,9 @@
 import { ChevronLeft } from 'lucide-react'
+import { useCallback } from 'react'
+import { useHotkeys } from 'react-hotkeys-hook'
 import { useTranslation } from 'react-i18next'
 import { Button } from '~/components/ui/button'
+import { HotkeyDisplay, Kbd } from '~/components/ui/kbd'
 
 interface StepLayoutProps {
   title: string
@@ -31,6 +34,27 @@ export function StepLayout({
 }: StepLayoutProps) {
   const { t } = useTranslation()
   const resolvedSkipLabel = skipLabel ?? t('common.skip')
+
+  const handleSubmit = useCallback(() => {
+    if (!submitDisabled && !loading) onSubmit()
+  }, [submitDisabled, loading, onSubmit])
+
+  const handleBack = useCallback(() => {
+    if (onBack && !loading && !skipDisabled) onBack()
+  }, [onBack, loading, skipDisabled])
+
+  useHotkeys('mod+enter', handleSubmit, {
+    enabled: !submitDisabled && !loading,
+    enableOnFormTags: true,
+    preventDefault: true,
+  })
+
+  useHotkeys('escape', handleBack, {
+    enabled: !!onBack && !loading && !skipDisabled,
+    enableOnFormTags: true,
+    preventDefault: true,
+  })
+
   return (
     <div className="flex flex-col gap-6">
       <div className="flex flex-col items-center gap-1 text-center">
@@ -59,14 +83,14 @@ export function StepLayout({
             disabled={loading || skipDisabled}
           >
             <ChevronLeft className="size-4" />
-            {t('common.back')}
+            {t('common.back')} <Kbd>Esc</Kbd>
           </Button>
           <Button
             disabled={submitDisabled}
             loading={loading}
             onClick={onSubmit}
           >
-            {submitLabel}
+            {submitLabel} <HotkeyDisplay hotkey={{ keys: 'mod+enter' }} />
           </Button>
         </div>
       ) : (
@@ -76,7 +100,7 @@ export function StepLayout({
           loading={loading}
           onClick={onSubmit}
         >
-          {submitLabel}
+          {submitLabel} <HotkeyDisplay hotkey={{ keys: 'mod+enter' }} />
         </Button>
       )}
     </div>

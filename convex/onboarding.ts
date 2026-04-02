@@ -239,7 +239,7 @@ export const updateOnboardingStep = mutation({
       .withIndex('by_userId', (q) => q.eq('userId', userId))
       .first()
 
-    if (!member) throw new Error('No workspace membership found')
+    if (!member) return
 
     await ctx.db.patch('workspaceMembers', member._id, {
       onboardingStep: args.step,

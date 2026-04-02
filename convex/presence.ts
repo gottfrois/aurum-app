@@ -2,7 +2,7 @@ import { Presence } from '@convex-dev/presence'
 import { v } from 'convex/values'
 import { components } from './_generated/api'
 import { mutation, query } from './_generated/server'
-import { getAuthUserId, requireAuthUserId } from './lib/auth'
+import { getAuthUserId } from './lib/auth'
 
 const presence = new Presence(components.presence)
 
@@ -15,7 +15,8 @@ export const heartbeat = mutation({
     interval: v.number(),
   },
   handler: async (ctx, { roomId, userId, sessionId, interval }) => {
-    await requireAuthUserId(ctx)
+    const authUserId = await getAuthUserId(ctx)
+    if (!authUserId) return { roomToken: '', sessionToken: '' }
     return presence.heartbeat(ctx, roomId, userId, sessionId, interval)
   },
 })

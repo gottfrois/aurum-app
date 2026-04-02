@@ -40,11 +40,7 @@ export function LegalStep({
         privacyPolicy: consents.privacy,
         marketingCommunications: consents.marketing,
       })
-      try {
-        await updateStep({ step: 'name' })
-      } catch {
-        // Member record may not exist yet for new users
-      }
+      await updateStep({ step: 'name' })
       goToStep(isInvited ? 'vault' : 'name')
     } catch (err) {
       toast.error(t('toast.failedSaveConsents'))
@@ -64,8 +60,11 @@ export function LegalStep({
       loading={saving}
     >
       <div className="space-y-4">
-        <div className="flex items-center justify-between gap-4">
-          <Label htmlFor="tos" className="flex-1 cursor-pointer">
+        <div className="flex items-start justify-between gap-4">
+          <Label
+            htmlFor="tos"
+            className="inline flex-1 cursor-pointer leading-snug"
+          >
             {
               t('onboarding.legal.tosLabel').split(
                 t('onboarding.legal.tosLink'),
@@ -87,8 +86,11 @@ export function LegalStep({
             onCheckedChange={(tos) => onConsentsChange({ ...consents, tos })}
           />
         </div>
-        <div className="flex items-center justify-between gap-4">
-          <Label htmlFor="privacy" className="flex-1 cursor-pointer">
+        <div className="flex items-start justify-between gap-4">
+          <Label
+            htmlFor="privacy"
+            className="inline flex-1 cursor-pointer leading-snug"
+          >
             {
               t('onboarding.legal.privacyLabel').split(
                 t('onboarding.legal.privacyLink'),
@@ -112,8 +114,11 @@ export function LegalStep({
             }
           />
         </div>
-        <div className="flex items-center justify-between gap-4">
-          <Label htmlFor="marketing" className="flex-1 cursor-pointer">
+        <div className="flex items-start justify-between gap-4">
+          <Label
+            htmlFor="marketing"
+            className="inline flex-1 cursor-pointer leading-snug"
+          >
             {t('onboarding.legal.marketingLabel')}
           </Label>
           <Switch
