@@ -623,6 +623,14 @@ export const syncConnectionFromPowens = internalAction({
       powensConnectionId: args.powensConnectionId,
     })
 
+    // Update lastSync to current time now that sync is fully complete
+    await ctx.runMutation(internal.powens.upsertConnection, {
+      portfolioId: args.portfolioId,
+      powensConnectionId: args.powensConnectionId,
+      state: connData.state ?? args.state ?? undefined,
+      lastSync: new Date().toISOString(),
+    })
+
     console.log(
       `[powens] Sync complete for connection ${args.powensConnectionId}`,
     )
