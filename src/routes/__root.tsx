@@ -158,7 +158,15 @@ export const Route = createRootRouteWithContext<{
 
     const isSignIn = ctx.location.pathname.startsWith('/sign-in')
     const isWaitlist = ctx.location.pathname.startsWith('/waitlist')
+    const isInvite = ctx.location.pathname.startsWith('/invite')
     const isAuthenticated = userId && token
+
+    if (!isAuthenticated && isInvite) {
+      throw redirect({
+        to: '/sign-in/$',
+        search: { redirect_url: ctx.location.pathname },
+      })
+    }
 
     if (!isAuthenticated && !isSignIn && !isWaitlist) {
       throw redirect({ to: '/waitlist' })
@@ -248,6 +256,7 @@ const EXEMPT_PATHS = [
   '/sign-in',
   '/powens/callback',
   '/waitlist',
+  '/invite',
 ]
 
 function OnboardingGuard({ children }: { children: React.ReactNode }) {

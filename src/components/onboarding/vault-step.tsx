@@ -41,6 +41,7 @@ export function VaultStep({
   goToStep,
   setSubmitting,
   isInvited,
+  isFirstStep,
 }: OnboardingStepProps) {
   const { t } = useTranslation()
   const [passphrase, setPassphrase] = useState('')
@@ -64,7 +65,8 @@ export function VaultStep({
   const initiallySetUp = useRef(encryptionAlreadySetUp)
   const alreadySetUp = initiallySetUp.current
 
-  const backStep = isInvited ? 'legal' : 'invite'
+  const backStep = isInvited ? 'workspace' : 'invite'
+  const onBack = isFirstStep ? undefined : () => goToStep(backStep)
 
   async function handlePassphraseSubmit() {
     setSaving(true)
@@ -185,7 +187,7 @@ export function VaultStep({
       <StepLayout
         title={t('onboarding.vault.alreadySetupTitle')}
         subtitle={t('onboarding.vault.alreadySetupSubtitle')}
-        onBack={() => goToStep(backStep)}
+        onBack={onBack}
         onSubmit={handlePassphraseSubmit}
         submitLabel={t('common.continue')}
         loading={saving}
@@ -215,7 +217,7 @@ export function VaultStep({
     <StepLayout
       title={t('onboarding.vault.title')}
       subtitle={t('onboarding.vault.subtitle')}
-      onBack={() => goToStep(backStep)}
+      onBack={onBack}
       onSubmit={handlePassphraseSubmit}
       submitLabel={t('button.createVault')}
       submitDisabled={!valid}

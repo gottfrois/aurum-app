@@ -1,6 +1,6 @@
 import { v } from 'convex/values'
 import { internal } from './_generated/api'
-import { action, internalMutation, mutation, query } from './_generated/server'
+import { action, internalQuery, mutation, query } from './_generated/server'
 import { getAuthUserId, requireAuthUserId } from './lib/auth'
 
 export const getOnboardingState = query({
@@ -34,29 +34,27 @@ export const getOnboardingState = query({
     return {
       status: 'in_progress' as const,
       step: member.onboardingStep ?? 'legal',
+      role: member.role,
       memberId: member._id,
       workspaceId: member.workspaceId,
     }
   },
 })
 
-export const checkAndAcceptInvitation = action({
+export const checkPendingInvitations = action({
   args: {},
-  handler: async (
-    ctx,
-  ): Promise<{ accepted: boolean; workspaceId?: string }> => {
+  handler: async (ctx): Promise<{ hasPendingInvitations: boolean }> => {
     const userId = await requireAuthUserId(ctx)
 
     const clerkSecretKey = process.env.CLERK_SECRET_KEY
     if (!clerkSecretKey) {
-      return { accepted: false }
+      return { hasPendingInvitations: false }
     }
 
-    // Fetch user email from Clerk
     const res = await fetch(`https://api.clerk.com/v1/users/${userId}`, {
       headers: { Authorization: `Bearer ${clerkSecretKey}` },
     })
-    if (!res.ok) return { accepted: false }
+    if (!res.ok) return { hasPendingInvitations: false }
 
     const user = (await res.json()) as {
       primary_email_address_id: string
@@ -65,68 +63,26 @@ export const checkAndAcceptInvitation = action({
     const email = user.email_addresses?.find(
       (e) => e.id === user.primary_email_address_id,
     )?.email_address
-    if (!email) return { accepted: false }
+    if (!email) return { hasPendingInvitations: false }
 
-    // Check for pending invitation
-    const result: { accepted: boolean; workspaceId?: string } =
-      await ctx.runMutation(internal.onboarding.acceptInvitationInternal, {
-        userId,
-        email: email.toLowerCase(),
-      })
+    const count: number = await ctx.runQuery(
+      internal.onboarding.countPendingInvitationsByEmail,
+      { email: email.toLowerCase() },
+    )
 
-    return result
+    return { hasPendingInvitations: count > 0 }
   },
 })
 
-export const acceptInvitationInternal = internalMutation({
-  args: {
-    userId: v.string(),
-    email: v.string(),
-  },
-  handler: async (ctx, { userId, email }) => {
-    // Find pending invitation by email
+export const countPendingInvitationsByEmail = internalQuery({
+  args: { email: v.string() },
+  handler: async (ctx, { email }) => {
     const invitations = await ctx.db
       .query('workspaceInvitations')
       .withIndex('by_email', (q) => q.eq('email', email))
       .filter((q) => q.eq(q.field('status'), 'pending'))
       .collect()
-
-    if (invitations.length === 0) {
-      return { accepted: false }
-    }
-
-    const invitation = invitations[0]
-
-    // Check if already a member
-    const existingMember = await ctx.db
-      .query('workspaceMembers')
-      .withIndex('by_userId', (q) => q.eq('userId', userId))
-      .first()
-
-    if (existingMember) {
-      return {
-        accepted: true,
-        workspaceId: existingMember.workspaceId,
-      }
-    }
-
-    // Create member record
-    await ctx.db.insert('workspaceMembers', {
-      workspaceId: invitation.workspaceId,
-      userId,
-      role: 'member',
-      onboardingStep: 'vault',
-    })
-
-    // Mark invitation as accepted
-    await ctx.db.patch('workspaceInvitations', invitation._id, {
-      status: 'accepted',
-    })
-
-    return {
-      accepted: true,
-      workspaceId: invitation.workspaceId,
-    }
+    return invitations.length
   },
 })
 

@@ -2,7 +2,7 @@ import { useClerk } from '@clerk/tanstack-react-start'
 import { createFileRoute, useNavigate } from '@tanstack/react-router'
 import { useAction, useConvexAuth, useQuery } from 'convex/react'
 import { Globe, Loader2, LogOut } from 'lucide-react'
-import { MotionConfig, motion } from 'motion/react'
+import { AnimatePresence, MotionConfig, motion } from 'motion/react'
 import { useEffect, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { ConnectionStep } from '~/components/onboarding/connection-step'
@@ -37,6 +37,13 @@ const NEW_USER_STEPS = [
 ] as const
 const INVITED_USER_STEPS = [
   'legal',
+  'workspace',
+  'vault',
+  'portfolio',
+  'connection',
+] as const
+const ACCEPTED_INVITE_STEPS = [
+  'legal',
   'vault',
   'portfolio',
   'connection',
@@ -55,8 +62,10 @@ function OnboardingPage() {
     isAuthenticated ? {} : 'skip',
   )
 
-  const checkInvitation = useAction(api.onboarding.checkAndAcceptInvitation)
-  const [isInvited, setIsInvited] = useState<boolean | null>(null)
+  const checkInvitation = useAction(api.onboarding.checkPendingInvitations)
+  const [pendingInviteCheck, setPendingInviteCheck] = useState<boolean | null>(
+    null,
+  )
   const [, setSubmitting] = useState(false)
   const [consents, setConsents] = useState({
     tos: false,
@@ -69,28 +78,60 @@ function OnboardingPage() {
   const [currentStep, setCurrentStep] = useState(0)
   const [direction, setDirection] = useState<number>(1)
 
-  // Check for pending invitations on first load
+  // Redirect if onboarding is complete
   useEffect(() => {
-    if (!isAuthenticated || checkedRef.current) return
+    if (!isAuthenticated) return
     if (onboardingState === undefined) return
     if (onboardingState.status === 'complete') {
       void navigate({ to: '/' })
-      return
     }
+  }, [isAuthenticated, onboardingState, navigate])
+
+  // Check for pending invitations (only for users without a membership yet)
+  useEffect(() => {
+    if (!isAuthenticated || checkedRef.current) return
+    if (onboardingState === undefined) return
+    if (onboardingState.status !== 'none') return
 
     checkedRef.current = true
     checkInvitation()
       .then((result) => {
-        setIsInvited(result.accepted)
+        setPendingInviteCheck(result.hasPendingInvitations)
       })
       .catch(() => {
-        setIsInvited(false)
+        setPendingInviteCheck(false)
       })
-  }, [isAuthenticated, onboardingState, checkInvitation, navigate])
+  }, [isAuthenticated, onboardingState, checkInvitation])
 
-  const steps: ReadonlyArray<string> = isInvited
-    ? INVITED_USER_STEPS
-    : NEW_USER_STEPS
+  // Derive user type reactively from onboarding state:
+  // - 'accepted': already a member via invite (role=member) → vault, portfolio, connection
+  // - 'pending': no membership yet but has pending invitations → legal, workspace, vault, ...
+  // - 'new': no membership, no invitations → full new user flow
+  // - null: still loading
+  type UserType = 'accepted' | 'pending' | 'new' | null
+  const userType: UserType =
+    onboardingState?.status === 'in_progress' &&
+    'role' in onboardingState &&
+    onboardingState.role === 'member'
+      ? 'accepted'
+      : onboardingState?.status === 'none'
+        ? pendingInviteCheck === null
+          ? null
+          : pendingInviteCheck
+            ? 'pending'
+            : 'new'
+        : onboardingState?.status === 'in_progress'
+          ? 'new'
+          : null
+
+  const steps: ReadonlyArray<string> =
+    userType === 'accepted'
+      ? ACCEPTED_INVITE_STEPS
+      : userType === 'pending'
+        ? INVITED_USER_STEPS
+        : NEW_USER_STEPS
+
+  const isInvited = userType === 'accepted' || userType === 'pending'
 
   function goToStep(nextStep: string) {
     const toIndex = steps.indexOf(nextStep)
@@ -104,7 +145,12 @@ function OnboardingPage() {
   }
 
   const stepName = steps[currentStep] as Step
-  const stepProps = { goToStep, setSubmitting, isInvited: isInvited ?? false }
+  const stepProps = {
+    goToStep,
+    setSubmitting,
+    isInvited,
+    isFirstStep: currentStep === 0,
+  }
 
   function renderStep() {
     switch (stepName) {
@@ -133,7 +179,7 @@ function OnboardingPage() {
     }
   }
 
-  if (isAuthLoading || onboardingState === undefined || isInvited === null) {
+  if (isAuthLoading || onboardingState === undefined || userType === null) {
     return (
       <div className="flex min-h-svh items-center justify-center">
         <Loader2 className="size-8 animate-spin text-muted-foreground" />
@@ -191,15 +237,18 @@ function OnboardingPage() {
           <div className="flex flex-1 items-center justify-center">
             <div className="w-full max-w-xs">
               {/* Animated step content */}
-              <motion.div
-                key={currentStep}
-                variants={variants}
-                initial="initial"
-                animate="animate"
-                custom={direction}
-              >
-                {renderStep()}
-              </motion.div>
+              <AnimatePresence mode="wait" custom={direction}>
+                <motion.div
+                  key={stepName}
+                  variants={variants}
+                  initial="initial"
+                  animate="animate"
+                  exit="initial"
+                  custom={direction}
+                >
+                  {renderStep()}
+                </motion.div>
+              </AnimatePresence>
 
               {/* Step indicator dots */}
               <div className="mt-8 flex items-center justify-center gap-1.5">

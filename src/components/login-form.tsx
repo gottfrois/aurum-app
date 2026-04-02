@@ -25,8 +25,9 @@ type Mode = 'sign-in' | 'sign-up'
 
 export function LoginForm({
   className,
+  redirectUrl,
   ...props
-}: React.ComponentProps<'div'>) {
+}: React.ComponentProps<'div'> & { redirectUrl?: string }) {
   const { t } = useTranslation()
   const [step, setStep] = useState<Step>('email')
   const [mode, setMode] = useState<Mode>('sign-in')
@@ -160,7 +161,7 @@ export function LoginForm({
           })
           if (result.status === 'complete' && result.createdSessionId) {
             await setSignInActive({ session: result.createdSessionId })
-            await navigate({ to: '/onboarding' })
+            await navigate({ to: redirectUrl ?? '/onboarding' })
           }
         } else {
           if (!signUp) return
@@ -169,7 +170,7 @@ export function LoginForm({
           })
           if (result.status === 'complete' && result.createdSessionId) {
             await setSignUpActive({ session: result.createdSessionId })
-            await navigate({ to: '/onboarding' })
+            await navigate({ to: redirectUrl ?? '/onboarding' })
           }
         }
       } catch (err: unknown) {
@@ -181,7 +182,16 @@ export function LoginForm({
         setLoading(false)
       }
     },
-    [mode, signIn, signUp, setSignInActive, setSignUpActive, navigate, t],
+    [
+      mode,
+      signIn,
+      signUp,
+      setSignInActive,
+      setSignUpActive,
+      navigate,
+      redirectUrl,
+      t,
+    ],
   )
 
   async function handleVerifyCode(e: React.FormEvent) {
@@ -227,7 +237,7 @@ export function LoginForm({
           typeof signIn.authenticateWithRedirect
         >[0]['strategy'],
         redirectUrl: '/sign-in/sso-callback',
-        redirectUrlComplete: '/onboarding',
+        redirectUrlComplete: redirectUrl ?? '/onboarding',
       })
     }
   }
