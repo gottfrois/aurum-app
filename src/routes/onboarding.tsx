@@ -153,7 +153,11 @@ function OnboardingPage() {
           {/* Header: logo left, logout right */}
           <div className="flex items-center justify-between">
             <div className="flex items-center justify-center gap-2 md:justify-start">
-              <img src="/icon.svg" alt="Bunkr" className="size-8 rounded" />
+              <img
+                src="/icon-square.svg"
+                alt="Bunkr"
+                className="size-8 rounded"
+              />
               <span className="text-xl font-bold">Bunkr</span>
             </div>
             <div className="flex items-center gap-1">
