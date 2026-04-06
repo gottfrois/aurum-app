@@ -113,7 +113,7 @@ export function SettingsSidebar({
                   </Link>
                 </SidebarMenuButton>
                 {connectionIssueCount > 0 && (
-                  <SidebarMenuBadge className="bg-destructive text-destructive-foreground">
+                  <SidebarMenuBadge className="bg-destructive text-white peer-hover/menu-button:text-white peer-data-[active=true]/menu-button:text-white">
                     {connectionIssueCount}
                   </SidebarMenuBadge>
                 )}
