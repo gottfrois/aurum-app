@@ -2,7 +2,7 @@ import { useClerk, useUser } from '@clerk/tanstack-react-start'
 import { createFileRoute, useNavigate } from '@tanstack/react-router'
 import { useAction, useConvexAuth, useQuery } from 'convex/react'
 import { Loader2, LogOut } from 'lucide-react'
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import { toast } from 'sonner'
 import { Button } from '~/components/ui/button'
 import { api } from '../../convex/_generated/api'
@@ -19,6 +19,8 @@ function InvitationPage() {
   const { user } = useUser()
   const { isAuthenticated, isLoading: isAuthLoading } = useConvexAuth()
 
+  const [actionTaken, setActionTaken] = useState(false)
+
   const invitation = useQuery(
     api.members.getInvitationById,
     isAuthenticated
@@ -31,11 +33,6 @@ function InvitationPage() {
   const resolveUsers = useAction(api.members.resolveUsers)
 
   const [inviterName, setInviterName] = useState<string | null>(null)
-  const [accepting, setAccepting] = useState(false)
-  const [rejecting, setRejecting] = useState(false)
-  // Ref tracks action initiation synchronously — prevents flash of
-  // "no longer valid" when the reactive query updates before state does
-  const actionStarted = useRef(false)
 
   useEffect(() => {
     if (!invitation?.invitedBy) return
@@ -52,41 +49,37 @@ function InvitationPage() {
       .catch(() => {})
   }, [invitation?.invitedBy, resolveUsers])
 
-  const handleAccept = useCallback(async () => {
-    actionStarted.current = true
-    setAccepting(true)
-    try {
-      await acceptInvitation({
-        invitationId: invitationId as Id<'workspaceInvitations'>,
-      })
-      toast.success('Invitation accepted')
-      void navigate({ to: '/' })
-    } catch (err) {
-      toast.error(
-        err instanceof Error ? err.message : 'Failed to accept invitation',
+  // Navigate immediately, fire action in background.
+  // The page unmounts before the Convex subscription update arrives.
+  const handleAccept = useCallback(() => {
+    setActionTaken(true)
+    void navigate({ to: '/' })
+    void acceptInvitation({
+      invitationId: invitationId as Id<'workspaceInvitations'>,
+    })
+      .then(() => toast.success('Invitation accepted'))
+      .catch((err: unknown) =>
+        toast.error(
+          err instanceof Error ? err.message : 'Failed to accept invitation',
+        ),
       )
-      setAccepting(false)
-    }
-  }, [acceptInvitation, invitationId, navigate])
+  }, [navigate, acceptInvitation, invitationId])
 
-  const handleReject = useCallback(async () => {
-    actionStarted.current = true
-    setRejecting(true)
-    try {
-      await rejectInvitationAction({
-        invitationId: invitationId as Id<'workspaceInvitations'>,
-      })
-      toast.success('Invitation rejected')
-      void navigate({ to: '/' })
-    } catch (err) {
-      toast.error(
-        err instanceof Error ? err.message : 'Failed to reject invitation',
+  const handleReject = useCallback(() => {
+    setActionTaken(true)
+    void navigate({ to: '/' })
+    void rejectInvitationAction({
+      invitationId: invitationId as Id<'workspaceInvitations'>,
+    })
+      .then(() => toast.success('Invitation rejected'))
+      .catch((err: unknown) =>
+        toast.error(
+          err instanceof Error ? err.message : 'Failed to reject invitation',
+        ),
       )
-      setRejecting(false)
-    }
-  }, [rejectInvitationAction, invitationId, navigate])
+  }, [navigate, rejectInvitationAction, invitationId])
 
-  if (isAuthLoading || actionStarted.current) {
+  if (isAuthLoading || actionTaken) {
     return (
       <div className="flex min-h-svh items-center justify-center">
         <Loader2 className="size-8 animate-spin text-muted-foreground" />
@@ -96,10 +89,8 @@ function InvitationPage() {
 
   const userEmail = user?.primaryEmailAddress?.emailAddress
 
-  // Determine content to render
   let content: React.ReactNode
   if (invitation === undefined) {
-    // Still loading
     content = (
       <div className="flex items-center justify-center py-12">
         <Loader2 className="size-8 animate-spin text-muted-foreground" />
@@ -176,19 +167,8 @@ function InvitationPage() {
           </p>
         </div>
         <div className="flex w-full flex-col gap-2">
-          <Button
-            onClick={handleAccept}
-            loading={accepting}
-            disabled={rejecting}
-          >
-            Accept
-          </Button>
-          <Button
-            variant="outline"
-            onClick={handleReject}
-            loading={rejecting}
-            disabled={accepting}
-          >
+          <Button onClick={handleAccept}>Accept</Button>
+          <Button variant="outline" onClick={handleReject}>
             Reject
           </Button>
         </div>
