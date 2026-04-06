@@ -17,6 +17,7 @@ import { Route as AppRouteImport } from './routes/_app'
 import { Route as AppIndexRouteImport } from './routes/_app/index'
 import { Route as SignInSplatRouteImport } from './routes/sign-in/$'
 import { Route as PowensCallbackRouteImport } from './routes/powens/callback'
+import { Route as InviteInvitationIdRouteImport } from './routes/invite.$invitationId'
 import { Route as ApiTunnelRouteImport } from './routes/api/tunnel'
 import { Route as AppTransactionsRouteImport } from './routes/_app/transactions'
 import { Route as AppPortfoliosRouteImport } from './routes/_app/portfolios'
@@ -84,6 +85,11 @@ const SignInSplatRoute = SignInSplatRouteImport.update({
 const PowensCallbackRoute = PowensCallbackRouteImport.update({
   id: '/powens/callback',
   path: '/powens/callback',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const InviteInvitationIdRoute = InviteInvitationIdRouteImport.update({
+  id: '/invite/$invitationId',
+  path: '/invite/$invitationId',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ApiTunnelRoute = ApiTunnelRouteImport.update({
@@ -267,6 +273,7 @@ export interface FileRoutesByFullPath {
   '/portfolios': typeof AppPortfoliosRoute
   '/transactions': typeof AppTransactionsRoute
   '/api/tunnel': typeof ApiTunnelRoute
+  '/invite/$invitationId': typeof InviteInvitationIdRoute
   '/powens/callback': typeof PowensCallbackRoute
   '/sign-in/$': typeof SignInSplatRoute
   '/accounts/$accountId': typeof AppAccountsAccountIdRoute
@@ -305,6 +312,7 @@ export interface FileRoutesByTo {
   '/portfolios': typeof AppPortfoliosRoute
   '/transactions': typeof AppTransactionsRoute
   '/api/tunnel': typeof ApiTunnelRoute
+  '/invite/$invitationId': typeof InviteInvitationIdRoute
   '/powens/callback': typeof PowensCallbackRoute
   '/sign-in/$': typeof SignInSplatRoute
   '/accounts/$accountId': typeof AppAccountsAccountIdRoute
@@ -344,6 +352,7 @@ export interface FileRoutesById {
   '/_app/portfolios': typeof AppPortfoliosRoute
   '/_app/transactions': typeof AppTransactionsRoute
   '/api/tunnel': typeof ApiTunnelRoute
+  '/invite/$invitationId': typeof InviteInvitationIdRoute
   '/powens/callback': typeof PowensCallbackRoute
   '/sign-in/$': typeof SignInSplatRoute
   '/_app/': typeof AppIndexRoute
@@ -385,6 +394,7 @@ export interface FileRouteTypes {
     | '/portfolios'
     | '/transactions'
     | '/api/tunnel'
+    | '/invite/$invitationId'
     | '/powens/callback'
     | '/sign-in/$'
     | '/accounts/$accountId'
@@ -423,6 +433,7 @@ export interface FileRouteTypes {
     | '/portfolios'
     | '/transactions'
     | '/api/tunnel'
+    | '/invite/$invitationId'
     | '/powens/callback'
     | '/sign-in/$'
     | '/accounts/$accountId'
@@ -461,6 +472,7 @@ export interface FileRouteTypes {
     | '/_app/portfolios'
     | '/_app/transactions'
     | '/api/tunnel'
+    | '/invite/$invitationId'
     | '/powens/callback'
     | '/sign-in/$'
     | '/_app/'
@@ -500,6 +512,7 @@ export interface RootRouteChildren {
   OnboardingRoute: typeof OnboardingRoute
   WaitlistRoute: typeof WaitlistRoute
   ApiTunnelRoute: typeof ApiTunnelRoute
+  InviteInvitationIdRoute: typeof InviteInvitationIdRoute
   PowensCallbackRoute: typeof PowensCallbackRoute
   SignInSplatRoute: typeof SignInSplatRoute
 }
@@ -560,6 +573,13 @@ declare module '@tanstack/react-router' {
       path: '/powens/callback'
       fullPath: '/powens/callback'
       preLoaderRoute: typeof PowensCallbackRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/invite/$invitationId': {
+      id: '/invite/$invitationId'
+      path: '/invite/$invitationId'
+      fullPath: '/invite/$invitationId'
+      preLoaderRoute: typeof InviteInvitationIdRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/api/tunnel': {
@@ -884,6 +904,7 @@ const rootRouteChildren: RootRouteChildren = {
   OnboardingRoute: OnboardingRoute,
   WaitlistRoute: WaitlistRoute,
   ApiTunnelRoute: ApiTunnelRoute,
+  InviteInvitationIdRoute: InviteInvitationIdRoute,
   PowensCallbackRoute: PowensCallbackRoute,
   SignInSplatRoute: SignInSplatRoute,
 }

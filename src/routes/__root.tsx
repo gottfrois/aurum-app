@@ -18,6 +18,7 @@ import { createServerFn } from '@tanstack/react-start'
 import type { ConvexReactClient } from 'convex/react'
 import { useConvexAuth, useQuery } from 'convex/react'
 import { ConvexProviderWithClerk } from 'convex/react-clerk'
+import { Loader2 } from 'lucide-react'
 import { ThemeProvider } from 'next-themes'
 import * as React from 'react'
 import { useTranslation } from 'react-i18next'
@@ -158,7 +159,15 @@ export const Route = createRootRouteWithContext<{
 
     const isSignIn = ctx.location.pathname.startsWith('/sign-in')
     const isWaitlist = ctx.location.pathname.startsWith('/waitlist')
+    const isInvite = ctx.location.pathname.startsWith('/invite')
     const isAuthenticated = userId && token
+
+    if (!isAuthenticated && isInvite) {
+      throw redirect({
+        to: '/sign-in/$',
+        search: { redirect_url: ctx.location.pathname },
+      })
+    }
 
     if (!isAuthenticated && !isSignIn && !isWaitlist) {
       throw redirect({ to: '/waitlist' })
@@ -166,6 +175,24 @@ export const Route = createRootRouteWithContext<{
 
     if (isAuthenticated && (isSignIn || isWaitlist)) {
       throw redirect({ to: '/' })
+    }
+
+    // Check onboarding state server-side to avoid dashboard flash
+    const isOnboarding = ctx.location.pathname.startsWith('/onboarding')
+    const isPowens = ctx.location.pathname.startsWith('/powens/callback')
+    const isExemptPath =
+      isSignIn || isWaitlist || isInvite || isOnboarding || isPowens
+    if (isAuthenticated && !isExemptPath) {
+      const httpClient = ctx.context.convexQueryClient.serverHttpClient
+      if (httpClient) {
+        const state = await httpClient.query(api.onboarding.getOnboardingState)
+        if (
+          state.status === 'none' ||
+          (state.status === 'in_progress' && state.step)
+        ) {
+          throw redirect({ to: '/onboarding' })
+        }
+      }
     }
 
     return { userId, token }
@@ -248,6 +275,7 @@ const EXEMPT_PATHS = [
   '/sign-in',
   '/powens/callback',
   '/waitlist',
+  '/invite',
 ]
 
 function OnboardingGuard({ children }: { children: React.ReactNode }) {
@@ -275,6 +303,28 @@ function OnboardingGuard({ children }: { children: React.ReactNode }) {
       void navigate({ to: '/onboarding' })
     }
   }, [isAuthLoading, isAuthenticated, isExempt, onboardingState, navigate])
+
+  // Block rendering while determining onboarding status or while redirecting
+  // This prevents the full app layout from flashing before redirect
+  if (!isExempt && isAuthenticated && !isAuthLoading) {
+    if (onboardingState === undefined) {
+      return (
+        <div className="flex min-h-svh items-center justify-center">
+          <Loader2 className="size-8 animate-spin text-muted-foreground" />
+        </div>
+      )
+    }
+    if (
+      onboardingState.status === 'none' ||
+      (onboardingState.status === 'in_progress' && onboardingState.step)
+    ) {
+      return (
+        <div className="flex min-h-svh items-center justify-center">
+          <Loader2 className="size-8 animate-spin text-muted-foreground" />
+        </div>
+      )
+    }
+  }
 
   return <>{children}</>
 }

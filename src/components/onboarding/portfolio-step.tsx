@@ -25,10 +25,7 @@ const PORTFOLIO_ICONS = [
   { name: 'TrendingUp', icon: TrendingUp },
 ]
 
-export function PortfolioStep({
-  goToStep,
-  setSubmitting,
-}: OnboardingStepProps) {
+export function PortfolioStep({ next, back }: OnboardingStepProps) {
   const { t } = useTranslation()
   const [name, setName] = useState(t('onboarding.portfolio.namePlaceholder'))
   const [selectedIcon, setSelectedIcon] = useState('User')
@@ -38,16 +35,14 @@ export function PortfolioStep({
 
   async function handleNext() {
     setSaving(true)
-    setSubmitting(true)
     try {
       await createPortfolio({ name, icon: selectedIcon })
       await updateStep({ step: 'connection' })
-      goToStep('connection')
+      next()
     } catch (err) {
       toast.error(t('toast.failedCreatePortfolio'))
       console.error(err)
       setSaving(false)
-      setSubmitting(false)
     }
   }
 
@@ -55,7 +50,7 @@ export function PortfolioStep({
     <StepLayout
       title={t('onboarding.portfolio.title')}
       subtitle={t('onboarding.portfolio.subtitle')}
-      onBack={() => goToStep('vault')}
+      onBack={back}
       onSubmit={handleNext}
       submitLabel={t('common.continue')}
       submitDisabled={!name.trim()}

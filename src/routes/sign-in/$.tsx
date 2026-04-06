@@ -2,10 +2,18 @@ import { createFileRoute } from '@tanstack/react-router'
 import { LoginForm } from '~/components/login-form'
 
 export const Route = createFileRoute('/sign-in/$')({
+  validateSearch: (
+    search: Record<string, unknown>,
+  ): { redirect_url?: string } => ({
+    redirect_url:
+      typeof search.redirect_url === 'string' ? search.redirect_url : undefined,
+  }),
   component: SignInPage,
 })
 
 function SignInPage() {
+  const { redirect_url } = Route.useSearch()
+
   return (
     <div className="grid min-h-svh lg:grid-cols-2">
       <div className="flex flex-col gap-4 p-6 md:p-10">
@@ -15,7 +23,7 @@ function SignInPage() {
         </div>
         <div className="flex flex-1 items-center justify-center">
           <div className="w-full max-w-xs">
-            <LoginForm />
+            <LoginForm redirectUrl={redirect_url} />
           </div>
         </div>
       </div>

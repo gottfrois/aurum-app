@@ -7,7 +7,7 @@ import { Label } from '~/components/ui/label'
 import { StepLayout } from './step-layout'
 import type { OnboardingStepProps } from './types'
 
-export function NameStep({ goToStep, setSubmitting }: OnboardingStepProps) {
+export function NameStep({ next, back }: OnboardingStepProps) {
   const { t } = useTranslation()
   const { user } = useUser()
   const [firstName, setFirstName] = useState(user?.firstName ?? '')
@@ -17,15 +17,13 @@ export function NameStep({ goToStep, setSubmitting }: OnboardingStepProps) {
   async function handleNext() {
     if (!user) return
     setSaving(true)
-    setSubmitting(true)
     try {
       await user.update({ firstName, lastName })
-      goToStep('workspace')
+      next()
     } catch (err) {
       toast.error(t('toast.failedUpdateNameOnboarding'))
       console.error(err)
       setSaving(false)
-      setSubmitting(false)
     }
   }
 
@@ -33,7 +31,7 @@ export function NameStep({ goToStep, setSubmitting }: OnboardingStepProps) {
     <StepLayout
       title={t('onboarding.name.title')}
       subtitle={t('onboarding.name.subtitle')}
-      onBack={() => goToStep('legal')}
+      onBack={back}
       onSubmit={handleNext}
       submitLabel={t('common.continue')}
       submitDisabled={!firstName.trim()}

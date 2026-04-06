@@ -391,7 +391,7 @@ export const sendInvitationEmail = internalMutation({
     siteUrl: v.string(),
   },
   handler: async (ctx, { workspaceId, email, invitedBy, siteUrl }) => {
-    await ctx.db.insert('workspaceInvitations', {
+    const invitationId = await ctx.db.insert('workspaceInvitations', {
       workspaceId,
       email,
       invitedBy,
@@ -399,6 +399,7 @@ export const sendInvitationEmail = internalMutation({
     })
 
     const workspace = await ctx.db.get('workspaces', workspaceId)
+    const workspaceName = workspace?.name ?? 'a workspace'
     await insertAuditLogDirect(ctx.db, {
       workspaceId,
       workspaceName: workspace?.name ?? '',
@@ -419,11 +420,227 @@ export const sendInvitationEmail = internalMutation({
       )
     }
 
+    const inviteUrl = `${siteUrl}/invite/${invitationId}`
     await resend.sendEmail(ctx, {
       from: fromEmail,
       to: [email],
-      subject: 'You have been invited to join a workspace on Bunkr',
-      html: `<p>You have been invited to join a workspace on Bunkr.</p><p><a href="${siteUrl}">Sign in to accept the invitation</a></p>`,
+      subject: `You've been invited to join ${workspaceName} on Bunkr`,
+      html: `<p>You have been invited to join <strong>${workspaceName}</strong> on Bunkr.</p><p><a href="${inviteUrl}">Accept the invitation</a></p>`,
+    })
+  },
+})
+
+export const getInvitationById = query({
+  args: { invitationId: v.id('workspaceInvitations') },
+  handler: async (ctx, { invitationId }) => {
+    await requireAuthUserId(ctx)
+    const invitation = await ctx.db.get('workspaceInvitations', invitationId)
+    if (!invitation) return null
+
+    const workspace = await ctx.db.get('workspaces', invitation.workspaceId)
+    return {
+      _id: invitation._id,
+      email: invitation.email,
+      status: invitation.status,
+      invitedBy: invitation.invitedBy,
+      workspaceId: invitation.workspaceId,
+      workspaceName: workspace?.name ?? null,
+    }
+  },
+})
+
+export const getPendingInvitationsForUser = query({
+  args: {},
+  handler: async (ctx) => {
+    await requireAuthUserId(ctx)
+    const identity = await ctx.auth.getUserIdentity()
+    if (!identity?.email) return []
+
+    const invitations = await ctx.db
+      .query('workspaceInvitations')
+      .withIndex('by_email', (q) =>
+        q.eq('email', identity.email?.toLowerCase() ?? ''),
+      )
+      .filter((q) => q.eq(q.field('status'), 'pending'))
+      .collect()
+
+    const results = await Promise.all(
+      invitations.map(async (inv) => {
+        const workspace = await ctx.db.get('workspaces', inv.workspaceId)
+        if (!workspace) return null
+        return {
+          _id: inv._id,
+          workspaceName: workspace.name,
+          workspaceId: inv.workspaceId,
+          invitedBy: inv.invitedBy,
+        }
+      }),
+    )
+
+    return results.filter((r): r is NonNullable<typeof r> => r !== null)
+  },
+})
+
+export const acceptSpecificInvitation = internalMutation({
+  args: {
+    invitationId: v.id('workspaceInvitations'),
+    userId: v.string(),
+    email: v.string(),
+  },
+  handler: async (ctx, { invitationId, userId, email }) => {
+    const invitation = await ctx.db.get('workspaceInvitations', invitationId)
+    if (!invitation) throw new Error('Invitation not found')
+    if (invitation.status !== 'pending') {
+      throw new Error('Invitation is no longer pending')
+    }
+    if (invitation.email.toLowerCase() !== email.toLowerCase()) {
+      throw new Error('Email does not match invitation')
+    }
+
+    const workspace = await ctx.db.get('workspaces', invitation.workspaceId)
+    if (!workspace) throw new Error('Workspace no longer exists')
+
+    // Check if already a member of this workspace
+    const existingMembers = await ctx.db
+      .query('workspaceMembers')
+      .withIndex('by_userId', (q) => q.eq('userId', userId))
+      .collect()
+    const alreadyMember = existingMembers.find(
+      (m) => m.workspaceId === invitation.workspaceId,
+    )
+    if (alreadyMember) {
+      await ctx.db.patch('workspaceInvitations', invitationId, {
+        status: 'accepted',
+      })
+      return { accepted: true, workspaceId: invitation.workspaceId }
+    }
+
+    // Check if user already completed onboarding (has personal encryption key)
+    const existingKey = await ctx.db
+      .query('encryptionKeys')
+      .withIndex('by_userId', (q) => q.eq('userId', userId))
+      .first()
+
+    // Create member record — skip onboarding for existing users
+    await ctx.db.insert('workspaceMembers', {
+      workspaceId: invitation.workspaceId,
+      userId,
+      role: 'member',
+      onboardingStep: existingKey ? 'complete' : 'vault',
+    })
+
+    await ctx.db.patch('workspaceInvitations', invitationId, {
+      status: 'accepted',
+    })
+
+    await insertAuditLogDirect(ctx.db, {
+      workspaceId: invitation.workspaceId,
+      workspaceName: workspace.name,
+      actorType: 'user',
+      actorId: userId,
+      event: 'workspace.invitation_accepted',
+      resourceType: 'workspace',
+      resourceId: invitation.workspaceId,
+      metadata: JSON.stringify({ invitedEmail: email }),
+    })
+
+    return { accepted: true, workspaceId: invitation.workspaceId }
+  },
+})
+
+export const acceptInvitationById = action({
+  args: { invitationId: v.id('workspaceInvitations') },
+  handler: async (
+    ctx,
+    { invitationId },
+  ): Promise<{ accepted: boolean; workspaceId: string }> => {
+    const userId = await requireAuthUserId(ctx)
+
+    const clerkSecretKey = process.env.CLERK_SECRET_KEY
+    if (!clerkSecretKey) throw new Error('CLERK_SECRET_KEY not configured')
+
+    const res = await fetch(`https://api.clerk.com/v1/users/${userId}`, {
+      headers: { Authorization: `Bearer ${clerkSecretKey}` },
+    })
+    if (!res.ok) throw new Error('Failed to fetch user from Clerk')
+
+    const user = (await res.json()) as {
+      primary_email_address_id: string
+      email_addresses?: Array<{ id: string; email_address: string }>
+    }
+    const email = user.email_addresses?.find(
+      (e) => e.id === user.primary_email_address_id,
+    )?.email_address
+    if (!email) throw new Error('No email found for user')
+
+    return await ctx.runMutation(internal.members.acceptSpecificInvitation, {
+      invitationId,
+      userId,
+      email: email.toLowerCase(),
+    })
+  },
+})
+
+export const rejectInvitation = action({
+  args: { invitationId: v.id('workspaceInvitations') },
+  handler: async (ctx, { invitationId }) => {
+    const userId = await requireAuthUserId(ctx)
+
+    const clerkSecretKey = process.env.CLERK_SECRET_KEY
+    if (!clerkSecretKey) throw new Error('CLERK_SECRET_KEY not configured')
+
+    const res = await fetch(`https://api.clerk.com/v1/users/${userId}`, {
+      headers: { Authorization: `Bearer ${clerkSecretKey}` },
+    })
+    if (!res.ok) throw new Error('Failed to fetch user from Clerk')
+
+    const user = (await res.json()) as {
+      primary_email_address_id: string
+      email_addresses?: Array<{ id: string; email_address: string }>
+    }
+    const email = user.email_addresses?.find(
+      (e) => e.id === user.primary_email_address_id,
+    )?.email_address
+    if (!email) throw new Error('No email found for user')
+
+    await ctx.runMutation(internal.members.rejectInvitationInternal, {
+      invitationId,
+      userId,
+      email: email.toLowerCase(),
+    })
+  },
+})
+
+export const rejectInvitationInternal = internalMutation({
+  args: {
+    invitationId: v.id('workspaceInvitations'),
+    userId: v.string(),
+    email: v.string(),
+  },
+  handler: async (ctx, { invitationId, userId, email }) => {
+    const invitation = await ctx.db.get('workspaceInvitations', invitationId)
+    if (!invitation) throw new Error('Invitation not found')
+    if (invitation.status !== 'pending') {
+      throw new Error('Invitation is no longer pending')
+    }
+    if (invitation.email.toLowerCase() !== email.toLowerCase()) {
+      throw new Error('Email does not match invitation')
+    }
+
+    await ctx.db.patch('workspaceInvitations', invitationId, {
+      status: 'rejected',
+    })
+
+    const workspace = await ctx.db.get('workspaces', invitation.workspaceId)
+    await insertAuditLogDirect(ctx.db, {
+      workspaceId: invitation.workspaceId,
+      workspaceName: workspace?.name ?? '',
+      actorType: 'user',
+      actorId: userId,
+      event: 'workspace.invitation_rejected',
+      resourceType: 'workspace',
+      resourceId: invitation.workspaceId,
+      metadata: JSON.stringify({ invitedEmail: email }),
     })
   },
 })

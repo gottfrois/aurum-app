@@ -98,6 +98,7 @@ export default defineSchema({
       v.literal('pending'),
       v.literal('accepted'),
       v.literal('revoked'),
+      v.literal('rejected'),
     ),
   })
     .index('by_workspaceId', ['workspaceId'])
