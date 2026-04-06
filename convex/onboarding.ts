@@ -1,6 +1,6 @@
 import { v } from 'convex/values'
 import { internal } from './_generated/api'
-import { action, internalQuery, mutation, query } from './_generated/server'
+import { mutation, query } from './_generated/server'
 import { getAuthUserId, requireAuthUserId } from './lib/auth'
 
 export const getOnboardingState = query({
@@ -41,48 +41,54 @@ export const getOnboardingState = query({
   },
 })
 
-export const checkPendingInvitations = action({
+export const getOnboardingData = query({
   args: {},
-  handler: async (ctx): Promise<{ hasPendingInvitations: boolean }> => {
-    const userId = await requireAuthUserId(ctx)
+  handler: async (ctx) => {
+    const userId = await getAuthUserId(ctx)
+    if (!userId) return null
 
-    const clerkSecretKey = process.env.CLERK_SECRET_KEY
-    if (!clerkSecretKey) {
-      return { hasPendingInvitations: false }
+    const consents = await ctx.db
+      .query('userConsents')
+      .withIndex('by_userId', (q) => q.eq('userId', userId))
+      .first()
+
+    const member = await ctx.db
+      .query('workspaceMembers')
+      .withIndex('by_userId', (q) => q.eq('userId', userId))
+      .first()
+
+    let memberData: {
+      role: 'owner' | 'member'
+      onboardingStep: string | null
+      hasPortfolio: boolean
+    } | null = null
+
+    if (member) {
+      const workspace = await ctx.db.get('workspaces', member.workspaceId)
+      if (workspace) {
+        const portfolio = await ctx.db
+          .query('portfolios')
+          .withIndex('by_memberId', (q) => q.eq('memberId', member._id))
+          .first()
+        memberData = {
+          role: member.role,
+          onboardingStep: member.onboardingStep ?? null,
+          hasPortfolio: portfolio !== null,
+        }
+      }
     }
 
-    const res = await fetch(`https://api.clerk.com/v1/users/${userId}`, {
-      headers: { Authorization: `Bearer ${clerkSecretKey}` },
-    })
-    if (!res.ok) return { hasPendingInvitations: false }
+    const encKey = await ctx.db
+      .query('encryptionKeys')
+      .withIndex('by_userId', (q) => q.eq('userId', userId))
+      .first()
 
-    const user = (await res.json()) as {
-      primary_email_address_id: string
-      email_addresses?: Array<{ id: string; email_address: string }>
+    return {
+      hasConsents:
+        consents?.termsOfService === true && consents?.privacyPolicy === true,
+      member: memberData,
+      hasEncryptionKey: encKey !== null,
     }
-    const email = user.email_addresses?.find(
-      (e) => e.id === user.primary_email_address_id,
-    )?.email_address
-    if (!email) return { hasPendingInvitations: false }
-
-    const count: number = await ctx.runQuery(
-      internal.onboarding.countPendingInvitationsByEmail,
-      { email: email.toLowerCase() },
-    )
-
-    return { hasPendingInvitations: count > 0 }
-  },
-})
-
-export const countPendingInvitationsByEmail = internalQuery({
-  args: { email: v.string() },
-  handler: async (ctx, { email }) => {
-    const invitations = await ctx.db
-      .query('workspaceInvitations')
-      .withIndex('by_email', (q) => q.eq('email', email))
-      .filter((q) => q.eq(q.field('status'), 'pending'))
-      .collect()
-    return invitations.length
   },
 })
 

@@ -1,5 +1,5 @@
 import { useSignIn, useSignUp } from '@clerk/tanstack-react-start/legacy'
-import { Link, useNavigate } from '@tanstack/react-router'
+import { Link, useLocation, useNavigate } from '@tanstack/react-router'
 import { Loader2 } from 'lucide-react'
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
@@ -69,8 +69,58 @@ export function LoginForm({
     isLoaded: signUpLoaded,
   } = useSignUp()
   const navigate = useNavigate()
+  const location = useLocation()
 
   const isLoaded = signInLoaded && signUpLoaded
+  const isSsoCallback = location.pathname.includes('/sso-callback')
+
+  // Handle SSO callback (e.g., Google OAuth redirect)
+  // Clerk processes the callback automatically. We just need to detect
+  // completion or errors and navigate accordingly.
+  useEffect(() => {
+    if (!isSsoCallback || !isLoaded) return
+
+    if (signIn?.status === 'complete' && signIn.createdSessionId) {
+      void setSignInActive({ session: signIn.createdSessionId }).then(() =>
+        navigate({ to: redirectUrl ?? '/' }),
+      )
+      return
+    }
+
+    if (signUp?.status === 'complete' && signUp.createdSessionId) {
+      void setSignUpActive({ session: signUp.createdSessionId }).then(() =>
+        navigate({ to: redirectUrl ?? '/' }),
+      )
+      return
+    }
+
+    // Check for waitlist or other errors from Clerk
+    const firstError = signUp?.verifications?.externalAccount
+    if (firstError?.error) {
+      const errorCode = firstError.error.code
+      if (
+        errorCode === 'form_restricted_to_waitlist' ||
+        errorCode === 'sign_up_restricted'
+      ) {
+        void navigate({ to: '/waitlist' })
+        return
+      }
+      setError(firstError.error.longMessage ?? t('login.ssoFailed'))
+    }
+  }, [
+    isSsoCallback,
+    isLoaded,
+    signIn?.status,
+    signIn?.createdSessionId,
+    signUp?.status,
+    signUp?.createdSessionId,
+    signUp?.verifications?.externalAccount,
+    setSignInActive,
+    setSignUpActive,
+    navigate,
+    redirectUrl,
+    t,
+  ])
 
   async function handleSendCode(e: React.FormEvent) {
     e.preventDefault()
@@ -161,7 +211,7 @@ export function LoginForm({
           })
           if (result.status === 'complete' && result.createdSessionId) {
             await setSignInActive({ session: result.createdSessionId })
-            await navigate({ to: redirectUrl ?? '/onboarding' })
+            await navigate({ to: redirectUrl ?? '/' })
           }
         } else {
           if (!signUp) return
@@ -170,7 +220,7 @@ export function LoginForm({
           })
           if (result.status === 'complete' && result.createdSessionId) {
             await setSignUpActive({ session: result.createdSessionId })
-            await navigate({ to: redirectUrl ?? '/onboarding' })
+            await navigate({ to: redirectUrl ?? '/' })
           }
         }
       } catch (err: unknown) {
@@ -237,12 +287,12 @@ export function LoginForm({
           typeof signIn.authenticateWithRedirect
         >[0]['strategy'],
         redirectUrl: '/sign-in/sso-callback',
-        redirectUrlComplete: redirectUrl ?? '/onboarding',
+        redirectUrlComplete: redirectUrl ?? '/',
       })
     }
   }
 
-  if (!isLoaded) {
+  if (!isLoaded || (isSsoCallback && !error)) {
     return (
       <div
         className={cn('flex items-center justify-center py-12', className)}

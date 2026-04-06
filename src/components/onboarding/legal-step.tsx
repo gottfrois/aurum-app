@@ -20,33 +20,27 @@ interface LegalStepProps extends OnboardingStepProps {
 }
 
 export function LegalStep({
-  goToStep,
-  setSubmitting,
-  isInvited,
+  next,
   consents,
   onConsentsChange,
 }: LegalStepProps) {
   const { t } = useTranslation()
   const [saving, setSaving] = useState(false)
   const saveConsents = useMutation(api.onboarding.saveConsents)
-  const updateStep = useMutation(api.onboarding.updateOnboardingStep)
 
   async function handleNext() {
     setSaving(true)
-    setSubmitting(true)
     try {
       await saveConsents({
         termsOfService: consents.tos,
         privacyPolicy: consents.privacy,
         marketingCommunications: consents.marketing,
       })
-      await updateStep({ step: 'name' })
-      goToStep(isInvited ? 'vault' : 'name')
+      next()
     } catch (err) {
       toast.error(t('toast.failedSaveConsents'))
       console.error(err)
       setSaving(false)
-      setSubmitting(false)
     }
   }
 

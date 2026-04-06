@@ -7,7 +7,7 @@ import { api } from '../../../convex/_generated/api'
 import { StepLayout } from './step-layout'
 import type { OnboardingStepProps } from './types'
 
-export function InviteStep({ goToStep, setSubmitting }: OnboardingStepProps) {
+export function InviteStep({ next, back }: OnboardingStepProps) {
   const { t } = useTranslation()
   const [emails, setEmails] = useState('')
   const [saving, setSaving] = useState(false)
@@ -22,30 +22,26 @@ export function InviteStep({ goToStep, setSubmitting }: OnboardingStepProps) {
       .filter(Boolean)
 
     setSaving(true)
-    setSubmitting(true)
     try {
       if (emailList.length > 0) {
         await sendInvitation({ emails: emailList })
       }
       await updateStep({ step: 'vault' })
-      goToStep('vault')
+      next()
     } catch (err) {
       toast.error(t('toast.failedSendInvitationsOnboarding'))
       console.error(err)
       setSaving(false)
-      setSubmitting(false)
     }
   }
 
   async function handleSkip() {
     setSkipping(true)
-    setSubmitting(true)
     try {
       await updateStep({ step: 'vault' })
-      goToStep('vault')
+      next()
     } catch {
       setSkipping(false)
-      setSubmitting(false)
     }
   }
 
@@ -53,7 +49,7 @@ export function InviteStep({ goToStep, setSubmitting }: OnboardingStepProps) {
     <StepLayout
       title={t('onboarding.invite.title')}
       subtitle={t('onboarding.invite.subtitle')}
-      onBack={() => goToStep('workspace')}
+      onBack={back}
       onSubmit={handleNext}
       submitLabel={t('button.sendInvites')}
       submitDisabled={!emails.trim()}

@@ -2,7 +2,7 @@ import { useClerk, useUser } from '@clerk/tanstack-react-start'
 import { createFileRoute, useNavigate } from '@tanstack/react-router'
 import { useAction, useConvexAuth, useQuery } from 'convex/react'
 import { Loader2, LogOut } from 'lucide-react'
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { toast } from 'sonner'
 import { Button } from '~/components/ui/button'
 import { api } from '../../convex/_generated/api'
@@ -33,6 +33,9 @@ function InvitationPage() {
   const [inviterName, setInviterName] = useState<string | null>(null)
   const [accepting, setAccepting] = useState(false)
   const [rejecting, setRejecting] = useState(false)
+  // Ref tracks action initiation synchronously — prevents flash of
+  // "no longer valid" when the reactive query updates before state does
+  const actionStarted = useRef(false)
 
   useEffect(() => {
     if (!invitation?.invitedBy) return
@@ -50,13 +53,14 @@ function InvitationPage() {
   }, [invitation?.invitedBy, resolveUsers])
 
   const handleAccept = useCallback(async () => {
+    actionStarted.current = true
     setAccepting(true)
     try {
       await acceptInvitation({
         invitationId: invitationId as Id<'workspaceInvitations'>,
       })
       toast.success('Invitation accepted')
-      void navigate({ to: '/onboarding' })
+      void navigate({ to: '/' })
     } catch (err) {
       toast.error(
         err instanceof Error ? err.message : 'Failed to accept invitation',
@@ -66,6 +70,7 @@ function InvitationPage() {
   }, [acceptInvitation, invitationId, navigate])
 
   const handleReject = useCallback(async () => {
+    actionStarted.current = true
     setRejecting(true)
     try {
       await rejectInvitationAction({
@@ -81,7 +86,7 @@ function InvitationPage() {
     }
   }, [rejectInvitationAction, invitationId, navigate])
 
-  if (isAuthLoading) {
+  if (isAuthLoading || actionStarted.current) {
     return (
       <div className="flex min-h-svh items-center justify-center">
         <Loader2 className="size-8 animate-spin text-muted-foreground" />
@@ -195,7 +200,7 @@ function InvitationPage() {
     <div className="flex min-h-svh flex-col items-center justify-center p-6 md:p-10">
       <div className="flex w-full max-w-xs flex-col gap-6">
         <div className="flex items-center justify-center gap-2">
-          <img src="/icon.svg" alt="Bunkr" className="size-8 rounded" />
+          <img src="/icon-square.svg" alt="Bunkr" className="size-8 rounded" />
           <span className="text-xl font-bold">Bunkr</span>
         </div>
         {content}

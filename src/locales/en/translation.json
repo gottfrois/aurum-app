@@ -85,6 +85,11 @@
   "settings.profile.deleteWorkspaceDescription": "Permanently delete this workspace and all associated data. This action cannot be undone.",
   "settings.profile.deleteWorkspaceConfirm": "This will permanently delete {{name}} and all associated data including connections, transactions, investments, and member data. This action cannot be undone.",
 
+  "settings.profile.dangerZone": "Danger zone",
+  "settings.profile.deleteAccount": "Delete account",
+  "settings.profile.deleteAccountDescription": "Permanently delete your account and all personal data. This action cannot be undone.",
+  "settings.profile.deleteAccountConfirm": "This will permanently delete your account and all associated data including portfolios, transactions, investments, and encryption keys. This action cannot be undone.",
+
   "settings.security.title": "Security & access",
   "settings.security.description": "Manage your sessions and security settings.",
   "settings.security.sessions": "Sessions",
@@ -931,6 +936,8 @@
   "toast.failedUpdateWorkspaceName": "Failed to update workspace name",
   "toast.workspaceDeleted": "Workspace deleted",
   "toast.failedDeleteWorkspace": "Failed to delete workspace",
+  "toast.accountDeleted": "Account deleted",
+  "toast.failedDeleteAccount": "Failed to delete account",
   "toast.leftWorkspace": "You have left the workspace",
   "toast.failedLeaveWorkspace": "Failed to leave workspace",
   "toast.allSessionsRevoked": "All other sessions revoked",
@@ -1022,6 +1029,7 @@
   "login.useDifferentEmail": "Use a different email",
   "login.verificationFailed": "Verification failed. Please try again.",
   "login.resendFailed": "Could not resend code. Please try again.",
+  "login.ssoFailed": "Sign-in with Google failed. Please try again or use email.",
 
   "waitlist.carousel.netWorthTitle": "Net Worth Tracking",
   "waitlist.carousel.netWorthDescription": "See your complete financial picture in one place. Track how your wealth evolves over time across all your accounts.",

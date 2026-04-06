@@ -85,6 +85,11 @@
   "settings.profile.deleteWorkspaceDescription": "Supprimer définitivement cet espace de travail et toutes les données associées. Cette action est irréversible.",
   "settings.profile.deleteWorkspaceConfirm": "Cela supprimera définitivement {{name}} et toutes les données associées, y compris les connexions, transactions, investissements et données des membres. Cette action est irréversible.",
 
+  "settings.profile.dangerZone": "Zone de danger",
+  "settings.profile.deleteAccount": "Supprimer le compte",
+  "settings.profile.deleteAccountDescription": "Supprimer définitivement votre compte et toutes vos données personnelles. Cette action est irréversible.",
+  "settings.profile.deleteAccountConfirm": "Cela supprimera définitivement votre compte et toutes les données associées, y compris les portefeuilles, transactions, investissements et clés de chiffrement. Cette action est irréversible.",
+
   "settings.security.title": "Sécurité & accès",
   "settings.security.description": "Gérez vos sessions et paramètres de sécurité.",
   "settings.security.sessions": "Sessions",
@@ -931,6 +936,8 @@
   "toast.failedUpdateWorkspaceName": "Échec de la mise à jour du nom",
   "toast.workspaceDeleted": "Espace de travail supprimé",
   "toast.failedDeleteWorkspace": "Échec de la suppression de l'espace de travail",
+  "toast.accountDeleted": "Compte supprimé",
+  "toast.failedDeleteAccount": "Échec de la suppression du compte",
   "toast.leftWorkspace": "Vous avez quitté l'espace de travail",
   "toast.failedLeaveWorkspace": "Échec de la sortie de l'espace de travail",
   "toast.allSessionsRevoked": "Toutes les autres sessions révoquées",
@@ -1022,6 +1029,7 @@
   "login.useDifferentEmail": "Utiliser un autre e-mail",
   "login.verificationFailed": "La vérification a échoué. Veuillez réessayer.",
   "login.resendFailed": "Impossible de renvoyer le code. Veuillez réessayer.",
+  "login.ssoFailed": "La connexion avec Google a échoué. Veuillez réessayer ou utiliser l'email.",
 
   "waitlist.carousel.netWorthTitle": "Suivi du patrimoine",
   "waitlist.carousel.netWorthDescription": "Visualisez l'ensemble de votre situation financière au même endroit. Suivez l'évolution de votre patrimoine à travers tous vos comptes.",

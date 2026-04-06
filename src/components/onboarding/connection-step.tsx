@@ -7,10 +7,7 @@ import { api } from '../../../convex/_generated/api'
 import { StepLayout } from './step-layout'
 import type { OnboardingStepProps } from './types'
 
-export function ConnectionStep({
-  goToStep,
-  setSubmitting,
-}: OnboardingStepProps) {
+export function ConnectionStep({ back }: OnboardingStepProps) {
   const { t } = useTranslation()
   const navigate = useNavigate()
   const [loading, setLoading] = useState(false)
@@ -22,7 +19,6 @@ export function ConnectionStep({
   async function handleConnect() {
     if (!portfolios || portfolios.length === 0) return
     setLoading(true)
-    setSubmitting(true)
     try {
       const url = await generateUrl({ portfolioId: portfolios[0]._id })
       window.location.href = url
@@ -30,13 +26,11 @@ export function ConnectionStep({
       toast.error(t('toast.failedBankConnection'))
       console.error(err)
       setLoading(false)
-      setSubmitting(false)
     }
   }
 
   async function handleSkip() {
     setSkipping(true)
-    setSubmitting(true)
     try {
       await completeOnboarding()
       void navigate({ to: '/' })
@@ -44,7 +38,6 @@ export function ConnectionStep({
       toast.error(t('toast.failedCompleteOnboarding'))
       console.error(err)
       setSkipping(false)
-      setSubmitting(false)
     }
   }
 
@@ -52,7 +45,7 @@ export function ConnectionStep({
     <StepLayout
       title={t('onboarding.connection.title')}
       subtitle={t('onboarding.connection.subtitle')}
-      onBack={() => goToStep('portfolio')}
+      onBack={back}
       onSubmit={handleConnect}
       submitLabel={t('button.connectBank')}
       submitDisabled={!portfolios || portfolios.length === 0}

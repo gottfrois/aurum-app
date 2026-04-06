@@ -1,4 +1,4 @@
-import { useUser } from '@clerk/tanstack-react-start'
+import { useClerk, useUser } from '@clerk/tanstack-react-start'
 import * as Sentry from '@sentry/tanstackstart-react'
 import { createFileRoute, useNavigate } from '@tanstack/react-router'
 import { useAction } from 'convex/react'
@@ -62,6 +62,7 @@ function ProfilePage() {
           </ItemCardItems>
         </ItemCard>
         <WorkspaceSection />
+        <DeleteAccountCard />
       </div>
     </div>
   )
@@ -304,6 +305,73 @@ function DeleteWorkspaceCard({ workspaceName }: { workspaceName: string }) {
             name: workspaceName,
           })}
           confirmValue={workspaceName}
+          confirmLabel={t('common.delete')}
+          loading={loading}
+          onConfirm={handleDelete}
+        />
+      </ItemCard>
+    </section>
+  )
+}
+
+function DeleteAccountCard() {
+  const { t } = useTranslation()
+  const { user } = useUser()
+  const { signOut } = useClerk()
+  const deleteAccount = useAction(api.account.deleteAccount)
+  const [confirmOpen, setConfirmOpen] = useState(false)
+  const [loading, setLoading] = useState(false)
+
+  const email = user?.primaryEmailAddress?.emailAddress ?? ''
+
+  async function handleDelete() {
+    setLoading(true)
+    try {
+      await deleteAccount()
+      toast.success(t('toast.accountDeleted'))
+      void signOut({ redirectUrl: '/sign-in/' })
+    } catch (error) {
+      Sentry.captureException(error)
+      toast.error(t('toast.failedDeleteAccount'))
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  return (
+    <section>
+      <h2 className="mb-4 text-lg font-semibold">
+        {t('settings.profile.dangerZone')}
+      </h2>
+      <ItemCard>
+        <ItemCardItems>
+          <ItemCardItem>
+            <ItemCardItemContent>
+              <ItemCardItemTitle>
+                {t('settings.profile.deleteAccount')}
+              </ItemCardItemTitle>
+              <ItemCardItemDescription>
+                {t('settings.profile.deleteAccountDescription')}
+              </ItemCardItemDescription>
+            </ItemCardItemContent>
+            <ItemCardItemAction>
+              <Button
+                variant="ghost"
+                size="sm"
+                className="text-destructive hover:bg-destructive/10 hover:text-destructive"
+                onClick={() => setConfirmOpen(true)}
+              >
+                {t('common.delete')}
+              </Button>
+            </ItemCardItemAction>
+          </ItemCardItem>
+        </ItemCardItems>
+        <ConfirmDialog
+          open={confirmOpen}
+          onOpenChange={setConfirmOpen}
+          title={t('settings.profile.deleteAccount')}
+          description={t('settings.profile.deleteAccountConfirm')}
+          confirmValue={email}
           confirmLabel={t('common.delete')}
           loading={loading}
           onConfirm={handleDelete}

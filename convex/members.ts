@@ -515,12 +515,18 @@ export const acceptSpecificInvitation = internalMutation({
       return { accepted: true, workspaceId: invitation.workspaceId }
     }
 
-    // Create member record
+    // Check if user already completed onboarding (has personal encryption key)
+    const existingKey = await ctx.db
+      .query('encryptionKeys')
+      .withIndex('by_userId', (q) => q.eq('userId', userId))
+      .first()
+
+    // Create member record — skip onboarding for existing users
     await ctx.db.insert('workspaceMembers', {
       workspaceId: invitation.workspaceId,
       userId,
       role: 'member',
-      onboardingStep: 'vault',
+      onboardingStep: existingKey ? 'complete' : 'vault',
     })
 
     await ctx.db.patch('workspaceInvitations', invitationId, {

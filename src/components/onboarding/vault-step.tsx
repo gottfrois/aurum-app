@@ -37,12 +37,7 @@ interface PendingOwnerSetup {
   }>
 }
 
-export function VaultStep({
-  goToStep,
-  setSubmitting,
-  isInvited,
-  isFirstStep,
-}: OnboardingStepProps) {
+export function VaultStep({ next, back, isInvited }: OnboardingStepProps) {
   const { t } = useTranslation()
   const [passphrase, setPassphrase] = useState('')
   const [confirm, setConfirm] = useState('')
@@ -65,16 +60,14 @@ export function VaultStep({
   const initiallySetUp = useRef(encryptionAlreadySetUp)
   const alreadySetUp = initiallySetUp.current
 
-  const backStep = isInvited ? 'workspace' : 'invite'
-  const onBack = isFirstStep ? undefined : () => goToStep(backStep)
+  const onBack = back
 
   async function handlePassphraseSubmit() {
     setSaving(true)
-    setSubmitting(true)
     try {
       if (alreadySetUp) {
         await updateStep({ step: 'portfolio' })
-        goToStep('portfolio')
+        next()
         return
       }
 
@@ -101,7 +94,7 @@ export function VaultStep({
           pbkdf2Salt: saltB64,
         })
         await updateStep({ step: 'portfolio' })
-        goToStep('portfolio')
+        next()
       } else {
         const wsKeyPair = await generateKeyPair()
         const wsPublicKeyJwk = await exportPublicKey(wsKeyPair.publicKey)
@@ -144,20 +137,17 @@ export function VaultStep({
         })
         setPhase('codes')
         setSaving(false)
-        setSubmitting(false)
       }
     } catch (err) {
       toast.error(t('toast.failedSetupEncryption'))
       console.error(err)
       setSaving(false)
-      setSubmitting(false)
     }
   }
 
   async function handleCodesConfirm() {
     if (!pendingSetup) return
     setSaving(true)
-    setSubmitting(true)
     try {
       await enableEncryption({
         personalPublicKey: pendingSetup.personalPublicKeyJwk,
@@ -173,12 +163,11 @@ export function VaultStep({
       await storePrivateKey(wsKey)
 
       await updateStep({ step: 'portfolio' })
-      goToStep('portfolio')
+      next()
     } catch (err) {
       toast.error(t('toast.failedSetupEncryption'))
       console.error(err)
       setSaving(false)
-      setSubmitting(false)
     }
   }
 

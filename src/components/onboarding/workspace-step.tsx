@@ -24,10 +24,7 @@ import type { OnboardingStepProps } from './types'
 
 type View = 'list' | 'create'
 
-export function WorkspaceStep({
-  goToStep,
-  setSubmitting,
-}: OnboardingStepProps) {
+export function WorkspaceStep({ next, back }: OnboardingStepProps) {
   const { t, i18n } = useTranslation()
   const { user } = useUser()
 
@@ -46,14 +43,12 @@ export function WorkspaceStep({
     Record<string, { firstName: string | null; lastName: string | null }>
   >({})
 
-  // Update view when invitations load
   useEffect(() => {
     if (pendingInvitations !== undefined) {
       setView(pendingInvitations.length > 0 ? 'list' : 'create')
     }
   }, [pendingInvitations])
 
-  // Resolve inviter names
   useEffect(() => {
     if (!pendingInvitations || pendingInvitations.length === 0) return
     const userIds = [...new Set(pendingInvitations.map((inv) => inv.invitedBy))]
@@ -67,23 +62,20 @@ export function WorkspaceStep({
   const handleJoin = useCallback(
     async (invitationId: Id<'workspaceInvitations'>) => {
       setJoiningId(invitationId)
-      setSubmitting(true)
       try {
         await acceptInvitation({ invitationId })
         toast.success('Invitation accepted')
-        goToStep('vault')
+        next()
       } catch (err) {
         toast.error(
           err instanceof Error ? err.message : 'Failed to accept invitation',
         )
         setJoiningId(null)
-        setSubmitting(false)
       }
     },
-    [acceptInvitation, goToStep, setSubmitting],
+    [acceptInvitation, next],
   )
 
-  // Create workspace view
   const defaultName = user?.firstName
     ? `${user.firstName}'s workspace`
     : 'My Workspace'
@@ -92,15 +84,13 @@ export function WorkspaceStep({
 
   async function handleCreate() {
     setSaving(true)
-    setSubmitting(true)
     try {
       await createWorkspace({ workspaceName: name, language: i18n.language })
-      goToStep('invite')
+      next()
     } catch (err) {
       toast.error(t('toast.failedCreateWorkspace'))
       console.error(err)
       setSaving(false)
-      setSubmitting(false)
     }
   }
 
@@ -109,7 +99,7 @@ export function WorkspaceStep({
       <StepLayout
         title={t('onboarding.workspace.title')}
         subtitle={t('onboarding.workspace.subtitle')}
-        onBack={hasInvitations ? () => setView('list') : () => goToStep('name')}
+        onBack={hasInvitations ? () => setView('list') : back}
         onSubmit={handleCreate}
         submitLabel={t('common.continue')}
         submitDisabled={!name.trim()}
