@@ -68,7 +68,7 @@ function filter(field: string, operator: string, values: unknown[]): Filter {
 
 describe('createTransactionFilterFields', () => {
   it('produces correct number of fields', () => {
-    expect(fields).toHaveLength(9)
+    expect(fields).toHaveLength(10)
   })
 
   it('all fields have key and accessor', () => {

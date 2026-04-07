@@ -103,6 +103,22 @@ export type AuditMetadata =
       data: { affectedCount: number }
     }
   | {
+      type: 'transaction.manual_created'
+      data: {
+        transactionId: string
+        bankAccountId: string
+        portfolioId: string
+      }
+    }
+  | {
+      type: 'transaction.manual_updated'
+      data: { transactionId: string }
+    }
+  | {
+      type: 'transaction.manual_deleted'
+      data: { transactionId: string; bankAccountId: string }
+    }
+  | {
       type: 'rule.created'
       data: {
         ruleId: string

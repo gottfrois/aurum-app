@@ -151,6 +151,13 @@ export const COMMAND_DEFINITIONS: Record<string, CommandDefinition> = {
     hotkey: { keys: 'escape', scope: 'global' },
     hidden: true,
   },
+  'transaction.create': {
+    id: 'transaction.create',
+    labelKey: 'commands.addManualTransaction',
+    groupKey: 'commands.groups.transactions',
+    icon: Plus,
+    keywords: ['add', 'manual', 'transaction', 'create'],
+  },
   'connection.add': {
     id: 'connection.add',
     labelKey: 'commands.addConnection',

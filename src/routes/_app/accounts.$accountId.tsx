@@ -1,12 +1,18 @@
 import { createFileRoute } from '@tanstack/react-router'
-import { useQuery } from 'convex/react'
-import { ListFilter } from 'lucide-react'
+import { useMutation, useQuery } from 'convex/react'
+import { ListFilter, Plus } from 'lucide-react'
 import * as React from 'react'
 import { useTranslation } from 'react-i18next'
+import { toast } from 'sonner'
 import { AllocationChart } from '~/components/allocation-chart'
 import { BalanceChart } from '~/components/balance-chart'
+import { ConfirmDialog } from '~/components/confirm-dialog'
 import type { Investment } from '~/components/holdings-table'
 import { HoldingsTable } from '~/components/holdings-table'
+import {
+  ManualTransactionDialog,
+  useManualTransactionDialog,
+} from '~/components/manual-transaction-dialog'
 import { type FilterOption, Filters } from '~/components/reui/filters'
 import { SiteHeader } from '~/components/site-header'
 import type { TransactionRow } from '~/components/transactions-list'
@@ -45,6 +51,7 @@ interface TransactionRecord {
   _id: string
   bankAccountId: string
   portfolioId: string
+  source?: 'manual' | 'csv_import'
   date: string
   rdate?: string
   vdate?: string
@@ -147,6 +154,51 @@ function AccountDetailPage() {
 
   const formatCurrency = useFormatCurrency()
 
+  // Manual transaction dialog
+  const manualTxDialog = useManualTransactionDialog()
+  const deleteManual = useMutation(api.transactions.deleteManualTransaction)
+  const [deleteConfirmOpen, setDeleteConfirmOpen] = React.useState(false)
+  const [deleteConfirmId, setDeleteConfirmId] = React.useState<string | null>(
+    null,
+  )
+  const [deleteLoading, setDeleteLoading] = React.useState(false)
+
+  const manualAccountOptions = React.useMemo(
+    () =>
+      bankAccount
+        ? [
+            {
+              id: accountId,
+              label: bankAccount.customName || bankAccount.name || accountId,
+              portfolioId: bankAccount.portfolioId ?? '',
+            },
+          ]
+        : [],
+    [accountId, bankAccount],
+  )
+
+  const handleDeleteManual = React.useCallback((transactionId: string) => {
+    setDeleteConfirmId(transactionId)
+    setDeleteConfirmOpen(true)
+  }, [])
+
+  const confirmDelete = React.useCallback(async () => {
+    if (!deleteConfirmId) return
+    setDeleteLoading(true)
+    try {
+      await deleteManual({
+        transactionId: deleteConfirmId as Id<'transactions'>,
+      })
+      setDeleteConfirmOpen(false)
+      setDeleteConfirmId(null)
+      toast.success(t('toast.manualTransactionDeleted'))
+    } catch {
+      toast.error(t('toast.failedDeleteManualTransaction'))
+    } finally {
+      setDeleteLoading(false)
+    }
+  }, [deleteConfirmId, deleteManual, t])
+
   const isLoading = bankAccount === undefined || snapshots === undefined
 
   const categoryOptions = React.useMemo<Array<FilterOption<string>>>(
@@ -207,6 +259,7 @@ function AccountDetailPage() {
       _id: t._id,
       bankAccountId: t.bankAccountId,
       portfolioId: t.portfolioId,
+      source: t.source,
       date: t.date,
       rdate: t.rdate,
       vdate: t.vdate,
@@ -356,23 +409,35 @@ function AccountDetailPage() {
                 currency={bankAccount.currency ?? 'EUR'}
                 labels={labels}
                 workspaceId={workspaceId ?? undefined}
+                onEditManualTransaction={manualTxDialog.openEdit}
+                onDeleteManualTransaction={handleDeleteManual}
                 filterActions={
-                  <Filters
-                    filters={filters}
-                    fields={reuiFields}
-                    onChange={setFilters}
-                    size="sm"
-                    i18n={filterI18n}
-                    trigger={
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="rounded-full"
-                      >
-                        <ListFilter />
-                      </Button>
-                    }
-                  />
+                  <>
+                    <Filters
+                      filters={filters}
+                      fields={reuiFields}
+                      onChange={setFilters}
+                      size="sm"
+                      i18n={filterI18n}
+                      trigger={
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="rounded-full"
+                        >
+                          <ListFilter />
+                        </Button>
+                      }
+                    />
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={manualTxDialog.openCreate}
+                    >
+                      <Plus />
+                      {t('transactions.addTransaction')}
+                    </Button>
+                  </>
                 }
                 activeFilters={
                   filters.length > 0 ? (
@@ -400,6 +465,29 @@ function AccountDetailPage() {
           )}
         </div>
       </div>
+
+      {bankAccount?.portfolioId && (
+        <ManualTransactionDialog
+          open={manualTxDialog.open}
+          onOpenChange={manualTxDialog.setOpen}
+          mode={manualTxDialog.mode}
+          portfolioId={bankAccount.portfolioId as Id<'portfolios'>}
+          accounts={manualAccountOptions}
+          labels={labels}
+          defaultBankAccountId={accountId as Id<'bankAccounts'>}
+          transaction={manualTxDialog.editTransaction}
+        />
+      )}
+
+      <ConfirmDialog
+        open={deleteConfirmOpen}
+        onOpenChange={setDeleteConfirmOpen}
+        title={t('dialogs.deleteManualTransaction.title')}
+        description={t('dialogs.deleteManualTransaction.description')}
+        confirmLabel={t('common.delete')}
+        loading={deleteLoading}
+        onConfirm={confirmDelete}
+      />
     </>
   )
 }

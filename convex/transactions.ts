@@ -937,3 +937,206 @@ export const batchUpdateCategoryChunk = internalMutation({
     })
   },
 })
+
+// ---------------------------------------------------------------------------
+// Manual transaction mutations
+// ---------------------------------------------------------------------------
+
+export const createManualTransaction = mutation({
+  args: {
+    bankAccountId: v.id('bankAccounts'),
+    portfolioId: v.id('portfolios'),
+    date: v.string(),
+    encryptedDetails: v.string(),
+    encryptedFinancials: v.string(),
+    encryptedCategories: v.string(),
+    excludedFromBudget: v.optional(v.boolean()),
+    labelIds: v.optional(v.array(v.id('transactionLabels'))),
+  },
+  handler: async (ctx, args) => {
+    const userId = await requireAuthUserId(ctx)
+
+    const portfolio = await ctx.db.get('portfolios', args.portfolioId)
+    if (!portfolio) throw new Error('Portfolio not found')
+
+    const member = await ctx.db
+      .query('workspaceMembers')
+      .withIndex('by_userId', (q) => q.eq('userId', userId))
+      .first()
+    if (!member || member.workspaceId !== portfolio.workspaceId) {
+      throw new Error('Not authorized')
+    }
+
+    const bankAccount = await ctx.db.get('bankAccounts', args.bankAccountId)
+    if (!bankAccount || bankAccount.portfolioId !== args.portfolioId) {
+      throw new Error('Bank account not found or does not belong to portfolio')
+    }
+
+    const transactionId = await ctx.db.insert('transactions', {
+      bankAccountId: args.bankAccountId,
+      portfolioId: args.portfolioId,
+      source: 'manual',
+      date: args.date,
+      coming: false,
+      active: true,
+      deleted: false,
+      encryptedDetails: args.encryptedDetails,
+      encryptedFinancials: args.encryptedFinancials,
+      encryptedCategories: args.encryptedCategories,
+      excludedFromBudget: args.excludedFromBudget,
+      labelIds: args.labelIds,
+    })
+
+    const workspace = await ctx.db.get('workspaces', portfolio.workspaceId)
+    const identity = await ctx.auth.getUserIdentity()
+    await insertAuditLogDirect(ctx.db, {
+      workspaceId: portfolio.workspaceId,
+      workspaceName: workspace?.name ?? '',
+      portfolioId: args.portfolioId,
+      portfolioName: portfolio.name,
+      actorType: 'user',
+      ...getActorInfo(identity),
+      event: 'transaction.manual_created',
+      resourceType: 'transaction',
+      resourceId: transactionId,
+      metadata: JSON.stringify({
+        transactionId,
+        bankAccountId: args.bankAccountId,
+        portfolioId: args.portfolioId,
+      }),
+    })
+
+    return transactionId
+  },
+})
+
+export const updateManualTransaction = mutation({
+  args: {
+    transactionId: v.id('transactions'),
+    date: v.optional(v.string()),
+    bankAccountId: v.optional(v.id('bankAccounts')),
+    encryptedDetails: v.optional(v.string()),
+    encryptedFinancials: v.optional(v.string()),
+    encryptedCategories: v.optional(v.string()),
+    excludedFromBudget: v.optional(v.boolean()),
+    labelIds: v.optional(v.array(v.id('transactionLabels'))),
+  },
+  handler: async (ctx, args) => {
+    const userId = await requireAuthUserId(ctx)
+
+    const transaction = await ctx.db.get('transactions', args.transactionId)
+    if (!transaction) throw new Error('Transaction not found')
+    if (transaction.source !== 'manual') {
+      throw new Error('Only manual transactions can be edited')
+    }
+
+    const portfolio = await ctx.db.get('portfolios', transaction.portfolioId)
+    if (!portfolio) throw new Error('Portfolio not found')
+
+    const member = await ctx.db
+      .query('workspaceMembers')
+      .withIndex('by_userId', (q) => q.eq('userId', userId))
+      .first()
+    if (!member || member.workspaceId !== portfolio.workspaceId) {
+      throw new Error('Not authorized')
+    }
+
+    // If changing bank account, verify the new one is accessible
+    if (
+      args.bankAccountId &&
+      args.bankAccountId !== transaction.bankAccountId
+    ) {
+      const newAccount = await ctx.db.get('bankAccounts', args.bankAccountId)
+      if (!newAccount) throw new Error('Bank account not found')
+      const newPortfolio = await ctx.db.get(
+        'portfolios',
+        newAccount.portfolioId,
+      )
+      if (!newPortfolio || newPortfolio.workspaceId !== portfolio.workspaceId) {
+        throw new Error('Bank account not accessible')
+      }
+    }
+
+    const patch: Record<string, unknown> = {}
+    if (args.date !== undefined) patch.date = args.date
+    if (args.bankAccountId !== undefined)
+      patch.bankAccountId = args.bankAccountId
+    if (args.encryptedDetails !== undefined)
+      patch.encryptedDetails = args.encryptedDetails
+    if (args.encryptedFinancials !== undefined)
+      patch.encryptedFinancials = args.encryptedFinancials
+    if (args.encryptedCategories !== undefined)
+      patch.encryptedCategories = args.encryptedCategories
+    if (args.excludedFromBudget !== undefined)
+      patch.excludedFromBudget = args.excludedFromBudget
+    if (args.labelIds !== undefined) patch.labelIds = args.labelIds
+
+    if (Object.keys(patch).length > 0) {
+      await ctx.db.patch('transactions', args.transactionId, patch)
+    }
+
+    const workspace = await ctx.db.get('workspaces', portfolio.workspaceId)
+    const identity = await ctx.auth.getUserIdentity()
+    await insertAuditLogDirect(ctx.db, {
+      workspaceId: portfolio.workspaceId,
+      workspaceName: workspace?.name ?? '',
+      portfolioId: transaction.portfolioId,
+      portfolioName: portfolio.name,
+      actorType: 'user',
+      ...getActorInfo(identity),
+      event: 'transaction.manual_updated',
+      resourceType: 'transaction',
+      resourceId: args.transactionId,
+      metadata: JSON.stringify({
+        transactionId: args.transactionId,
+      }),
+    })
+  },
+})
+
+export const deleteManualTransaction = mutation({
+  args: {
+    transactionId: v.id('transactions'),
+  },
+  handler: async (ctx, args) => {
+    const userId = await requireAuthUserId(ctx)
+
+    const transaction = await ctx.db.get('transactions', args.transactionId)
+    if (!transaction) throw new Error('Transaction not found')
+    if (transaction.source !== 'manual') {
+      throw new Error('Only manual transactions can be deleted')
+    }
+
+    const portfolio = await ctx.db.get('portfolios', transaction.portfolioId)
+    if (!portfolio) throw new Error('Portfolio not found')
+
+    const member = await ctx.db
+      .query('workspaceMembers')
+      .withIndex('by_userId', (q) => q.eq('userId', userId))
+      .first()
+    if (!member || member.workspaceId !== portfolio.workspaceId) {
+      throw new Error('Not authorized')
+    }
+
+    // Audit log before soft-delete
+    const workspace = await ctx.db.get('workspaces', portfolio.workspaceId)
+    const identity = await ctx.auth.getUserIdentity()
+    await insertAuditLogDirect(ctx.db, {
+      workspaceId: portfolio.workspaceId,
+      workspaceName: workspace?.name ?? '',
+      portfolioId: transaction.portfolioId,
+      portfolioName: portfolio.name,
+      actorType: 'user',
+      ...getActorInfo(identity),
+      event: 'transaction.manual_deleted',
+      resourceType: 'transaction',
+      resourceId: args.transactionId,
+      metadata: JSON.stringify({
+        transactionId: args.transactionId,
+        bankAccountId: transaction.bankAccountId,
+      }),
+    })
+
+    await ctx.db.patch('transactions', args.transactionId, { deleted: true })
+  },
+})

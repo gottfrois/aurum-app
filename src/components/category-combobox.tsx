@@ -32,6 +32,8 @@ interface CategoryComboboxProps {
   }) => React.ReactNode
   allowCreate?: boolean
   modal?: boolean
+  /** Trigger style: "ghost" (default, for inline use) or "outline" (for forms) */
+  variant?: 'ghost' | 'outline'
 }
 
 export function CategoryCombobox({
@@ -40,6 +42,7 @@ export function CategoryCombobox({
   trigger,
   allowCreate = false,
   modal,
+  variant = 'ghost',
 }: CategoryComboboxProps) {
   const [open, setOpen] = React.useState(false)
   const [search, setSearch] = React.useState('')
@@ -87,11 +90,16 @@ export function CategoryCombobox({
             trigger({ category: current, open })
           ) : (
             <Button
-              variant="ghost"
+              variant={variant}
               size="sm"
               role="combobox"
               aria-expanded={open}
-              className="h-auto justify-start gap-2 px-2 py-1 font-normal"
+              className={cn(
+                'justify-start gap-2 font-normal',
+                variant === 'outline'
+                  ? 'h-9 w-full px-3 py-2'
+                  : 'h-auto px-2 py-1',
+              )}
             >
               <span
                 className="size-2.5 shrink-0 rounded-full"

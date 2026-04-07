@@ -1112,5 +1112,48 @@
   "recoveryCodes.regenerate": "Regenerate codes",
   "recoveryCodes.regenerateTitle": "Regenerate recovery codes",
   "recoveryCodes.regenerateDescription": "This will replace all existing recovery codes with new ones.",
-  "recoveryCodes.regenerateWarning": "All existing recovery codes will be invalidated. Make sure to save the new codes in a safe place."
+  "recoveryCodes.regenerateWarning": "All existing recovery codes will be invalidated. Make sure to save the new codes in a safe place.",
+
+  "common.optional": "optional",
+  "common.required": "Required",
+
+  "commands.addManualTransaction": "Add manual transaction",
+  "commands.groups.transactions": "Transactions",
+
+  "transactions.addTransaction": "Add transaction",
+  "transactions.manualTransaction": "Manual transaction",
+
+  "dialogs.manualTransaction.createTitle": "Add transaction",
+  "dialogs.manualTransaction.createDescription": "Manually add a transaction to your account.",
+  "dialogs.manualTransaction.editTitle": "Edit transaction",
+  "dialogs.manualTransaction.editDescription": "Update the details of this manual transaction.",
+  "dialogs.manualTransaction.date": "Date",
+  "dialogs.manualTransaction.amount": "Amount",
+  "dialogs.manualTransaction.expense": "Expense",
+  "dialogs.manualTransaction.income": "Income",
+  "dialogs.manualTransaction.description": "Description",
+  "dialogs.manualTransaction.descriptionPlaceholder": "e.g. Grocery shopping",
+  "dialogs.manualTransaction.category": "Category",
+  "dialogs.manualTransaction.account": "Account",
+  "dialogs.manualTransaction.accountPlaceholder": "Select an account",
+  "dialogs.manualTransaction.labels": "Labels",
+  "dialogs.manualTransaction.notes": "Notes",
+  "dialogs.manualTransaction.notesPlaceholder": "Optional notes about this transaction",
+
+  "dialogs.deleteManualTransaction.title": "Delete transaction",
+  "dialogs.deleteManualTransaction.description": "This manual transaction will be permanently removed from all analytics, budgets, and reports.",
+
+  "transactionDetail.edit": "Edit",
+  "transactionDetail.delete": "Delete",
+
+  "filters.source": "Source",
+  "filters.sourceSynced": "Synced",
+  "filters.sourceManual": "Manual",
+
+  "toast.manualTransactionCreated": "Transaction added",
+  "toast.manualTransactionUpdated": "Transaction updated",
+  "toast.manualTransactionDeleted": "Transaction deleted",
+  "toast.failedCreateManualTransaction": "Failed to add transaction",
+  "toast.failedUpdateManualTransaction": "Failed to update transaction",
+  "toast.failedDeleteManualTransaction": "Failed to delete transaction"
 }

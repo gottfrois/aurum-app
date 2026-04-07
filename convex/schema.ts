@@ -176,7 +176,8 @@ export default defineSchema({
   transactions: defineTable({
     bankAccountId: v.id('bankAccounts'),
     portfolioId: v.id('portfolios'),
-    powensTransactionId: v.number(),
+    powensTransactionId: v.optional(v.number()),
+    source: v.optional(v.union(v.literal('manual'), v.literal('csv_import'))),
     date: v.string(),
     rdate: v.optional(v.string()),
     vdate: v.optional(v.string()),

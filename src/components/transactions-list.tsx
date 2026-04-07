@@ -23,6 +23,7 @@ import {
   ChevronsLeft,
   ChevronsRight,
   Copy,
+  Ellipsis,
   Eye,
   EyeOff,
   Pencil,
@@ -50,6 +51,12 @@ import { SelectionBar } from '~/components/selection-bar'
 import { Badge } from '~/components/ui/badge'
 import { Button } from '~/components/ui/button'
 import { Checkbox } from '~/components/ui/checkbox'
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '~/components/ui/dropdown-menu'
 import { Input } from '~/components/ui/input'
 import {
   Select,
@@ -89,6 +96,7 @@ export interface TransactionRow {
   _id: string
   bankAccountId?: string
   portfolioId?: string
+  source?: 'manual' | 'csv_import'
   date: string
   wording: string
   originalWording?: string
@@ -120,6 +128,8 @@ interface TransactionsListProps {
   workspaceId?: string
   filterActions?: React.ReactNode
   activeFilters?: React.ReactNode
+  onEditManualTransaction?: (transaction: TransactionRow) => void
+  onDeleteManualTransaction?: (transactionId: string) => void
 }
 
 const PAGE_SIZE_OPTIONS = ['25', '50', '100']
@@ -141,6 +151,8 @@ export function TransactionsList({
   workspaceId,
   filterActions,
   activeFilters,
+  onEditManualTransaction,
+  onDeleteManualTransaction,
 }: TransactionsListProps) {
   const { t } = useTranslation()
   const formatCurrency = useFormatCurrency()
@@ -478,8 +490,70 @@ export function TransactionsList({
           )
         },
       },
+      ...(onEditManualTransaction || onDeleteManualTransaction
+        ? [
+            {
+              id: 'actions',
+              header: '',
+              size: 28,
+              cell: ({ row }: { row: { original: TransactionRow } }) => {
+                if (row.original.source !== 'manual') return null
+                return (
+                  // biome-ignore lint/a11y/noStaticElementInteractions: wrapper only stops click propagation to parent row
+                  <div
+                    role="presentation"
+                    onClick={(e) => e.stopPropagation()}
+                    onKeyDown={(e) => e.stopPropagation()}
+                  >
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="size-8 opacity-0 transition-opacity group-hover/row:opacity-100 data-[state=open]:opacity-100"
+                        >
+                          <Ellipsis className="size-4" />
+                        </Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end">
+                        {onEditManualTransaction && (
+                          <DropdownMenuItem
+                            onClick={() =>
+                              onEditManualTransaction(row.original)
+                            }
+                          >
+                            {t('common.edit')}
+                          </DropdownMenuItem>
+                        )}
+                        {onDeleteManualTransaction && (
+                          <DropdownMenuItem
+                            variant="destructive"
+                            onClick={() =>
+                              onDeleteManualTransaction(row.original._id)
+                            }
+                          >
+                            {t('common.delete')}
+                          </DropdownMenuItem>
+                        )}
+                      </DropdownMenuContent>
+                    </DropdownMenu>
+                  </div>
+                )
+              },
+            } satisfies ColumnDef<TransactionRow>,
+          ]
+        : []),
     ],
-    [currency, formatCurrency, getCategory, handleCreateRule, labelMap, t],
+    [
+      currency,
+      formatCurrency,
+      getCategory,
+      handleCreateRule,
+      labelMap,
+      onDeleteManualTransaction,
+      onEditManualTransaction,
+      t,
+    ],
   )
 
   const table = useReactTable({
@@ -816,7 +890,7 @@ export function TransactionsList({
                 <TableRow
                   key={row.id}
                   className={cn(
-                    'cursor-pointer',
+                    'group/row cursor-pointer',
                     row.original.excludedFromBudget && 'text-muted-foreground',
                   )}
                   data-state={row.getIsSelected() && 'selected'}

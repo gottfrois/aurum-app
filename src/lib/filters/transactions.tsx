@@ -5,6 +5,7 @@ import {
   DollarSign,
   EyeOff,
   FileType,
+  Pencil,
   Tag,
   Tags,
   Text,
@@ -26,6 +27,7 @@ export type TransactionFilterField =
   | 'status'
   | 'counterparty'
   | 'excluded'
+  | 'source'
 
 interface TransactionFilterDeps {
   accountOptions: Array<FilterOption<string>>
@@ -221,6 +223,26 @@ export function createTransactionFilterFields(
         (r as Record<string, unknown>).excludedFromBudget
           ? 'excluded'
           : 'included',
+      valueType: 'enum',
+    },
+    {
+      fieldKey: 'source',
+      key: 'source',
+      label: t('filters.source'),
+      type: 'multiselect',
+      icon: <Pencil className="size-3.5" />,
+      options: [
+        { value: 'synced', label: t('filters.sourceSynced') },
+        { value: 'manual', label: t('filters.sourceManual') },
+      ],
+      operators: [
+        { value: 'is_any_of', label: t('filters.operators.isAnyOf') },
+      ],
+      defaultOperator: 'is_any_of',
+      accessor: (r) =>
+        (r as Record<string, unknown>).source === 'manual'
+          ? 'manual'
+          : 'synced',
       valueType: 'enum',
     },
   ]

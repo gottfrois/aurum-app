@@ -17,6 +17,7 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from '~/components/ui/popover'
+import { cn } from '~/lib/utils'
 
 export interface LabelData {
   _id: string
@@ -29,6 +30,8 @@ interface LabelPickerProps {
   selectedLabelIds: Array<string>
   onToggle: (labelIds: Array<string>) => void
   onCreateLabel?: (name: string) => void
+  /** Trigger style: "ghost" (default, for inline use) or "outline" (for forms) */
+  variant?: 'ghost' | 'outline'
 }
 
 export function LabelPicker({
@@ -36,6 +39,7 @@ export function LabelPicker({
   selectedLabelIds,
   onToggle,
   onCreateLabel,
+  variant = 'ghost',
 }: LabelPickerProps) {
   const { t } = useTranslation()
   const [open, setOpen] = React.useState(false)
@@ -93,11 +97,16 @@ export function LabelPicker({
     <Popover open={open} onOpenChange={setOpen}>
       <PopoverTrigger asChild>
         <Button
-          variant="ghost"
+          variant={variant}
           size="sm"
           role="combobox"
           aria-expanded={open}
-          className="h-auto min-h-[28px] justify-start gap-1.5 px-2 py-1 font-normal"
+          className={cn(
+            'justify-start gap-1.5 font-normal',
+            variant === 'outline'
+              ? 'h-auto min-h-9 w-full px-3 py-2'
+              : 'h-auto min-h-[28px] px-2 py-1',
+          )}
         >
           {selectedLabels.length > 0 ? (
             <span className="flex flex-wrap gap-1">

@@ -1112,5 +1112,48 @@
   "recoveryCodes.regenerate": "Régénérer les codes",
   "recoveryCodes.regenerateTitle": "Régénérer les codes de récupération",
   "recoveryCodes.regenerateDescription": "Cela remplacera tous les codes de récupération existants par de nouveaux.",
-  "recoveryCodes.regenerateWarning": "Tous les codes de récupération existants seront invalidés. Assurez-vous d'enregistrer les nouveaux codes dans un endroit sûr."
+  "recoveryCodes.regenerateWarning": "Tous les codes de récupération existants seront invalidés. Assurez-vous d'enregistrer les nouveaux codes dans un endroit sûr.",
+
+  "common.optional": "facultatif",
+  "common.required": "Requis",
+
+  "commands.addManualTransaction": "Ajouter une transaction manuelle",
+  "commands.groups.transactions": "Transactions",
+
+  "transactions.addTransaction": "Ajouter une transaction",
+  "transactions.manualTransaction": "Transaction manuelle",
+
+  "dialogs.manualTransaction.createTitle": "Ajouter une transaction",
+  "dialogs.manualTransaction.createDescription": "Ajoutez manuellement une transaction à votre compte.",
+  "dialogs.manualTransaction.editTitle": "Modifier la transaction",
+  "dialogs.manualTransaction.editDescription": "Mettez à jour les détails de cette transaction manuelle.",
+  "dialogs.manualTransaction.date": "Date",
+  "dialogs.manualTransaction.amount": "Montant",
+  "dialogs.manualTransaction.expense": "Dépense",
+  "dialogs.manualTransaction.income": "Revenu",
+  "dialogs.manualTransaction.description": "Description",
+  "dialogs.manualTransaction.descriptionPlaceholder": "ex. Courses alimentaires",
+  "dialogs.manualTransaction.category": "Catégorie",
+  "dialogs.manualTransaction.account": "Compte",
+  "dialogs.manualTransaction.accountPlaceholder": "Sélectionnez un compte",
+  "dialogs.manualTransaction.labels": "Étiquettes",
+  "dialogs.manualTransaction.notes": "Notes",
+  "dialogs.manualTransaction.notesPlaceholder": "Notes facultatives sur cette transaction",
+
+  "dialogs.deleteManualTransaction.title": "Supprimer la transaction",
+  "dialogs.deleteManualTransaction.description": "Cette transaction manuelle sera définitivement retirée de toutes les analyses, budgets et rapports.",
+
+  "transactionDetail.edit": "Modifier",
+  "transactionDetail.delete": "Supprimer",
+
+  "filters.source": "Source",
+  "filters.sourceSynced": "Synchronisée",
+  "filters.sourceManual": "Manuelle",
+
+  "toast.manualTransactionCreated": "Transaction ajoutée",
+  "toast.manualTransactionUpdated": "Transaction mise à jour",
+  "toast.manualTransactionDeleted": "Transaction supprimée",
+  "toast.failedCreateManualTransaction": "Échec de l'ajout de la transaction",
+  "toast.failedUpdateManualTransaction": "Échec de la mise à jour de la transaction",
+  "toast.failedDeleteManualTransaction": "Échec de la suppression de la transaction"
 }

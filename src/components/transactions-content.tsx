@@ -1,7 +1,8 @@
-import { useQuery } from 'convex/react'
-import { ArrowLeftRight, ListFilter, Sparkles } from 'lucide-react'
+import { useMutation, useQuery } from 'convex/react'
+import { ArrowLeftRight, ListFilter, Plus, Sparkles } from 'lucide-react'
 import * as React from 'react'
 import { useTranslation } from 'react-i18next'
+import { toast } from 'sonner'
 import type { CashFlowData } from '~/components/cash-flow-chart'
 import { CashFlowChart } from '~/components/cash-flow-chart'
 import { CategoryPieChart } from '~/components/category-pie-chart'
@@ -9,6 +10,11 @@ import {
   useAIFilterListener,
   useRegisterFilterFields,
 } from '~/components/command-palette'
+import { ConfirmDialog } from '~/components/confirm-dialog'
+import {
+  ManualTransactionDialog,
+  useManualTransactionDialog,
+} from '~/components/manual-transaction-dialog'
 import { PeriodNavigator } from '~/components/period-navigator'
 import {
   createFilter,
@@ -32,6 +38,7 @@ import { Skeleton } from '~/components/ui/skeleton'
 import { useCommandDispatch } from '~/contexts/command-context'
 import { usePortfolio } from '~/contexts/portfolio-context'
 import { useCachedDecryptRecords } from '~/hooks/use-cached-decrypt'
+import { useCommand } from '~/hooks/use-command'
 
 import { useDateRange } from '~/hooks/use-date-range'
 import { useFilterI18n } from '~/hooks/use-filter-i18n'
@@ -40,6 +47,7 @@ import { resolveTransactionCategoryKey, useCategories } from '~/lib/categories'
 import { createTransactionFilterFields } from '~/lib/filters/transactions'
 import { toReUIFields, toSerializableFields } from '~/lib/filters/types'
 import { api } from '../../convex/_generated/api'
+import type { Id } from '../../convex/_generated/dataModel'
 
 type DecryptedBankAccount = NonNullable<
   NonNullable<ReturnType<typeof useQuery<typeof api.powens.listBankAccounts>>>
@@ -56,6 +64,7 @@ interface TransactionRecord {
   _id: string
   bankAccountId: string
   portfolioId: string
+  source?: 'manual' | 'csv_import'
   date: string
   rdate?: string
   vdate?: string
@@ -321,6 +330,54 @@ export function TransactionsContent({
 
   const { setPaletteState } = useCommandDispatch()
 
+  // Manual transaction dialog
+  const manualTxDialog = useManualTransactionDialog()
+  const deleteManual = useMutation(api.transactions.deleteManualTransaction)
+  const [deleteConfirmOpen, setDeleteConfirmOpen] = React.useState(false)
+  const [deleteConfirmId, setDeleteConfirmId] = React.useState<string | null>(
+    null,
+  )
+  const [deleteLoading, setDeleteLoading] = React.useState(false)
+
+  const manualAccountOptions = React.useMemo(
+    () =>
+      accountOptions.map((a) => ({
+        id: a.value,
+        label: a.label,
+        portfolioId: singlePortfolioId ?? allPortfolioIds[0] ?? '',
+      })),
+    [accountOptions, singlePortfolioId, allPortfolioIds],
+  )
+
+  const handleDeleteManual = React.useCallback(
+    async (transactionId: string) => {
+      setDeleteConfirmId(transactionId)
+      setDeleteConfirmOpen(true)
+    },
+    [],
+  )
+
+  const confirmDelete = React.useCallback(async () => {
+    if (!deleteConfirmId) return
+    setDeleteLoading(true)
+    try {
+      await deleteManual({
+        transactionId: deleteConfirmId as Id<'transactions'>,
+      })
+      setDeleteConfirmOpen(false)
+      setDeleteConfirmId(null)
+      toast.success(t('toast.manualTransactionDeleted'))
+    } catch {
+      toast.error(t('toast.failedDeleteManualTransaction'))
+    } finally {
+      setDeleteLoading(false)
+    }
+  }, [deleteConfirmId, deleteManual, t])
+
+  useCommand('transaction.create', {
+    handler: manualTxDialog.openCreate,
+  })
+
   const currency = 'EUR'
 
   const cashFlowData = React.useMemo<Array<CashFlowData>>(() => {
@@ -478,6 +535,7 @@ export function TransactionsContent({
       _id: t._id,
       bankAccountId: t.bankAccountId,
       portfolioId: t.portfolioId,
+      source: t.source,
       date: t.date,
       rdate: t.rdate,
       vdate: t.vdate,
@@ -588,17 +646,27 @@ export function TransactionsContent({
   return (
     <>
       <div className="flex flex-col border-b">
-        <div className="px-4 py-3 lg:px-6">
-          <PeriodNavigator
-            start={start}
-            end={end}
-            activePeriod={activePeriod}
-            canGoNext={canGoNext}
-            onSelectPeriod={selectPeriod}
-            onCustomRange={setCustomRange}
-            onPrev={goPrev}
-            onNext={goNext}
-          />
+        <div className="flex items-center gap-2 px-4 py-3 lg:px-6">
+          <div className="flex-1">
+            <PeriodNavigator
+              start={start}
+              end={end}
+              activePeriod={activePeriod}
+              canGoNext={canGoNext}
+              onSelectPeriod={selectPeriod}
+              onCustomRange={setCustomRange}
+              onPrev={goPrev}
+              onNext={goNext}
+            />
+          </div>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={manualTxDialog.openCreate}
+          >
+            <Plus />
+            {t('transactions.addTransaction')}
+          </Button>
         </div>
         <div className="border-t px-4 py-2.5 lg:px-6">
           <div className="flex items-start gap-2.5">
@@ -685,8 +753,32 @@ export function TransactionsContent({
           currency={currency}
           labels={labels}
           workspaceId={workspaceId ?? undefined}
+          onEditManualTransaction={manualTxDialog.openEdit}
+          onDeleteManualTransaction={handleDeleteManual}
         />
       </div>
+
+      {singlePortfolioId && (
+        <ManualTransactionDialog
+          open={manualTxDialog.open}
+          onOpenChange={manualTxDialog.setOpen}
+          mode={manualTxDialog.mode}
+          portfolioId={singlePortfolioId}
+          accounts={manualAccountOptions}
+          labels={labels}
+          transaction={manualTxDialog.editTransaction}
+        />
+      )}
+
+      <ConfirmDialog
+        open={deleteConfirmOpen}
+        onOpenChange={setDeleteConfirmOpen}
+        title={t('dialogs.deleteManualTransaction.title')}
+        description={t('dialogs.deleteManualTransaction.description')}
+        confirmLabel={t('common.delete')}
+        loading={deleteLoading}
+        onConfirm={confirmDelete}
+      />
     </>
   )
 }
