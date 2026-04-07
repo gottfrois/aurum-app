@@ -163,7 +163,7 @@ export const COMMAND_DEFINITIONS: Record<string, CommandDefinition> = {
     labelKey: 'commands.addConnection',
     groupKey: 'commands.groups.general',
     icon: Landmark,
-    hotkey: { keys: 'c', scope: 'global' },
+    hotkey: { keys: 'shift+c', scope: 'global' },
   },
   'vault.lock': {
     id: 'vault.lock',

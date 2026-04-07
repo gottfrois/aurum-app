@@ -101,7 +101,10 @@ export function NavMain({
                 <span>
                   {isConnecting ? t('nav.connecting') : t('nav.addConnection')}
                 </span>
-                <HotkeyDisplay className="ml-auto" hotkey={{ keys: 'c' }} />
+                <HotkeyDisplay
+                  className="ml-auto"
+                  hotkey={{ keys: 'shift+c' }}
+                />
               </SidebarMenuButton>
             </SidebarMenuItem>
           </SidebarMenu>
