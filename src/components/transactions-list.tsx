@@ -599,8 +599,10 @@ export function TransactionsList({
     autoResetPageIndex: shouldResetPageIndex.current,
     initialState: { pagination: { pageSize: 25 } },
     globalFilterFn: (row, _columnId, filterValue: string) => {
+      const search = filterValue.toLowerCase()
       const wording = row.original.wording.toLowerCase()
-      return wording.includes(filterValue.toLowerCase())
+      const customDesc = row.original.customDescription?.toLowerCase()
+      return wording.includes(search) || (customDesc?.includes(search) ?? false)
     },
   })
 
