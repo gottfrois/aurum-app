@@ -1009,6 +1009,13 @@
   "charts.noExpenseData": "No expense data available",
   "charts.share": "Share",
 
+  "summary.income": "Income",
+  "summary.expenses": "Expenses",
+  "summary.available": "Available",
+  "summary.savingsRate": "Savings Rate",
+  "summary.recurringOf": "of which {{amount}} recurring",
+  "summary.vsPrevious": "Vs previous period: {{amount}}",
+
   "chat.toolApproval.confirmAction": "Confirm action",
   "chat.toolApproval.approve": "Approve",
   "chat.toolApproval.reject": "Reject",

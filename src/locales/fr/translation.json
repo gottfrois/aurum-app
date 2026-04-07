@@ -1009,6 +1009,13 @@
   "charts.noExpenseData": "Aucune donnée de dépense disponible",
   "charts.share": "Part",
 
+  "summary.income": "Entrées",
+  "summary.expenses": "Sorties",
+  "summary.available": "Disponible",
+  "summary.savingsRate": "Taux d'épargne",
+  "summary.recurringOf": "dont {{amount}} récurrentes",
+  "summary.vsPrevious": "Vs période précédente : {{amount}}",
+
   "chat.toolApproval.confirmAction": "Confirmer l'action",
   "chat.toolApproval.approve": "Approuver",
   "chat.toolApproval.reject": "Rejeter",

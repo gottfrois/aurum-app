@@ -1,4 +1,5 @@
 import { useMutation, useQuery } from 'convex/react'
+import { addDays, differenceInDays, format, parseISO } from 'date-fns'
 import { ArrowLeftRight, ListFilter, Plus, Sparkles } from 'lucide-react'
 import * as React from 'react'
 import { useTranslation } from 'react-i18next'
@@ -11,6 +12,7 @@ import {
   useRegisterFilterFields,
 } from '~/components/command-palette'
 import { ConfirmDialog } from '~/components/confirm-dialog'
+import { FinancialSummaryBar } from '~/components/financial-summary-bar'
 import {
   ManualTransactionDialog,
   useManualTransactionDialog,
@@ -99,6 +101,77 @@ export interface TransactionsContentProps {
   }) => React.ReactNode
 }
 
+interface FinancialSummaryResult {
+  totalIncome: number
+  totalExpenses: number
+  delta: number
+  savingsRate: number
+  recurringTotal: number
+}
+
+const EMPTY_SUMMARY: FinancialSummaryResult = {
+  totalIncome: 0,
+  totalExpenses: 0,
+  delta: 0,
+  savingsRate: 0,
+  recurringTotal: 0,
+}
+
+function computeFinancialSummary(
+  transactions: Array<TransactionRecord> | undefined,
+): FinancialSummaryResult {
+  if (!transactions) return EMPTY_SUMMARY
+
+  let totalIncome = 0
+  let totalExpenses = 0
+  const counterpartyTotals = new Map<
+    string,
+    { months: Set<string>; total: number }
+  >()
+
+  for (const t of transactions) {
+    if (t.excludedFromBudget) continue
+    if (t.value > 0) {
+      totalIncome += t.value
+    } else {
+      const absValue = Math.abs(t.value)
+      totalExpenses += absValue
+      const key = t.counterparty ?? t.simplifiedWording ?? t.wording
+      if (key) {
+        const entry = counterpartyTotals.get(key) ?? {
+          months: new Set<string>(),
+          total: 0,
+        }
+        entry.months.add(t.date.slice(0, 7))
+        entry.total += absValue
+        counterpartyTotals.set(key, entry)
+      }
+    }
+  }
+
+  let recurringTotal = 0
+  for (const [, { months, total }] of counterpartyTotals) {
+    if (months.size >= 2) {
+      recurringTotal += total / months.size
+    }
+  }
+
+  const round = (n: number) => Math.round(n * 100) / 100
+  const delta = round(totalIncome - totalExpenses)
+  const savingsRate =
+    totalIncome > 0
+      ? Math.round(((totalIncome - totalExpenses) / totalIncome) * 1000) / 10
+      : 0
+
+  return {
+    totalIncome: round(totalIncome),
+    totalExpenses: round(totalExpenses),
+    delta,
+    savingsRate,
+    recurringTotal: round(recurringTotal),
+  }
+}
+
 export function TransactionsContent({
   initialFilters: externalInitialFilters,
   onFiltersChange,
@@ -169,6 +242,59 @@ export function TransactionsContent({
   const transactions = useCachedDecryptRecords(
     'transactions',
     rawTransactions as Array<TransactionRecord> | undefined,
+  )
+
+  // Previous period range for comparison
+  const previousRange = React.useMemo(() => {
+    const s = parseISO(range.start)
+    const e = parseISO(range.end)
+    const days = differenceInDays(e, s)
+    const prevEnd = addDays(s, -1)
+    const prevStart = addDays(prevEnd, -days)
+    return {
+      start: format(prevStart, 'yyyy-MM-dd'),
+      end: format(prevEnd, 'yyyy-MM-dd'),
+    }
+  }, [range])
+
+  const prevTransactionsSingle = useQuery(
+    api.transactions.listTransactionsByPortfolio,
+    singlePortfolioId
+      ? {
+          portfolioId: singlePortfolioId,
+          startDate: previousRange.start,
+          endDate: previousRange.end,
+        }
+      : 'skip',
+  )
+  const prevTransactionsAll = useQuery(
+    api.transactions.listAllTransactionsByPortfolios,
+    isAllPortfolios && allPortfolioIds.length > 0
+      ? {
+          portfolioIds: allPortfolioIds,
+          startDate: previousRange.start,
+          endDate: previousRange.end,
+        }
+      : 'skip',
+  )
+  const prevTransactionsTeam = useQuery(
+    api.team.listTeamTransactions,
+    isTeamView && workspaceId
+      ? {
+          workspaceId,
+          startDate: previousRange.start,
+          endDate: previousRange.end,
+        }
+      : 'skip',
+  )
+  const rawPrevTransactions = isTeamView
+    ? prevTransactionsTeam
+    : isAllPortfolios
+      ? prevTransactionsAll
+      : prevTransactionsSingle
+  const previousTransactions = useCachedDecryptRecords(
+    'previousTransactions',
+    rawPrevTransactions as Array<TransactionRecord> | undefined,
   )
 
   const bankAccountsSingle = useQuery(
@@ -380,6 +506,16 @@ export function TransactionsContent({
 
   const currency = 'EUR'
 
+  const financialSummary = React.useMemo(
+    () => computeFinancialSummary(filteredTransactions),
+    [filteredTransactions],
+  )
+
+  const previousSummary = React.useMemo(
+    () => computeFinancialSummary(previousTransactions),
+    [previousTransactions],
+  )
+
   const cashFlowData = React.useMemo<Array<CashFlowData>>(() => {
     if (!filteredTransactions) return []
     const monthMap = new Map<string, { income: number; expenses: number }>()
@@ -575,11 +711,20 @@ export function TransactionsContent({
           </div>
         </div>
         <div className="flex flex-col gap-4 p-4 md:gap-6 md:p-6">
+          <div className="grid grid-cols-2 gap-4 lg:grid-cols-4 md:gap-6">
+            {[1, 2, 3, 4].map((i) => (
+              <Card key={i}>
+                <CardContent className="flex flex-col gap-4">
+                  <Skeleton className="h-4 w-20" />
+                  <Skeleton className="h-8 w-28" />
+                </CardContent>
+              </Card>
+            ))}
+          </div>
           <div className="grid gap-4 lg:grid-cols-3 md:gap-6">
             <Card className="lg:col-span-2">
               <CardHeader>
                 <Skeleton className="h-4 w-24" />
-                <Skeleton className="h-8 w-36" />
               </CardHeader>
               <CardContent>
                 <Skeleton className="h-[250px] w-full" />
@@ -713,13 +858,37 @@ export function TransactionsContent({
       </div>
 
       <div className="flex flex-col gap-4 p-4 md:gap-6 md:p-6">
+        <FinancialSummaryBar
+          totalIncome={financialSummary.totalIncome}
+          totalExpenses={financialSummary.totalExpenses}
+          delta={financialSummary.delta}
+          savingsRate={financialSummary.savingsRate}
+          recurringTotal={financialSummary.recurringTotal}
+          previous={previousSummary}
+          currency={currency}
+        />
+
         <div className="grid gap-4 lg:grid-cols-3 md:gap-6">
           <div className="lg:col-span-2">
-            <CashFlowChart
-              data={cashFlowData}
-              currency={currency}
-              isLoading={false}
-            />
+            {sankeyData.nodes.length > 0 ? (
+              <SankeyChart
+                nodes={sankeyData.nodes}
+                links={sankeyData.links}
+                currency={currency}
+                onLabelClick={(categoryKey) => {
+                  setFilters((prev) => [
+                    ...prev,
+                    createFilter('category', 'is_any_of', [categoryKey]),
+                  ])
+                }}
+              />
+            ) : (
+              <CashFlowChart
+                data={cashFlowData}
+                currency={currency}
+                isLoading={false}
+              />
+            )}
           </div>
           <CategoryPieChart
             data={categoryData}
@@ -733,20 +902,6 @@ export function TransactionsContent({
             }}
           />
         </div>
-
-        {sankeyData.nodes.length > 0 && (
-          <SankeyChart
-            nodes={sankeyData.nodes}
-            links={sankeyData.links}
-            currency={currency}
-            onLabelClick={(categoryKey) => {
-              setFilters((prev) => [
-                ...prev,
-                createFilter('category', 'is_any_of', [categoryKey]),
-              ])
-            }}
-          />
-        )}
 
         <TransactionsList
           data={tableData}

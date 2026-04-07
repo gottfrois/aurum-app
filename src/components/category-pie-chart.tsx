@@ -5,6 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '~/components/ui/card'
 import type { ChartConfig } from '~/components/ui/chart'
 import { ChartContainer, ChartTooltip } from '~/components/ui/chart'
 import { usePrivacy } from '~/contexts/privacy-context'
+import { cn } from '~/lib/utils'
 
 interface CategoryEntry {
   key: string
@@ -17,6 +18,7 @@ interface CategoryPieChartProps {
   data: Array<CategoryEntry>
   currency: string
   total: number
+  className?: string
   onCategoryClick?: (categoryKey: string) => void
 }
 
@@ -84,6 +86,7 @@ export function CategoryPieChart({
   data,
   currency,
   total,
+  className,
   onCategoryClick,
 }: CategoryPieChartProps) {
   const { t } = useTranslation()
@@ -107,7 +110,7 @@ export function CategoryPieChart({
 
   if (data.length === 0) {
     return (
-      <Card>
+      <Card className={cn(className)}>
         <CardHeader>
           <CardTitle>{t('charts.expensesByCategory')}</CardTitle>
         </CardHeader>
@@ -121,7 +124,7 @@ export function CategoryPieChart({
   }
 
   return (
-    <Card>
+    <Card className={cn(className)}>
       <CardHeader>
         <CardTitle>{t('charts.expensesByCategory')}</CardTitle>
       </CardHeader>
