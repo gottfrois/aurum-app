@@ -184,9 +184,36 @@ export function TransactionsList({
   const [selectedTransactionId, setSelectedTransactionId] = React.useState<
     string | null
   >(null)
+  // Optimistic overrides for excludedFromBudget toggle
+  const [exclusionOverrides, setExclusionOverrides] = React.useState<
+    Map<string, boolean>
+  >(new Map())
+  // Clear overrides once the server data reflects the change
+  React.useEffect(() => {
+    if (exclusionOverrides.size === 0) return
+    setExclusionOverrides((prev) => {
+      const next = new Map(prev)
+      for (const [id, value] of prev) {
+        const t = data.find((tx) => tx._id === id)
+        if (t && t.excludedFromBudget === value) next.delete(id)
+      }
+      return next.size === prev.size ? prev : next
+    })
+  }, [data, exclusionOverrides])
+  const effectiveData = React.useMemo(
+    () =>
+      exclusionOverrides.size === 0
+        ? data
+        : data.map((t) =>
+            exclusionOverrides.has(t._id)
+              ? { ...t, excludedFromBudget: exclusionOverrides.get(t._id) }
+              : t,
+          ),
+    [data, exclusionOverrides],
+  )
   const selectedTransaction = React.useMemo(
-    () => data.find((t) => t._id === selectedTransactionId) ?? null,
-    [data, selectedTransactionId],
+    () => effectiveData.find((t) => t._id === selectedTransactionId) ?? null,
+    [effectiveData, selectedTransactionId],
   )
   const [editingRuleId, setEditingRuleId] = React.useState<string | null>(null)
   const allRules = useQuery(
@@ -557,7 +584,7 @@ export function TransactionsList({
   )
 
   const table = useReactTable({
-    data,
+    data: effectiveData,
     columns,
     state: { sorting, globalFilter, rowSelection },
     onSortingChange: setSorting,
@@ -675,6 +702,9 @@ export function TransactionsList({
 
   const handleExclusionToggle = React.useCallback(
     async (transactionId: string, excluded: boolean) => {
+      setExclusionOverrides((prev) =>
+        new Map(prev).set(transactionId, excluded),
+      )
       try {
         await updateTransactionExclusion({
           transactionId: transactionId as Id<'transactions'>,
@@ -683,6 +713,11 @@ export function TransactionsList({
       } catch (error) {
         Sentry.captureException(error)
         toast.error('Failed to update transaction')
+        setExclusionOverrides((prev) => {
+          const next = new Map(prev)
+          next.delete(transactionId)
+          return next
+        })
       }
     },
     [updateTransactionExclusion],
