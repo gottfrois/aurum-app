@@ -1,6 +1,6 @@
 import { createFileRoute, useNavigate } from '@tanstack/react-router'
 import { useQuery } from 'convex/react'
-import { ArrowRight, Landmark } from 'lucide-react'
+import { Landmark } from 'lucide-react'
 import * as React from 'react'
 import { useTranslation } from 'react-i18next'
 import { AllocationChart, CATEGORY_COLORS } from '~/components/allocation-chart'
@@ -11,7 +11,7 @@ import { MonthlyPaceChart } from '~/components/monthly-pace-chart'
 import { RecurringExpensesCard } from '~/components/recurring-expenses-card'
 import { SiteHeader } from '~/components/site-header'
 import { Button } from '~/components/ui/button'
-import { Card, CardContent, CardHeader, CardTitle } from '~/components/ui/card'
+import { Card, CardContent, CardHeader } from '~/components/ui/card'
 import {
   Empty,
   EmptyContent,
@@ -22,7 +22,6 @@ import {
 } from '~/components/ui/empty'
 import { Kbd } from '~/components/ui/kbd'
 import { Skeleton } from '~/components/ui/skeleton'
-import { WinnersLosers } from '~/components/winners-losers'
 import { useCommandRegistry } from '~/contexts/command-context'
 import { usePortfolio } from '~/contexts/portfolio-context'
 import { useFormatCurrency } from '~/contexts/privacy-context'
@@ -56,16 +55,6 @@ type DecryptedBankAccount = NonNullable<
   connectorName?: string
 }
 
-interface DecryptedInvestment {
-  _id: string
-  label: string
-  code?: string
-  valuation: number
-  diff?: number
-  diffPercent?: number
-  currency?: string
-}
-
 export const Route = createFileRoute('/_app/')({
   component: Dashboard,
 })
@@ -80,7 +69,6 @@ function Dashboard() {
           <DashboardFinancialSummary />
           <DashboardMonthlyPace />
           <DashboardExpensesAndRecurring />
-          <DashboardInvestments />
         </div>
       </div>
     </>
@@ -462,64 +450,5 @@ function DashboardExpensesAndRecurring() {
         </div>
       </div>
     </div>
-  )
-}
-
-// ─── Section 6: Investments ───────────────────────────────
-
-function DashboardInvestments() {
-  const { t } = useTranslation()
-  const {
-    isLoading: portfolioLoading,
-    isAllPortfolios,
-    isTeamView,
-    allPortfolioIds,
-    singlePortfolioId,
-    portfolios,
-  } = usePortfolio()
-  const workspaceId = portfolios?.[0]?.workspaceId ?? null
-
-  const investmentsSingle = useQuery(
-    api.investments.listInvestmentsByPortfolio,
-    singlePortfolioId ? { portfolioId: singlePortfolioId } : 'skip',
-  )
-  const investmentsAll = useQuery(
-    api.investments.listAllInvestmentsByPortfolios,
-    isAllPortfolios && allPortfolioIds.length > 0
-      ? { portfolioIds: allPortfolioIds }
-      : 'skip',
-  )
-  const investmentsTeam = useQuery(
-    api.team.listTeamInvestments,
-    isTeamView && workspaceId ? { workspaceId } : 'skip',
-  )
-  const rawInvestments = isTeamView
-    ? investmentsTeam
-    : isAllPortfolios
-      ? investmentsAll
-      : investmentsSingle
-  const investments = useCachedDecryptRecords('investments', rawInvestments) as
-    | DecryptedInvestment[]
-    | undefined
-
-  if (portfolioLoading || !investments || investments.length === 0) return null
-
-  const currency = 'EUR'
-
-  return (
-    <Card>
-      <CardHeader className="flex-row items-center justify-between">
-        <CardTitle>{t('dashboard.winnersLosers')}</CardTitle>
-        <Button variant="ghost" size="sm" asChild>
-          <a href="/accounts?type=investments">
-            {t('dashboard.viewMore')}
-            <ArrowRight className="ml-1 size-3.5" />
-          </a>
-        </Button>
-      </CardHeader>
-      <CardContent>
-        <WinnersLosers investments={investments} currency={currency} />
-      </CardContent>
-    </Card>
   )
 }
