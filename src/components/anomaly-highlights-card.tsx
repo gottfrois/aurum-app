@@ -1,7 +1,7 @@
 import { AlertTriangle } from 'lucide-react'
 import * as React from 'react'
 import { useTranslation } from 'react-i18next'
-import { Badge } from '~/components/reui/badge'
+import { Badge } from '~/components/ui/badge'
 import { Card, CardContent, CardHeader, CardTitle } from '~/components/ui/card'
 import { Skeleton } from '~/components/ui/skeleton'
 import { useMoney } from '~/hooks/use-money'
@@ -78,7 +78,7 @@ export function AnomalyHighlightsCard({
                   <div className="flex min-w-0 flex-1 flex-col gap-1">
                     <div className="flex items-center justify-between gap-2">
                       <span className="text-sm font-medium">{label}</span>
-                      <Badge variant="warning-light" size="sm" radius="full">
+                      <Badge variant="warning-light" size="sm">
                         {anomaly.ratio.toFixed(1)}x
                       </Badge>
                     </div>

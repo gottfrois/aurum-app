@@ -9,7 +9,7 @@ import {
   XAxis,
   YAxis,
 } from 'recharts'
-import { Badge } from '~/components/reui/badge'
+import { Badge } from '~/components/ui/badge'
 import {
   Card,
   CardContent,
@@ -134,8 +134,6 @@ export function MonthlyPaceChart({
                     ? 'success-light'
                     : 'outline'
               }
-              size="sm"
-              radius="full"
             >
               {deltaPercent > 0 ? '+' : ''}
               {deltaPercent.toFixed(0)}% {t('insights.vsLastMonth')}

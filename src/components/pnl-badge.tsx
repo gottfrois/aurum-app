@@ -19,7 +19,7 @@ export function PnLBadge({ pnl, currency }: PnLBadgeProps) {
 
   if (isPrivate) {
     return (
-      <Badge variant="outline" className="text-muted-foreground border-muted">
+      <Badge variant="outline">
         <Icon className="size-3" />
         <Money value={0} currency={currency} />
       </Badge>
@@ -29,14 +29,7 @@ export function PnLBadge({ pnl, currency }: PnLBadgeProps) {
   const formattedPercentage = `${sign}${pnl.percentage.toFixed(1)}%`
 
   return (
-    <Badge
-      variant="outline"
-      className={
-        pnl.isPositive
-          ? 'text-success border-success/30'
-          : 'text-destructive border-destructive/30'
-      }
-    >
+    <Badge variant={pnl.isPositive ? 'success-light' : 'destructive-light'}>
       <Icon className="size-3" />
       {sign}
       <Money

@@ -9,7 +9,7 @@ import {
 } from 'lucide-react'
 import type * as React from 'react'
 import { useTranslation } from 'react-i18next'
-import { Badge } from '~/components/reui/badge'
+import { Badge } from '~/components/ui/badge'
 import { Card, CardContent } from '~/components/ui/card'
 import { Money } from '~/components/ui/money'
 import { Separator } from '~/components/ui/separator'
@@ -63,7 +63,6 @@ function SummaryStatCard({
                       ? 'destructive-light'
                       : 'outline'
                 }
-                radius="full"
               >
                 {isPositive ? (
                   <ArrowUpIcon />
