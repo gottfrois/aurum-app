@@ -971,6 +971,7 @@
   "toast.failedActivateAgent": "Failed to activate Bunkr Agent",
   "toast.failedUpdateNotifications": "Failed to update notification preferences",
   "toast.failedSyncConnection": "Failed to sync connection",
+  "toast.failedManageConnection": "Failed to open connection management",
   "toast.failedGenerateFilters": "Failed to generate filters",
   "toast.invalidPassphrase": "Invalid passphrase. Please try again.",
   "toast.incorrectPassphrase": "Incorrect passphrase",

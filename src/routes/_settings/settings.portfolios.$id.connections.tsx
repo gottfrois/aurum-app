@@ -1,7 +1,7 @@
 import * as Sentry from '@sentry/tanstackstart-react'
 import { createFileRoute } from '@tanstack/react-router'
-import { useMutation, useQuery } from 'convex/react'
-import { Link2 } from 'lucide-react'
+import { useAction, useMutation, useQuery } from 'convex/react'
+import { Link2, Loader2 } from 'lucide-react'
 import * as React from 'react'
 import { useTranslation } from 'react-i18next'
 import { toast } from 'sonner'
@@ -18,6 +18,7 @@ import {
   ItemCardItemTitle,
 } from '~/components/item-card'
 import { Badge } from '~/components/ui/badge'
+import { Button } from '~/components/ui/button'
 import {
   Empty,
   EmptyDescription,
@@ -194,46 +195,87 @@ function ConnectionsList({
 
   return (
     <div className="space-y-6">
-      {connections.map((connection) => {
-        const { label, dotColor } = getConnectionState(connection.state, t)
-        const accounts = accountsByConnection.get(connection._id) ?? []
-        return (
-          <ItemCard key={connection._id}>
-            <ItemCardHeader>
-              <ItemCardHeaderContent>
-                <ItemCardHeaderTitle>
-                  <div className="flex items-center gap-2">
-                    {connection.connectorName ??
-                      t('settings.portfolioConnections.connectionNumber', {
-                        id: connection.powensConnectionId,
-                      })}
-                    <div className="flex items-center gap-1.5 text-xs font-normal text-muted-foreground">
-                      <span className={`size-2 rounded-full ${dotColor}`} />
-                      {label}
-                    </div>
-                  </div>
-                </ItemCardHeaderTitle>
-              </ItemCardHeaderContent>
-            </ItemCardHeader>
-            <ItemCardItems>
-              {accounts.length === 0 ? (
-                <ItemCardItem>
-                  <ItemCardItemContent>
-                    <ItemCardItemDescription>
-                      {t('settings.portfolioConnections.noAccounts')}
-                    </ItemCardItemDescription>
-                  </ItemCardItemContent>
-                </ItemCardItem>
-              ) : (
-                accounts.map((account) => (
-                  <BankAccountItem key={account._id} account={account} />
-                ))
-              )}
-            </ItemCardItems>
-          </ItemCard>
-        )
-      })}
+      {connections.map((connection) => (
+        <ConnectionCard
+          key={connection._id}
+          connection={connection}
+          accounts={accountsByConnection.get(connection._id) ?? []}
+        />
+      ))}
     </div>
+  )
+}
+
+function ConnectionCard({
+  connection,
+  accounts,
+}: {
+  connection: DecryptedConnection
+  accounts: DecryptedBankAccount[]
+}) {
+  const { t } = useTranslation()
+  const generateManageUrl = useAction(api.powens.generateManageUrl)
+  const [editing, setEditing] = React.useState(false)
+  const { label, dotColor } = getConnectionState(connection.state, t)
+
+  async function handleManage() {
+    setEditing(true)
+    try {
+      const url = await generateManageUrl({
+        connectionId: connection._id,
+        portfolioId: connection.portfolioId,
+      })
+      window.location.href = url
+    } catch (err) {
+      Sentry.captureException(err)
+      toast.error(t('toast.failedManageConnection'))
+      setEditing(false)
+    }
+  }
+
+  return (
+    <ItemCard>
+      <ItemCardHeader>
+        <ItemCardHeaderContent>
+          <ItemCardHeaderTitle>
+            <div className="flex items-center gap-2">
+              {connection.connectorName ??
+                t('settings.portfolioConnections.connectionNumber', {
+                  id: connection.powensConnectionId,
+                })}
+              <div className="flex items-center gap-1.5 text-xs font-normal text-muted-foreground">
+                <span className={`size-2 rounded-full ${dotColor}`} />
+                {label}
+              </div>
+            </div>
+          </ItemCardHeaderTitle>
+        </ItemCardHeaderContent>
+        <Button
+          variant="ghost"
+          size="sm"
+          disabled={editing}
+          onClick={handleManage}
+        >
+          {editing && <Loader2 className="animate-spin" />}
+          {t('settings.connections.manage')}
+        </Button>
+      </ItemCardHeader>
+      <ItemCardItems>
+        {accounts.length === 0 ? (
+          <ItemCardItem>
+            <ItemCardItemContent>
+              <ItemCardItemDescription>
+                {t('settings.portfolioConnections.noAccounts')}
+              </ItemCardItemDescription>
+            </ItemCardItemContent>
+          </ItemCardItem>
+        ) : (
+          accounts.map((account) => (
+            <BankAccountItem key={account._id} account={account} />
+          ))
+        )}
+      </ItemCardItems>
+    </ItemCard>
   )
 }
 
