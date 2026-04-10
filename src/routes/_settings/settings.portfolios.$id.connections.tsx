@@ -366,7 +366,7 @@ function BankAccountItem({ account }: { account: DecryptedBankAccount }) {
           }}
           disabled={saving}
           placeholder={t('settings.portfolioConnections.customNamePlaceholder')}
-          className="h-8 w-48 text-sm"
+          className="h-8 w-72 text-sm"
         />
       </ItemCardItemAction>
     </ItemCardItem>
