@@ -1,5 +1,5 @@
 import type { Meta, StoryObj } from '@storybook/react-vite'
-import { PrivacyProvider } from '~/contexts/privacy-context'
+import { MoneyPreferencesProvider } from '~/contexts/money-preferences-context'
 import { DashboardCard } from '../dashboard-card'
 
 const meta = {
@@ -7,11 +7,11 @@ const meta = {
   component: DashboardCard,
   decorators: [
     (Story) => (
-      <PrivacyProvider>
+      <MoneyPreferencesProvider>
         <div className="max-w-sm">
           <Story />
         </div>
-      </PrivacyProvider>
+      </MoneyPreferencesProvider>
     ),
   ],
   args: {

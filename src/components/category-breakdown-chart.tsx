@@ -29,7 +29,7 @@ import {
   ChartTooltipContent,
 } from '~/components/ui/chart'
 import { ToggleGroup, ToggleGroupItem } from '~/components/ui/toggle-group'
-import { usePrivacy } from '~/contexts/privacy-context'
+import { useMoney } from '~/hooks/use-money'
 import { cn } from '~/lib/utils'
 
 interface CategoryEntry {
@@ -49,14 +49,6 @@ interface CategoryBreakdownChartProps {
 }
 
 type ChartView = 'pie' | 'treemap' | 'bar'
-
-function formatCurrencyValue(value: number, currency: string) {
-  return new Intl.NumberFormat('fr-FR', {
-    style: 'currency',
-    currency,
-    maximumFractionDigits: 0,
-  }).format(value)
-}
 
 function CategoryTooltipContent({
   active,
@@ -131,13 +123,13 @@ export function CategoryBreakdownChart({
   onCategoryClick,
 }: CategoryBreakdownChartProps) {
   const { t } = useTranslation()
-  const { isPrivate } = usePrivacy()
+  const { format } = useMoney()
   const [view, setView] = React.useState<ChartView>('pie')
 
   const formatCurrency = React.useCallback(
     (value: number, cur: string) =>
-      isPrivate ? '••••••' : formatCurrencyValue(value, cur),
-    [isPrivate],
+      format(value, cur, { maximumFractionDigits: 0 }),
+    [format],
   )
 
   const displayData = React.useMemo(

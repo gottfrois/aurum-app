@@ -20,7 +20,7 @@ import {
   ChartTooltip,
 } from '~/components/ui/chart'
 import { Skeleton } from '~/components/ui/skeleton'
-import { usePrivacy } from '~/contexts/privacy-context'
+import { useMoney } from '~/hooks/use-money'
 import type { Period } from '~/lib/chart-periods'
 import { downsampleRecords } from '~/lib/downsample'
 import type { PnL } from '~/lib/pnl'
@@ -44,13 +44,6 @@ interface StackedBalanceChartProps {
   description?: string
   pnl?: PnL | null
 }
-
-const currencyFormatter = (currency: string) => (value: number) =>
-  new Intl.NumberFormat('fr-FR', {
-    style: 'currency',
-    currency,
-    maximumFractionDigits: 0,
-  }).format(value)
 
 function StackedTooltipContent({
   active,
@@ -218,10 +211,10 @@ export function StackedBalanceChart({
   description,
   pnl,
 }: StackedBalanceChartProps) {
-  const { isPrivate } = usePrivacy()
-  const formatCurrency = React.useMemo(
-    () => (isPrivate ? () => '••••••' : currencyFormatter(currency)),
-    [currency, isPrivate],
+  const { format } = useMoney()
+  const formatCurrency = React.useCallback(
+    (value: number) => format(value, currency, { maximumFractionDigits: 0 }),
+    [format, currency],
   )
 
   const chartData = React.useMemo(

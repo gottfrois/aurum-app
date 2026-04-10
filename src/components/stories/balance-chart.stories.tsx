@@ -1,5 +1,5 @@
 import type { Meta, StoryObj } from '@storybook/react-vite'
-import { PrivacyProvider } from '~/contexts/privacy-context'
+import { MoneyPreferencesProvider } from '~/contexts/money-preferences-context'
 import { BalanceChart } from '../balance-chart'
 
 function generateData(months: number, startBalance: number, trend: number) {
@@ -23,11 +23,11 @@ const meta = {
   component: BalanceChart,
   decorators: [
     (Story) => (
-      <PrivacyProvider>
+      <MoneyPreferencesProvider>
         <div className="max-w-3xl">
           <Story />
         </div>
-      </PrivacyProvider>
+      </MoneyPreferencesProvider>
     ),
   ],
   args: {

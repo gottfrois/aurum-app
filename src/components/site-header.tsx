@@ -20,7 +20,7 @@ import {
   TooltipTrigger,
 } from '~/components/ui/tooltip'
 import { useEncryption } from '~/contexts/encryption-context'
-import { usePrivacy } from '~/contexts/privacy-context'
+import { useMoneyPreferences } from '~/contexts/money-preferences-context'
 
 export interface BreadcrumbItem {
   label: string
@@ -40,7 +40,7 @@ export function SiteHeader({
   children?: React.ReactNode
 }) {
   const { t } = useTranslation()
-  const { isPrivate, togglePrivacy } = usePrivacy()
+  const { isPrivate, togglePrivacy } = useMoneyPreferences()
   const { isUnlocked, lock } = useEncryption()
 
   return (

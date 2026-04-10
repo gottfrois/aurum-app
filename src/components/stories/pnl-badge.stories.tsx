@@ -1,5 +1,5 @@
 import type { Meta, StoryObj } from '@storybook/react-vite'
-import { PrivacyProvider } from '~/contexts/privacy-context'
+import { MoneyPreferencesProvider } from '~/contexts/money-preferences-context'
 import { PnLBadge } from '../pnl-badge'
 
 const meta = {
@@ -7,9 +7,9 @@ const meta = {
   component: PnLBadge,
   decorators: [
     (Story) => (
-      <PrivacyProvider>
+      <MoneyPreferencesProvider>
         <Story />
-      </PrivacyProvider>
+      </MoneyPreferencesProvider>
     ),
   ],
   args: {

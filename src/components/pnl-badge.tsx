@@ -1,6 +1,7 @@
 import { TrendingDown, TrendingUp } from 'lucide-react'
 import { Badge } from '~/components/ui/badge'
-import { usePrivacy } from '~/contexts/privacy-context'
+import { Money } from '~/components/ui/money'
+import { useMoney } from '~/hooks/use-money'
 import type { PnL } from '~/lib/pnl'
 
 interface PnLBadgeProps {
@@ -9,7 +10,7 @@ interface PnLBadgeProps {
 }
 
 export function PnLBadge({ pnl, currency }: PnLBadgeProps) {
-  const { isPrivate } = usePrivacy()
+  const { isPrivate } = useMoney()
 
   if (!pnl) return null
 
@@ -20,17 +21,10 @@ export function PnLBadge({ pnl, currency }: PnLBadgeProps) {
     return (
       <Badge variant="outline" className="text-muted-foreground border-muted">
         <Icon className="size-3" />
-        ••••••
+        <Money value={0} currency={currency} />
       </Badge>
     )
   }
-
-  const formattedAbsolute = new Intl.NumberFormat('fr-FR', {
-    style: 'currency',
-    currency,
-    maximumFractionDigits: 0,
-    signDisplay: 'never',
-  }).format(Math.abs(pnl.absolute))
 
   const formattedPercentage = `${sign}${pnl.percentage.toFixed(1)}%`
 
@@ -45,7 +39,13 @@ export function PnLBadge({ pnl, currency }: PnLBadgeProps) {
     >
       <Icon className="size-3" />
       {sign}
-      {formattedAbsolute} ({formattedPercentage})
+      <Money
+        value={Math.abs(pnl.absolute)}
+        currency={currency}
+        maximumFractionDigits={0}
+        signDisplay="never"
+      />{' '}
+      ({formattedPercentage})
     </Badge>
   )
 }

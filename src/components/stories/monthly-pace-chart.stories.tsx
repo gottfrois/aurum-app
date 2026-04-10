@@ -1,5 +1,5 @@
 import type { Meta, StoryObj } from '@storybook/react-vite'
-import { PrivacyProvider } from '~/contexts/privacy-context'
+import { MoneyPreferencesProvider } from '~/contexts/money-preferences-context'
 import type { DailyPaceEntry } from '~/lib/financial-analytics'
 import { MonthlyPaceChart } from '../monthly-pace-chart'
 
@@ -35,11 +35,11 @@ const meta = {
   component: MonthlyPaceChart,
   decorators: [
     (Story) => (
-      <PrivacyProvider>
+      <MoneyPreferencesProvider>
         <div className="h-[450px] max-w-4xl">
           <Story />
         </div>
-      </PrivacyProvider>
+      </MoneyPreferencesProvider>
     ),
   ],
   args: {

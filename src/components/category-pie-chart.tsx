@@ -4,7 +4,7 @@ import { Cell, Label, Pie, PieChart } from 'recharts'
 import { Card, CardContent, CardHeader, CardTitle } from '~/components/ui/card'
 import type { ChartConfig } from '~/components/ui/chart'
 import { ChartContainer, ChartTooltip } from '~/components/ui/chart'
-import { usePrivacy } from '~/contexts/privacy-context'
+import { useMoney } from '~/hooks/use-money'
 import { cn } from '~/lib/utils'
 
 interface CategoryEntry {
@@ -41,14 +41,6 @@ interface CategoryPieChartProps {
   total: number
   className?: string
   onCategoryClick?: (categoryKey: string) => void
-}
-
-function formatCurrencyValue(value: number, currency: string) {
-  return new Intl.NumberFormat('fr-FR', {
-    style: 'currency',
-    currency,
-    maximumFractionDigits: 0,
-  }).format(value)
 }
 
 function CategoryTooltipContent({
@@ -111,12 +103,12 @@ export function CategoryPieChart({
   onCategoryClick,
 }: CategoryPieChartProps) {
   const { t } = useTranslation()
-  const { isPrivate } = usePrivacy()
+  const { format } = useMoney()
 
   const formatCurrency = React.useCallback(
     (value: number, cur: string) =>
-      isPrivate ? '••••••' : formatCurrencyValue(value, cur),
-    [isPrivate],
+      format(value, cur, { maximumFractionDigits: 0 }),
+    [format],
   )
 
   const displayData = React.useMemo(

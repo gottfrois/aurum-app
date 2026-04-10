@@ -7,19 +7,14 @@ import {
   TrendingUp,
   Wallet,
 } from 'lucide-react'
+import type * as React from 'react'
 import { useTranslation } from 'react-i18next'
 import { Badge } from '~/components/reui/badge'
 import { Card, CardContent } from '~/components/ui/card'
+import { Money } from '~/components/ui/money'
 import { Separator } from '~/components/ui/separator'
-import { usePrivacy } from '~/contexts/privacy-context'
-
-function formatCurrencyValue(value: number, currency: string) {
-  return new Intl.NumberFormat('fr-FR', {
-    style: 'currency',
-    currency,
-    maximumFractionDigits: 0,
-  }).format(value)
-}
+import { useMoney } from '~/hooks/use-money'
+import { MASKED } from '~/lib/money/constants'
 
 function computeDeltaPercent(current: number, previous: number): number | null {
   if (previous === 0) return null
@@ -28,11 +23,11 @@ function computeDeltaPercent(current: number, previous: number): number | null {
 
 interface SummaryStatCardProps {
   label: string
-  value: string
-  subtitle?: string
+  value: React.ReactNode
+  subtitle?: React.ReactNode
   icon: LucideIcon
   deltaPercent?: number | null
-  previousLabel?: string
+  previousLabel?: React.ReactNode
 }
 
 function SummaryStatCard({
@@ -118,20 +113,22 @@ export function FinancialSummaryBar({
   currency,
 }: FinancialSummaryBarProps) {
   const { t } = useTranslation()
-  const { isPrivate } = usePrivacy()
+  const { format, isPrivate } = useMoney()
 
-  const fmt = (value: number) =>
-    isPrivate ? '••••••' : formatCurrencyValue(value, currency)
+  const fmtMoney = (value: number) =>
+    format(value, currency, { maximumFractionDigits: 0 })
 
   const fmtPercent = (value: number) =>
-    isPrivate ? '••••••' : `${value >= 0 ? '+' : ''}${value.toFixed(1)}%`
+    isPrivate ? MASKED : `${value >= 0 ? '+' : ''}${value.toFixed(1)}%`
 
   const prevLabel = (prevValue: number) =>
-    isPrivate ? undefined : t('summary.vsPrevious', { amount: fmt(prevValue) })
+    isPrivate
+      ? undefined
+      : t('summary.vsPrevious', { amount: fmtMoney(prevValue) })
 
   const recurringSubtitle =
     recurringTotal > 0
-      ? t('summary.recurringOf', { amount: fmt(recurringTotal) })
+      ? t('summary.recurringOf', { amount: fmtMoney(recurringTotal) })
       : previous
         ? prevLabel(previous.totalExpenses)
         : undefined
@@ -140,7 +137,14 @@ export function FinancialSummaryBar({
     <div className="grid grid-cols-2 gap-4 lg:grid-cols-4 md:gap-6">
       <SummaryStatCard
         label={t('summary.income')}
-        value={fmt(totalIncome)}
+        value={
+          <Money
+            value={totalIncome}
+            currency={currency}
+            maximumFractionDigits={0}
+            animate
+          />
+        }
         icon={TrendingUp}
         deltaPercent={
           previous
@@ -151,7 +155,14 @@ export function FinancialSummaryBar({
       />
       <SummaryStatCard
         label={t('summary.expenses')}
-        value={fmt(totalExpenses)}
+        value={
+          <Money
+            value={totalExpenses}
+            currency={currency}
+            maximumFractionDigits={0}
+            animate
+          />
+        }
         subtitle={recurringSubtitle}
         icon={TrendingDown}
         deltaPercent={
@@ -162,7 +173,14 @@ export function FinancialSummaryBar({
       />
       <SummaryStatCard
         label={t('summary.available')}
-        value={fmt(delta)}
+        value={
+          <Money
+            value={delta}
+            currency={currency}
+            maximumFractionDigits={0}
+            animate
+          />
+        }
         icon={Wallet}
         deltaPercent={
           previous ? computeDeltaPercent(delta, previous.delta) : null

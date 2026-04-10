@@ -28,8 +28,8 @@ import { TooltipProvider } from '~/components/ui/tooltip'
 import { BillingProvider } from '~/contexts/billing-context'
 import { BulkOperationProvider } from '~/contexts/bulk-operation-context'
 import { EncryptionProvider } from '~/contexts/encryption-context'
+import { MoneyPreferencesProvider } from '~/contexts/money-preferences-context'
 import { PortfolioProvider, usePortfolio } from '~/contexts/portfolio-context'
-import { PrivacyProvider } from '~/contexts/privacy-context'
 import { WorkspaceProvider } from '~/contexts/workspace-context'
 import { useLanguageSync } from '~/hooks/use-language-sync'
 import { usePresenceHeartbeat } from '~/hooks/use-presence-heartbeat'
@@ -214,13 +214,13 @@ function RootComponent() {
                   <PresenceHeartbeat>
                     <EncryptionProvider>
                       <BulkOperationProvider>
-                        <PrivacyProvider>
+                        <MoneyPreferencesProvider>
                           <RootDocument>
                             <OnboardingGuard>
                               <Outlet />
                             </OnboardingGuard>
                           </RootDocument>
-                        </PrivacyProvider>
+                        </MoneyPreferencesProvider>
                       </BulkOperationProvider>
                     </EncryptionProvider>
                   </PresenceHeartbeat>

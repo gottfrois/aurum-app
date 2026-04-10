@@ -3,8 +3,8 @@ import { useCallback, useEffect, useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Avatar, AvatarFallback, AvatarImage } from '~/components/ui/avatar'
 import { Card, CardContent, CardHeader, CardTitle } from '~/components/ui/card'
-import { useFormatCurrency } from '~/contexts/privacy-context'
 import { useCachedDecryptRecords } from '~/hooks/use-cached-decrypt'
+import { useMoney } from '~/hooks/use-money'
 import { api } from '../../convex/_generated/api'
 import type { Id } from '../../convex/_generated/dataModel'
 
@@ -46,7 +46,7 @@ export function TeamBreakdown({
 
   const resolveUsers = useAction(api.members.resolveUsers)
   const [users, setUsers] = useState<Record<string, ResolvedUser>>({})
-  const formatCurrency = useFormatCurrency()
+  const { format: formatCurrency } = useMoney()
 
   const fetchUsers = useCallback(async () => {
     if (!sharedPortfolios?.length) return

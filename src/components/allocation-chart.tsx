@@ -25,7 +25,7 @@ import {
   TooltipContent,
   TooltipTrigger,
 } from '~/components/ui/tooltip'
-import { usePrivacy } from '~/contexts/privacy-context'
+import { useMoney } from '~/hooks/use-money'
 
 interface AllocationEntry {
   key: string
@@ -51,14 +51,6 @@ const CATEGORY_COLORS: Record<string, string> = {
 }
 
 export { CATEGORY_COLORS }
-
-function formatCurrencyValue(value: number, currency: string) {
-  return new Intl.NumberFormat('fr-FR', {
-    style: 'currency',
-    currency,
-    maximumFractionDigits: 0,
-  }).format(value)
-}
 
 function AllocationTooltipContent({
   active,
@@ -331,12 +323,12 @@ export function AllocationChart({
 }: AllocationChartProps) {
   const { t } = useTranslation()
   const [view, setView] = React.useState<ChartView>('donut')
-  const { isPrivate } = usePrivacy()
+  const { format } = useMoney()
 
   const formatCurrency = React.useCallback(
     (value: number, cur: string) =>
-      isPrivate ? '••••••' : formatCurrencyValue(value, cur),
-    [isPrivate],
+      format(value, cur, { maximumFractionDigits: 0 }),
+    [format],
   )
 
   const chartConfig = React.useMemo(() => {

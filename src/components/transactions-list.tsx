@@ -83,8 +83,8 @@ import {
 } from '~/components/ui/table'
 import { useEncryption } from '~/contexts/encryption-context'
 import { usePortfolio } from '~/contexts/portfolio-context'
-import { useFormatCurrency } from '~/contexts/privacy-context'
 import { useCommand } from '~/hooks/use-command'
+import { useMoney } from '~/hooks/use-money'
 import type { CategoryInfo } from '~/lib/categories'
 import { resolveTransactionCategoryKey, useCategories } from '~/lib/categories'
 import { encryptData, importPublicKey } from '~/lib/crypto'
@@ -155,7 +155,7 @@ export function TransactionsList({
   onDeleteManualTransaction,
 }: TransactionsListProps) {
   const { t } = useTranslation()
-  const formatCurrency = useFormatCurrency()
+  const { format: formatCurrency } = useMoney()
   const { categories, getCategory } = useCategories()
   const { workspacePublicKey } = useEncryption()
   const [sorting, setSorting] = React.useState<SortingState>([

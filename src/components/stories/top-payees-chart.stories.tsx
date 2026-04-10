@@ -1,5 +1,5 @@
 import type { Meta, StoryObj } from '@storybook/react-vite'
-import { PrivacyProvider } from '~/contexts/privacy-context'
+import { MoneyPreferencesProvider } from '~/contexts/money-preferences-context'
 import { TopPayeesChart } from '../top-payees-chart'
 
 const mockCategories = [
@@ -68,11 +68,11 @@ const meta = {
   component: TopPayeesChart,
   decorators: [
     (Story) => (
-      <PrivacyProvider>
+      <MoneyPreferencesProvider>
         <div className="h-[450px] max-w-2xl">
           <Story />
         </div>
-      </PrivacyProvider>
+      </MoneyPreferencesProvider>
     ),
   ],
   args: {

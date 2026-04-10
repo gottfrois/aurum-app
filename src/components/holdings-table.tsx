@@ -1,4 +1,5 @@
 import { useTranslation } from 'react-i18next'
+import { Money } from '~/components/ui/money'
 import {
   Table,
   TableBody,
@@ -7,7 +8,7 @@ import {
   TableHeader,
   TableRow,
 } from '~/components/ui/table'
-import { usePrivacy } from '~/contexts/privacy-context'
+import { useMoney } from '~/hooks/use-money'
 import { cn } from '~/lib/utils'
 
 export interface Investment {
@@ -23,27 +24,23 @@ export interface Investment {
   diffPercent?: number
 }
 
-const currencyFmt = new Intl.NumberFormat('fr-FR', {
-  style: 'currency',
-  currency: 'EUR',
-})
-
-const pctFmt = new Intl.NumberFormat('fr-FR', {
-  style: 'percent',
-  minimumFractionDigits: 2,
-  maximumFractionDigits: 2,
-})
-
-const MASKED = '••••••'
-
 export function HoldingsTable({
   investments,
+  currency,
 }: {
   investments: Array<Investment>
+  currency: string
 }) {
   const { t } = useTranslation()
-  const { isPrivate } = usePrivacy()
+  const { locale } = useMoney()
   const sorted = [...investments].sort((a, b) => b.valuation - a.valuation)
+
+  // Percent formatter follows the same locale as the money formatter
+  const pctFmt = new Intl.NumberFormat(locale, {
+    style: 'percent',
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  })
 
   if (sorted.length === 0) {
     return (
@@ -77,22 +74,20 @@ export function HoldingsTable({
             </TableCell>
             <TableCell className="text-right">{inv.quantity}</TableCell>
             <TableCell className="text-right">
-              {isPrivate ? MASKED : currencyFmt.format(inv.unitprice)}
+              <Money value={inv.unitprice} currency={currency} />
             </TableCell>
             <TableCell className="text-right">
-              {isPrivate ? MASKED : currencyFmt.format(inv.valuation)}
+              <Money value={inv.valuation} currency={currency} />
             </TableCell>
             <TableCell className="text-right">
-              {isPrivate ? (
-                MASKED
-              ) : inv.diff != null ? (
+              {inv.diff != null ? (
                 <span
                   className={cn(
                     inv.diff >= 0 ? 'text-success' : 'text-destructive',
                   )}
                 >
                   {inv.diff >= 0 ? '+' : ''}
-                  {currencyFmt.format(inv.diff)}
+                  <Money value={inv.diff} currency={currency} />
                   {inv.diffPercent != null && (
                     <span className="ml-1 text-xs">
                       ({inv.diffPercent >= 0 ? '+' : ''}

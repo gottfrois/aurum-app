@@ -20,7 +20,7 @@ import {
 import type { ChartConfig } from '~/components/ui/chart'
 import { ChartContainer, ChartTooltip } from '~/components/ui/chart'
 import { Skeleton } from '~/components/ui/skeleton'
-import { usePrivacy } from '~/contexts/privacy-context'
+import { useMoney } from '~/hooks/use-money'
 import type { DailyPaceEntry } from '~/lib/financial-analytics'
 
 export interface MonthlyPaceChartProps {
@@ -33,13 +33,6 @@ export interface MonthlyPaceChartProps {
   isLoading: boolean
   spentHref?: string
 }
-
-const currencyFormatter = (currency: string) => (value: number) =>
-  new Intl.NumberFormat('fr-FR', {
-    style: 'currency',
-    currency,
-    maximumFractionDigits: 0,
-  }).format(value)
 
 const chartConfig = {
   actual: {
@@ -115,17 +108,11 @@ export function MonthlyPaceChart({
   spentHref,
 }: MonthlyPaceChartProps) {
   const { t } = useTranslation()
-  const { isPrivate } = usePrivacy()
+  const { format } = useMoney()
 
-  const formatCurrency = React.useMemo(
-    () => (isPrivate ? () => '••••••' : currencyFormatter(currency)),
-    [currency, isPrivate],
-  )
-
-  const fmt = React.useCallback(
-    (value: number) =>
-      isPrivate ? '••••••' : currencyFormatter(currency)(value),
-    [isPrivate, currency],
+  const formatCurrency = React.useCallback(
+    (value: number) => format(value, currency, { maximumFractionDigits: 0 }),
+    [format, currency],
   )
 
   const deltaPercent = React.useMemo(() => {
@@ -158,20 +145,20 @@ export function MonthlyPaceChart({
         <CardDescription className="flex items-center gap-4">
           {spentHref ? (
             <a href={spentHref} className="underline-offset-4 hover:underline">
-              {t('insights.spent')} {fmt(currentTotal)}
+              {t('insights.spent')} {formatCurrency(currentTotal)}
             </a>
           ) : (
             <span>
-              {t('insights.spent')} {fmt(currentTotal)}
+              {t('insights.spent')} {formatCurrency(currentTotal)}
             </span>
           )}
           <span className="text-muted-foreground">·</span>
           <span className="text-muted-foreground">
-            {t('insights.projectedTo')} {fmt(projectedTotal)}
+            {t('insights.projectedTo')} {formatCurrency(projectedTotal)}
           </span>
           <span className="text-muted-foreground">·</span>
           <span className="text-muted-foreground">
-            {fmt(dailyRate)}/{t('insights.day')}
+            {formatCurrency(dailyRate)}/{t('insights.day')}
           </span>
         </CardDescription>
       </CardHeader>

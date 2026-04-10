@@ -4,7 +4,7 @@ import { useTranslation } from 'react-i18next'
 import { Badge } from '~/components/reui/badge'
 import { Card, CardContent, CardHeader, CardTitle } from '~/components/ui/card'
 import { Skeleton } from '~/components/ui/skeleton'
-import { usePrivacy } from '~/contexts/privacy-context'
+import { useMoney } from '~/hooks/use-money'
 import type { CategoryInfo } from '~/lib/categories'
 import type { SpendingAnomaly } from '~/lib/financial-analytics'
 
@@ -16,14 +16,6 @@ interface AnomalyHighlightsCardProps {
   onCategoryClick?: (categoryKey: string) => void
 }
 
-function formatCurrencyValue(value: number, currency: string) {
-  return new Intl.NumberFormat('fr-FR', {
-    style: 'currency',
-    currency,
-    maximumFractionDigits: 0,
-  }).format(value)
-}
-
 export function AnomalyHighlightsCard({
   anomalies,
   categories,
@@ -32,12 +24,11 @@ export function AnomalyHighlightsCard({
   onCategoryClick,
 }: AnomalyHighlightsCardProps) {
   const { t } = useTranslation()
-  const { isPrivate } = usePrivacy()
+  const { format } = useMoney()
 
   const fmt = React.useCallback(
-    (value: number) =>
-      isPrivate ? '••••••' : formatCurrencyValue(value, currency),
-    [isPrivate, currency],
+    (value: number) => format(value, currency, { maximumFractionDigits: 0 }),
+    [format, currency],
   )
 
   const categoryMap = React.useMemo(

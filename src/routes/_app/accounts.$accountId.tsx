@@ -21,13 +21,13 @@ import { Button } from '~/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '~/components/ui/card'
 import { Skeleton } from '~/components/ui/skeleton'
 import { usePortfolio } from '~/contexts/portfolio-context'
-import { useFormatCurrency } from '~/contexts/privacy-context'
 import {
   useCachedDecryptRecord,
   useCachedDecryptRecords,
 } from '~/hooks/use-cached-decrypt'
 import { useFilterI18n } from '~/hooks/use-filter-i18n'
 import { useFilters } from '~/hooks/use-filters'
+import { useMoney } from '~/hooks/use-money'
 import { isInvestmentAccount } from '~/lib/account-categories'
 import { useCategories } from '~/lib/categories'
 import type { Period } from '~/lib/chart-periods'
@@ -152,7 +152,7 @@ function AccountDetailPage() {
   )
   const labels = labelsData ?? []
 
-  const formatCurrency = useFormatCurrency()
+  const { format: formatCurrency } = useMoney()
 
   // Manual transaction dialog
   const manualTxDialog = useManualTransactionDialog()
@@ -399,7 +399,10 @@ function AccountDetailPage() {
                     <CardTitle>{t('accounts.holdings')}</CardTitle>
                   </CardHeader>
                   <CardContent>
-                    <HoldingsTable investments={investments} />
+                    <HoldingsTable
+                      investments={investments}
+                      currency={bankAccount.currency ?? 'EUR'}
+                    />
                   </CardContent>
                 </Card>
               )}

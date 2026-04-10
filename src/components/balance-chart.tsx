@@ -18,7 +18,7 @@ import {
   ChartTooltipContent,
 } from '~/components/ui/chart'
 import { Skeleton } from '~/components/ui/skeleton'
-import { usePrivacy } from '~/contexts/privacy-context'
+import { useMoney } from '~/hooks/use-money'
 import type { Period } from '~/lib/chart-periods'
 import { downsample } from '~/lib/downsample'
 import { computePnL } from '~/lib/pnl'
@@ -47,13 +47,6 @@ interface BalanceChartProps {
   title?: string
   description?: string
 }
-
-const currencyFormatter = (currency: string) => (value: number) =>
-  new Intl.NumberFormat('fr-FR', {
-    style: 'currency',
-    currency,
-    maximumFractionDigits: 0,
-  }).format(value)
 
 function ChartArea({
   data,
@@ -144,10 +137,10 @@ export function BalanceChart({
   description,
 }: BalanceChartProps) {
   const { t } = useTranslation()
-  const { isPrivate } = usePrivacy()
-  const formatCurrency = React.useMemo(
-    () => (isPrivate ? () => '••••••' : currencyFormatter(currency)),
-    [currency, isPrivate],
+  const { format } = useMoney()
+  const formatCurrency = React.useCallback(
+    (value: number) => format(value, currency, { maximumFractionDigits: 0 }),
+    [format, currency],
   )
 
   const chartData = React.useMemo(

@@ -30,8 +30,8 @@ import {
 } from '~/contexts/chat-context'
 import { CommandProvider, useCommandDispatch } from '~/contexts/command-context'
 import { useEncryption } from '~/contexts/encryption-context'
+import { useMoneyPreferences } from '~/contexts/money-preferences-context'
 import { usePortfolio } from '~/contexts/portfolio-context'
-import { usePrivacy } from '~/contexts/privacy-context'
 import { useCommand } from '~/hooks/use-command'
 import { useNavigationCommands } from '~/hooks/use-navigation-commands'
 import { api } from '../../convex/_generated/api'
@@ -45,7 +45,7 @@ function AppCommands() {
   const { setPaletteState } = useCommandDispatch()
   const { toggleSidebar } = useSidebar()
   const { lock, isUnlocked } = useEncryption()
-  const { togglePrivacy } = usePrivacy()
+  const { togglePrivacy } = useMoneyPreferences()
   const { setTheme } = useTheme()
   const { openNewChat } = useChatDispatch()
   const { singlePortfolioId } = usePortfolio()

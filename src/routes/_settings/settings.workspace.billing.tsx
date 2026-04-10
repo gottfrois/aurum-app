@@ -19,6 +19,7 @@ import { Button } from '~/components/ui/button'
 import { PageHeader } from '~/components/ui/page-header'
 import { Skeleton } from '~/components/ui/skeleton'
 import { useBilling } from '~/contexts/billing-context'
+import { useMoney } from '~/hooks/use-money'
 import { api } from '../../../convex/_generated/api'
 import { PLANS } from '../../../convex/stripe'
 
@@ -34,13 +35,6 @@ function formatDate(timestamp: number): string {
   })
 }
 
-function formatCurrency(amountCents: number, currency: string): string {
-  return new Intl.NumberFormat(undefined, {
-    style: 'currency',
-    currency,
-  }).format(amountCents / 100)
-}
-
 interface Invoice {
   id: string
   createdAt: string
@@ -52,6 +46,9 @@ interface Invoice {
 function BillingPage() {
   const { t } = useTranslation()
   const { subscription } = useBilling()
+  const { format } = useMoney()
+  const formatCurrency = (amountCents: number, currency: string) =>
+    format(amountCents / 100, currency)
   const createPortalSession = useAction(api.billing.createPortalSession)
   const listRecentInvoices = useAction(api.billing.listRecentInvoices)
   const [invoices, setInvoices] = useState<Array<Invoice> | undefined>(

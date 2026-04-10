@@ -1,7 +1,8 @@
+import * as React from 'react'
 import { useTranslation } from 'react-i18next'
 import { Layer, Rectangle, Sankey, Tooltip } from 'recharts'
 import { Card, CardContent, CardHeader, CardTitle } from '~/components/ui/card'
-import { usePrivacy } from '~/contexts/privacy-context'
+import { useMoney } from '~/hooks/use-money'
 
 interface SankeyNode {
   name: string
@@ -24,14 +25,6 @@ interface SankeyChartProps {
   onLabelClick?: (categoryKey: string) => void
 }
 
-function formatCurrencyValue(value: number, currency: string) {
-  return new Intl.NumberFormat('fr-FR', {
-    style: 'currency',
-    currency,
-    maximumFractionDigits: 0,
-  }).format(value)
-}
-
 function SankeyNodeComponent({
   x,
   y,
@@ -39,8 +32,7 @@ function SankeyNodeComponent({
   height,
   payload,
   containerWidth,
-  currency,
-  isPrivate,
+  formatCurrency,
   onLabelClick,
 }: {
   x: number
@@ -49,17 +41,12 @@ function SankeyNodeComponent({
   height: number
   payload: SankeyNode & { value?: number }
   containerWidth: number
-  currency: string
-  isPrivate: boolean
+  formatCurrency: (value: number) => string
   onLabelClick?: (categoryKey: string) => void
 }) {
   const isLeft = x < containerWidth / 2
   const formattedValue =
-    payload.value != null
-      ? isPrivate
-        ? '••••••'
-        : formatCurrencyValue(payload.value, currency)
-      : ''
+    payload.value != null ? formatCurrency(payload.value) : ''
   const clickable = onLabelClick && payload.categoryKey
 
   if (payload.intermediate) {
@@ -131,8 +118,7 @@ function SankeyNodeComponent({
 function SankeyTooltipContent({
   active,
   payload,
-  currency,
-  isPrivate,
+  formatCurrency,
 }: {
   active?: boolean
   payload?: Array<{
@@ -142,8 +128,7 @@ function SankeyTooltipContent({
       payload?: { value?: number }
     }
   }>
-  currency: string
-  isPrivate: boolean
+  formatCurrency: (value: number) => string
 }) {
   if (!active || !payload?.length) return null
   const data = payload[0].payload
@@ -161,7 +146,7 @@ function SankeyTooltipContent({
         {data.source?.name} → {data.target?.name}
       </div>
       <div className="mt-1 font-mono tabular-nums text-muted-foreground">
-        {isPrivate ? '••••••' : formatCurrencyValue(value ?? 0, currency)}
+        {formatCurrency(value ?? 0)}
       </div>
     </div>
   )
@@ -211,7 +196,12 @@ export function SankeyChart({
   onLabelClick,
 }: SankeyChartProps) {
   const { t } = useTranslation()
-  const { isPrivate } = usePrivacy()
+  const { format } = useMoney()
+
+  const formatCurrency = React.useCallback(
+    (value: number) => format(value, currency, { maximumFractionDigits: 0 }),
+    [format, currency],
+  )
 
   if (nodes.length === 0 || links.length === 0) {
     return null
@@ -244,8 +234,7 @@ export function SankeyChart({
                   height={0}
                   payload={{ name: '' }}
                   containerWidth={900}
-                  currency={currency}
-                  isPrivate={isPrivate}
+                  formatCurrency={formatCurrency}
                   onLabelClick={onLabelClick}
                 />
               }
@@ -253,10 +242,7 @@ export function SankeyChart({
             >
               <Tooltip
                 content={
-                  <SankeyTooltipContent
-                    currency={currency}
-                    isPrivate={isPrivate}
-                  />
+                  <SankeyTooltipContent formatCurrency={formatCurrency} />
                 }
               />
             </Sankey>

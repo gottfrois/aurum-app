@@ -1,5 +1,5 @@
 import type { Meta, StoryObj } from '@storybook/react-vite'
-import { PrivacyProvider } from '~/contexts/privacy-context'
+import { MoneyPreferencesProvider } from '~/contexts/money-preferences-context'
 import type { YearOverYearEntry } from '~/lib/financial-analytics'
 import { YearOverYearChart } from '../year-over-year-chart'
 
@@ -23,11 +23,11 @@ const meta = {
   component: YearOverYearChart,
   decorators: [
     (Story) => (
-      <PrivacyProvider>
+      <MoneyPreferencesProvider>
         <div className="h-[400px] max-w-4xl">
           <Story />
         </div>
-      </PrivacyProvider>
+      </MoneyPreferencesProvider>
     ),
   ],
   args: {

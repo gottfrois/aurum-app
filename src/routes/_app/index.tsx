@@ -24,10 +24,10 @@ import { Kbd } from '~/components/ui/kbd'
 import { Skeleton } from '~/components/ui/skeleton'
 import { useCommandRegistry } from '~/contexts/command-context'
 import { usePortfolio } from '~/contexts/portfolio-context'
-import { useFormatCurrency } from '~/contexts/privacy-context'
 import { useAggregatedBalances } from '~/hooks/use-aggregated-balances'
 import { useCachedDecryptRecords } from '~/hooks/use-cached-decrypt'
 import { useDateRange } from '~/hooks/use-date-range'
+import { useMoney } from '~/hooks/use-money'
 import { useTransactions } from '~/hooks/use-transactions'
 import {
   ACCOUNT_CATEGORIES,
@@ -160,7 +160,7 @@ function DashboardNetWorthAndAllocation() {
     bankAccounts,
   )
 
-  const formatCurrency = useFormatCurrency()
+  const { format: formatCurrency } = useMoney()
   const { commands } = useCommandRegistry()
   const addConnectionCommand = commands.find((c) => c.id === 'connection.add')
 

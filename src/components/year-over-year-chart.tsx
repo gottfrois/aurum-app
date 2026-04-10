@@ -9,7 +9,7 @@ import {
   ChartTooltipContent,
 } from '~/components/ui/chart'
 import { Skeleton } from '~/components/ui/skeleton'
-import { usePrivacy } from '~/contexts/privacy-context'
+import { useMoney } from '~/hooks/use-money'
 import type { YearOverYearEntry } from '~/lib/financial-analytics'
 
 interface YearOverYearChartProps {
@@ -42,24 +42,17 @@ const YEAR_COLORS = [
   'var(--chart-5)',
 ]
 
-const currencyFormatter = (currency: string) => (value: number) =>
-  new Intl.NumberFormat('fr-FR', {
-    style: 'currency',
-    currency,
-    maximumFractionDigits: 0,
-  }).format(value)
-
 export function YearOverYearChart({
   data,
   currency,
   isLoading,
 }: YearOverYearChartProps) {
   const { t } = useTranslation()
-  const { isPrivate } = usePrivacy()
+  const { format } = useMoney()
 
-  const formatCurrency = React.useMemo(
-    () => (isPrivate ? () => '••••••' : currencyFormatter(currency)),
-    [currency, isPrivate],
+  const formatCurrency = React.useCallback(
+    (value: number) => format(value, currency, { maximumFractionDigits: 0 }),
+    [format, currency],
   )
 
   // Extract all years from data

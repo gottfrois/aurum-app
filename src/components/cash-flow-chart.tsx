@@ -9,7 +9,7 @@ import {
   ChartTooltipContent,
 } from '~/components/ui/chart'
 import { Skeleton } from '~/components/ui/skeleton'
-import { usePrivacy } from '~/contexts/privacy-context'
+import { useMoney } from '~/hooks/use-money'
 
 // chartConfig labels are resolved dynamically via i18n
 const chartConfig = {
@@ -35,23 +35,16 @@ interface CashFlowChartProps {
   isLoading: boolean
 }
 
-const currencyFormatter = (currency: string) => (value: number) =>
-  new Intl.NumberFormat('fr-FR', {
-    style: 'currency',
-    currency,
-    maximumFractionDigits: 0,
-  }).format(value)
-
 export function CashFlowChart({
   data,
   currency,
   isLoading,
 }: CashFlowChartProps) {
   const { t } = useTranslation()
-  const { isPrivate } = usePrivacy()
-  const formatCurrency = React.useMemo(
-    () => (isPrivate ? () => '••••••' : currencyFormatter(currency)),
-    [currency, isPrivate],
+  const { format } = useMoney()
+  const formatCurrency = React.useCallback(
+    (value: number) => format(value, currency, { maximumFractionDigits: 0 }),
+    [format, currency],
   )
 
   return (
