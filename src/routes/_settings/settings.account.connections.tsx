@@ -238,7 +238,7 @@ function ConnectionItem({
         <ItemCardItemAction>
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <Button variant="outline" disabled={syncing}>
+              <Button variant="ghost" disabled={syncing}>
                 {syncing ? (
                   <>
                     <Loader2 className="size-4 animate-spin" />

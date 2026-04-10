@@ -13,7 +13,9 @@ function SettingsLayout() {
       <SidebarProvider className="!h-svh !min-h-0">
         <SettingsSidebar variant="inset" />
         <SidebarInset className="overflow-hidden">
-          <Outlet />
+          <div className="flex min-h-0 flex-1 flex-col overflow-y-auto">
+            <Outlet />
+          </div>
         </SidebarInset>
       </SidebarProvider>
     </CommandProvider>
