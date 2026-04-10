@@ -506,9 +506,7 @@ export function TransactionsList({
             <span
               className={cn(
                 'font-mono font-medium tabular-nums',
-                value > 0
-                  ? 'text-emerald-600 dark:text-emerald-400'
-                  : 'text-red-600 dark:text-red-400',
+                value > 0 ? 'text-success' : 'text-destructive',
               )}
             >
               {value > 0 ? '+' : ''}
@@ -1530,9 +1528,7 @@ function TransactionDetailSheet({
               <span
                 className={cn(
                   'text-2xl font-bold font-mono tabular-nums',
-                  transaction.value > 0
-                    ? 'text-emerald-600 dark:text-emerald-400'
-                    : 'text-red-600 dark:text-red-400',
+                  transaction.value > 0 ? 'text-success' : 'text-destructive',
                 )}
               >
                 {transaction.value > 0 ? '+' : ''}

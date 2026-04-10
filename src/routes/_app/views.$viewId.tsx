@@ -176,7 +176,7 @@ function ViewDetailPage() {
                   variant="ghost"
                   size="icon-sm"
                   onClick={() => void handleToggleFavorite()}
-                  className={isFavorite ? 'text-yellow-500' : ''}
+                  className={isFavorite ? 'text-warning' : ''}
                 >
                   <Star
                     className="size-4"
