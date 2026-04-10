@@ -75,7 +75,7 @@ function StackedTooltipContent({
   const total = payload.reduce((sum, entry) => sum + (entry.value ?? 0), 0)
 
   return (
-    <div className="grid min-w-[8rem] items-start gap-1.5 rounded-lg border border-border/50 bg-background px-2.5 py-1.5 text-xs shadow-xl">
+    <div className="grid min-w-32 items-start gap-1.5 rounded-lg border border-border/50 bg-background px-2.5 py-1.5 text-xs shadow-xl">
       <div className="font-medium">
         {new Date(label as string).toLocaleDateString('fr-FR', {
           day: 'numeric',
@@ -128,12 +128,12 @@ function ChartContent({
 }) {
   const { t } = useTranslation()
   if (isLoading) {
-    return <Skeleton className="h-[250px] w-full" />
+    return <Skeleton className="h-full min-h-[250px] w-full" />
   }
 
   if (data.length < 2) {
     return (
-      <div className="flex h-[250px] items-center justify-center text-sm text-muted-foreground">
+      <div className="flex h-full min-h-[250px] items-center justify-center text-sm text-muted-foreground">
         {t('charts.notEnoughData')}
       </div>
     )
@@ -142,7 +142,7 @@ function ChartContent({
   return (
     <ChartContainer
       config={chartConfig}
-      className="aspect-auto h-[250px] w-full"
+      className="aspect-auto h-full min-h-[250px] w-full"
     >
       <AreaChart data={data} stackOffset="none">
         <defs>
@@ -239,7 +239,7 @@ export function StackedBalanceChart({
 
   if (title) {
     return (
-      <Card className="@container/card">
+      <Card className="@container/card flex h-full flex-col">
         <CardHeader>
           <CardTitle>{title}</CardTitle>
           {description && (
@@ -252,7 +252,7 @@ export function StackedBalanceChart({
             <PeriodSelector period={period} onPeriodChange={onPeriodChange} />
           </CardAction>
         </CardHeader>
-        <CardContent className="px-2 pt-4 sm:px-6 sm:pt-6">
+        <CardContent className="flex min-h-0 flex-1 flex-col px-2 pt-4 sm:px-6 sm:pt-6">
           <ChartContent
             data={chartData}
             categories={categories}

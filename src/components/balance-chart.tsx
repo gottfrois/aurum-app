@@ -65,7 +65,7 @@ function ChartArea({
   return (
     <ChartContainer
       config={chartConfig}
-      className="aspect-auto h-[250px] w-full"
+      className="aspect-auto h-full min-h-[250px] w-full"
     >
       <AreaChart data={data}>
         <defs>
@@ -171,7 +171,7 @@ export function BalanceChart({
             <PeriodSelector period={period} onPeriodChange={onPeriodChange} />
           </CardAction>
         </CardHeader>
-        <CardContent className="flex-1 px-2 pt-4 sm:px-6 sm:pt-6">
+        <CardContent className="flex min-h-0 flex-1 flex-col px-2 pt-4 sm:px-6 sm:pt-6">
           {isLoading ? (
             <Skeleton className="h-full min-h-[250px] w-full" />
           ) : data.length < 2 ? (

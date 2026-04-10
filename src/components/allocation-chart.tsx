@@ -9,6 +9,7 @@ import {
   ResponsiveContainer,
   Treemap,
 } from 'recharts'
+import { TreemapCell } from '~/components/treemap-cell'
 import {
   Card,
   CardAction,
@@ -79,7 +80,7 @@ function AllocationTooltipContent({
   const percentage = total > 0 ? ((entry.value / total) * 100).toFixed(1) : '0'
 
   return (
-    <div className="grid min-w-[8rem] items-start gap-1.5 rounded-lg border border-border/50 bg-background px-2.5 py-1.5 text-xs shadow-xl">
+    <div className="grid min-w-32 items-start gap-1.5 rounded-lg border border-border/50 bg-background px-2.5 py-1.5 text-xs shadow-xl">
       <div className="flex items-center gap-2">
         <div
           className="size-2.5 shrink-0 rounded-[2px]"
@@ -100,76 +101,6 @@ function AllocationTooltipContent({
         </span>
       </div>
     </div>
-  )
-}
-
-function TreemapContent({
-  x,
-  y,
-  width,
-  height,
-  label,
-  value,
-  color,
-  currency,
-  total,
-  formatCurrency,
-}: {
-  x: number
-  y: number
-  width: number
-  height: number
-  label: string
-  value: number
-  color: string
-  currency: string
-  total: number
-  formatCurrency: (value: number, currency: string) => string
-}) {
-  const percentage = total > 0 ? ((value / total) * 100).toFixed(1) : '0'
-  const showLabel = width > 60 && height > 40
-
-  return (
-    <g>
-      <rect
-        x={x}
-        y={y}
-        width={width}
-        height={height}
-        fill={color}
-        stroke="var(--color-background)"
-        strokeWidth={2}
-        rx={4}
-      />
-      {showLabel && (
-        <>
-          <text
-            x={x + width / 2}
-            y={y + height / 2 - 10}
-            textAnchor="middle"
-            className="fill-white text-xs font-medium"
-          >
-            {label}
-          </text>
-          <text
-            x={x + width / 2}
-            y={y + height / 2 + 6}
-            textAnchor="middle"
-            className="fill-white/80 text-[10px]"
-          >
-            {formatCurrency(value, currency)}
-          </text>
-          <text
-            x={x + width / 2}
-            y={y + height / 2 + 20}
-            textAnchor="middle"
-            className="fill-white/60 text-[10px]"
-          >
-            {percentage}%
-          </text>
-        </>
-      )}
-    </g>
   )
 }
 
@@ -274,7 +205,7 @@ function TreemapView({
           nameKey="name"
           isAnimationActive={false}
           content={
-            <TreemapContent
+            <TreemapCell
               x={0}
               y={0}
               width={0}
@@ -293,6 +224,8 @@ function TreemapView({
   )
 }
 
+const DEFAULT_LEGEND_LIMIT = 6
+
 function AllocationLegend({
   data,
   currency,
@@ -306,9 +239,18 @@ function AllocationLegend({
   formatCurrency: (value: number, currency: string) => string
   onCategoryClick?: (categoryKey: string) => void
 }) {
+  const { t } = useTranslation()
+  const [expanded, setExpanded] = React.useState(false)
+
+  const visible = React.useMemo(
+    () => (expanded ? data : data.slice(0, DEFAULT_LEGEND_LIMIT)),
+    [data, expanded],
+  )
+  const hiddenCount = data.length - DEFAULT_LEGEND_LIMIT
+
   return (
     <div className="grid w-full gap-2 text-sm">
-      {data.map((entry) => {
+      {visible.map((entry) => {
         const percentage =
           total > 0 ? ((entry.value / total) * 100).toFixed(1) : '0'
 
@@ -316,39 +258,58 @@ function AllocationLegend({
           <button
             key={entry.key}
             type="button"
-            className="flex w-full cursor-pointer items-center gap-3"
+            className="flex w-full min-w-0 cursor-pointer items-center gap-3"
             onClick={() => onCategoryClick(entry.key)}
           >
             <div
               className="size-3 shrink-0 rounded-sm"
               style={{ backgroundColor: entry.color }}
             />
-            <span className="flex-1 text-left font-medium hover:underline">
+            <span
+              className="min-w-0 flex-1 truncate text-left font-medium hover:underline"
+              title={entry.label}
+            >
               {entry.label}
             </span>
-            <span className="font-mono tabular-nums text-muted-foreground">
+            <span className="shrink-0 font-mono tabular-nums text-muted-foreground">
               {percentage}%
             </span>
-            <span className="font-mono font-medium tabular-nums">
+            <span className="shrink-0 font-mono font-medium tabular-nums">
               {formatCurrency(entry.value, currency)}
             </span>
           </button>
         ) : (
-          <div key={entry.key} className="flex items-center gap-3">
+          <div key={entry.key} className="flex min-w-0 items-center gap-3">
             <div
               className="size-3 shrink-0 rounded-sm"
               style={{ backgroundColor: entry.color }}
             />
-            <span className="flex-1 font-medium">{entry.label}</span>
-            <span className="font-mono tabular-nums text-muted-foreground">
+            <span
+              className="min-w-0 flex-1 truncate font-medium"
+              title={entry.label}
+            >
+              {entry.label}
+            </span>
+            <span className="shrink-0 font-mono tabular-nums text-muted-foreground">
               {percentage}%
             </span>
-            <span className="font-mono font-medium tabular-nums">
+            <span className="shrink-0 font-mono font-medium tabular-nums">
               {formatCurrency(entry.value, currency)}
             </span>
           </div>
         )
       })}
+      {hiddenCount > 0 && (
+        <button
+          type="button"
+          className="mt-1 text-left text-xs text-muted-foreground hover:text-foreground hover:underline"
+          onClick={() => setExpanded((prev) => !prev)}
+        >
+          {expanded
+            ? t('charts.showLess')
+            : t('charts.showMore', { count: hiddenCount })}
+        </button>
+      )}
     </div>
   )
 }
@@ -389,7 +350,7 @@ export function AllocationChart({
   const formattedTotal = formatCurrency(total, currency)
 
   return (
-    <Card className="@container/card">
+    <Card className="@container/card flex h-full flex-col">
       <CardHeader>
         <CardTitle>{t('charts.allocation')}</CardTitle>
         <CardAction>
@@ -427,8 +388,8 @@ export function AllocationChart({
           </ToggleGroup>
         </CardAction>
       </CardHeader>
-      <CardContent className="px-2 sm:px-6">
-        <div className="flex flex-col items-center gap-4">
+      <CardContent className="flex flex-1 flex-col px-2 sm:px-6">
+        <div className="flex flex-1 flex-col items-center justify-center gap-4">
           {view === 'donut' ? (
             <DonutView
               data={data}

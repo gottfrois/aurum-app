@@ -19,8 +19,8 @@ import { Route as SignInSplatRouteImport } from './routes/sign-in/$'
 import { Route as PowensCallbackRouteImport } from './routes/powens/callback'
 import { Route as InviteInvitationIdRouteImport } from './routes/invite.$invitationId'
 import { Route as ApiTunnelRouteImport } from './routes/api/tunnel'
-import { Route as AppTransactionsRouteImport } from './routes/_app/transactions'
 import { Route as AppPortfoliosRouteImport } from './routes/_app/portfolios'
+import { Route as AppCashFlowRouteImport } from './routes/_app/cash-flow'
 import { Route as SettingsSettingsIndexRouteImport } from './routes/_settings/settings.index'
 import { Route as AppViewsIndexRouteImport } from './routes/_app/views.index'
 import { Route as AppAccountsIndexRouteImport } from './routes/_app/accounts.index'
@@ -97,14 +97,14 @@ const ApiTunnelRoute = ApiTunnelRouteImport.update({
   path: '/api/tunnel',
   getParentRoute: () => rootRouteImport,
 } as any)
-const AppTransactionsRoute = AppTransactionsRouteImport.update({
-  id: '/transactions',
-  path: '/transactions',
-  getParentRoute: () => AppRoute,
-} as any)
 const AppPortfoliosRoute = AppPortfoliosRouteImport.update({
   id: '/portfolios',
   path: '/portfolios',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppCashFlowRoute = AppCashFlowRouteImport.update({
+  id: '/cash-flow',
+  path: '/cash-flow',
   getParentRoute: () => AppRoute,
 } as any)
 const SettingsSettingsIndexRoute = SettingsSettingsIndexRouteImport.update({
@@ -270,8 +270,8 @@ export interface FileRoutesByFullPath {
   '/checkout': typeof CheckoutRoute
   '/onboarding': typeof OnboardingRoute
   '/waitlist': typeof WaitlistRoute
+  '/cash-flow': typeof AppCashFlowRoute
   '/portfolios': typeof AppPortfoliosRoute
-  '/transactions': typeof AppTransactionsRoute
   '/api/tunnel': typeof ApiTunnelRoute
   '/invite/$invitationId': typeof InviteInvitationIdRoute
   '/powens/callback': typeof PowensCallbackRoute
@@ -309,8 +309,8 @@ export interface FileRoutesByTo {
   '/checkout': typeof CheckoutRoute
   '/onboarding': typeof OnboardingRoute
   '/waitlist': typeof WaitlistRoute
+  '/cash-flow': typeof AppCashFlowRoute
   '/portfolios': typeof AppPortfoliosRoute
-  '/transactions': typeof AppTransactionsRoute
   '/api/tunnel': typeof ApiTunnelRoute
   '/invite/$invitationId': typeof InviteInvitationIdRoute
   '/powens/callback': typeof PowensCallbackRoute
@@ -349,8 +349,8 @@ export interface FileRoutesById {
   '/checkout': typeof CheckoutRoute
   '/onboarding': typeof OnboardingRoute
   '/waitlist': typeof WaitlistRoute
+  '/_app/cash-flow': typeof AppCashFlowRoute
   '/_app/portfolios': typeof AppPortfoliosRoute
-  '/_app/transactions': typeof AppTransactionsRoute
   '/api/tunnel': typeof ApiTunnelRoute
   '/invite/$invitationId': typeof InviteInvitationIdRoute
   '/powens/callback': typeof PowensCallbackRoute
@@ -391,8 +391,8 @@ export interface FileRouteTypes {
     | '/checkout'
     | '/onboarding'
     | '/waitlist'
+    | '/cash-flow'
     | '/portfolios'
-    | '/transactions'
     | '/api/tunnel'
     | '/invite/$invitationId'
     | '/powens/callback'
@@ -430,8 +430,8 @@ export interface FileRouteTypes {
     | '/checkout'
     | '/onboarding'
     | '/waitlist'
+    | '/cash-flow'
     | '/portfolios'
-    | '/transactions'
     | '/api/tunnel'
     | '/invite/$invitationId'
     | '/powens/callback'
@@ -469,8 +469,8 @@ export interface FileRouteTypes {
     | '/checkout'
     | '/onboarding'
     | '/waitlist'
+    | '/_app/cash-flow'
     | '/_app/portfolios'
-    | '/_app/transactions'
     | '/api/tunnel'
     | '/invite/$invitationId'
     | '/powens/callback'
@@ -589,18 +589,18 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiTunnelRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/_app/transactions': {
-      id: '/_app/transactions'
-      path: '/transactions'
-      fullPath: '/transactions'
-      preLoaderRoute: typeof AppTransactionsRouteImport
-      parentRoute: typeof AppRoute
-    }
     '/_app/portfolios': {
       id: '/_app/portfolios'
       path: '/portfolios'
       fullPath: '/portfolios'
       preLoaderRoute: typeof AppPortfoliosRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/cash-flow': {
+      id: '/_app/cash-flow'
+      path: '/cash-flow'
+      fullPath: '/cash-flow'
+      preLoaderRoute: typeof AppCashFlowRouteImport
       parentRoute: typeof AppRoute
     }
     '/_settings/settings/': {
@@ -796,8 +796,8 @@ declare module '@tanstack/react-router' {
 }
 
 interface AppRouteChildren {
+  AppCashFlowRoute: typeof AppCashFlowRoute
   AppPortfoliosRoute: typeof AppPortfoliosRoute
-  AppTransactionsRoute: typeof AppTransactionsRoute
   AppIndexRoute: typeof AppIndexRoute
   AppAccountsAccountIdRoute: typeof AppAccountsAccountIdRoute
   AppViewsViewIdRoute: typeof AppViewsViewIdRoute
@@ -806,8 +806,8 @@ interface AppRouteChildren {
 }
 
 const AppRouteChildren: AppRouteChildren = {
+  AppCashFlowRoute: AppCashFlowRoute,
   AppPortfoliosRoute: AppPortfoliosRoute,
-  AppTransactionsRoute: AppTransactionsRoute,
   AppIndexRoute: AppIndexRoute,
   AppAccountsAccountIdRoute: AppAccountsAccountIdRoute,
   AppViewsViewIdRoute: AppViewsViewIdRoute,

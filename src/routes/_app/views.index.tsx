@@ -166,7 +166,7 @@ function ViewsContent() {
           <EmptyContent>
             <Button
               onClick={() =>
-                navigate({ to: '/transactions', search: { createView: true } })
+                navigate({ to: '/cash-flow', search: { createView: true } })
               }
             >
               {t('button.createView')}
@@ -201,9 +201,9 @@ function ViewsContent() {
 
   const portfolioIds = [
     ...new Set(
-      tableData
-        .filter((v) => v.visibility === 'portfolio' && v.portfolioId)
-        .map((v) => v.portfolioId!),
+      tableData.flatMap((v) =>
+        v.visibility === 'portfolio' && v.portfolioId ? [v.portfolioId] : [],
+      ),
     ),
   ]
 
@@ -211,10 +211,7 @@ function ViewsContent() {
     <Tooltip>
       <TooltipTrigger asChild>
         <Button variant="ghost" size="icon-xs" asChild>
-          <Link
-            to="/transactions"
-            search={{ createView: true, viewScope: scope }}
-          >
+          <Link to="/cash-flow" search={{ createView: true, viewScope: scope }}>
             <Plus className="size-3" />
           </Link>
         </Button>
@@ -373,7 +370,7 @@ function ViewsContent() {
                 size="sm"
                 onClick={() =>
                   navigate({
-                    to: '/transactions',
+                    to: '/cash-flow',
                     search: { createView: true },
                   })
                 }

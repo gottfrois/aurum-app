@@ -8,7 +8,7 @@ import { getDateLocale } from '~/lib/date-locale'
  * Month/weekday names are derived from the date-fns locale.
  */
 export function useDateSelectorI18n(): Partial<DateSelectorI18nConfig> {
-  const { t, i18n } = useTranslation()
+  const { t } = useTranslation()
 
   return useMemo(() => {
     const locale = getDateLocale()
@@ -57,7 +57,5 @@ export function useDateSelectorI18n(): Partial<DateSelectorI18nConfig> {
       placeholder: t('datePicker.placeholder'),
       rangePlaceholder: t('datePicker.rangePlaceholder'),
     }
-    // i18n.language is used indirectly via getDateLocale() for month/weekday names
-    // biome-ignore lint/correctness/useExhaustiveDependencies: locale depends on language
-  }, [t, i18n.language])
+  }, [t])
 }

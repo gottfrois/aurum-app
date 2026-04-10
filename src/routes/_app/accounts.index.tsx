@@ -278,7 +278,11 @@ function BankAccountsList({ categoryFilter }: { categoryFilter?: string }) {
     if (!bankAccounts) return []
     const bankTotals = new Map<string, number>()
     for (const a of bankAccounts) {
-      const name = a.customName ?? a.connectorName ?? 'Unknown'
+      const name =
+        a.customName ??
+        a.connectorName ??
+        a.name ??
+        getAccountCategoryLabel(getCategoryKey(a.type), t)
       bankTotals.set(name, (bankTotals.get(name) ?? 0) + a.balance)
     }
     return [...bankTotals.entries()]
@@ -289,7 +293,7 @@ function BankAccountsList({ categoryFilter }: { categoryFilter?: string }) {
         value: total,
         color: BANK_CHART_COLORS[i % BANK_CHART_COLORS.length],
       }))
-  }, [bankAccounts])
+  }, [bankAccounts, t])
 
   const showAllocationChart = allocationByBank.length >= 2
 
@@ -383,7 +387,9 @@ function BankAccountsList({ categoryFilter }: { categoryFilter?: string }) {
               : undefined
           }
         >
-          <div className={showAllocationChart ? 'lg:col-span-2' : undefined}>
+          <div
+            className={showAllocationChart ? 'h-full lg:col-span-2' : undefined}
+          >
             <BalanceChart
               data={chartData}
               currency={currency}
@@ -414,7 +420,9 @@ function BankAccountsList({ categoryFilter }: { categoryFilter?: string }) {
               : undefined
           }
         >
-          <div className={showAllocationChart ? 'lg:col-span-2' : undefined}>
+          <div
+            className={showAllocationChart ? 'h-full lg:col-span-2' : undefined}
+          >
             <StackedBalanceChart
               data={stackedChartData}
               categories={activeCategorySeries}

@@ -33,7 +33,12 @@ type DateRangeMode =
   | { mode: 'preset'; period: TransactionPeriod; anchor: string }
   | { mode: 'custom'; start: string; end: string }
 
-const STORAGE_KEY = 'bunkr:period:transactions'
+const DEFAULT_STORAGE_KEY = 'bunkr:period:transactions'
+
+export interface UseDateRangeOptions {
+  storageKey?: string
+  defaultPeriod?: TransactionPeriod
+}
 
 function getToday(): Date {
   return startOfDay(new Date())
@@ -83,9 +88,12 @@ function stepAnchor(
   }
 }
 
-function loadState(): DateRangeMode {
+function loadState(
+  storageKey: string,
+  defaultPeriod: TransactionPeriod,
+): DateRangeMode {
   try {
-    const stored = localStorage.getItem(STORAGE_KEY)
+    const stored = localStorage.getItem(storageKey)
     if (stored) {
       const parsed = JSON.parse(stored)
       if (
@@ -103,26 +111,34 @@ function loadState(): DateRangeMode {
   }
   return {
     mode: 'preset',
-    period: '3M',
+    period: defaultPeriod,
     anchor: format(getToday(), 'yyyy-MM-dd'),
   }
 }
 
-function saveState(state: DateRangeMode) {
+function saveState(storageKey: string, state: DateRangeMode) {
   try {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(state))
+    localStorage.setItem(storageKey, JSON.stringify(state))
   } catch {
     // Storage full or unavailable
   }
 }
 
-export function useDateRange() {
-  const [state, setStateRaw] = React.useState<DateRangeMode>(() => loadState())
+export function useDateRange(options?: UseDateRangeOptions) {
+  const storageKey = options?.storageKey ?? DEFAULT_STORAGE_KEY
+  const defaultPeriod = options?.defaultPeriod ?? '3M'
 
-  const setState = React.useCallback((s: DateRangeMode) => {
-    setStateRaw(s)
-    saveState(s)
-  }, [])
+  const [state, setStateRaw] = React.useState<DateRangeMode>(() =>
+    loadState(storageKey, defaultPeriod),
+  )
+
+  const setState = React.useCallback(
+    (s: DateRangeMode) => {
+      setStateRaw(s)
+      saveState(storageKey, s)
+    },
+    [storageKey],
+  )
 
   const { start, end } = React.useMemo(() => {
     if (state.mode === 'preset') {

@@ -7,11 +7,11 @@ export function useNavigationCommands(): void {
   useCommand('nav.dashboard', {
     handler: () => void navigate({ to: '/' }),
   })
-  useCommand('nav.transactions', {
-    handler: () => void navigate({ to: '/transactions' }),
-  })
   useCommand('nav.accounts', {
     handler: () => void navigate({ to: '/accounts' }),
+  })
+  useCommand('nav.cashFlow', {
+    handler: () => void navigate({ to: '/cash-flow' }),
   })
   useCommand('nav.settings', {
     handler: () => void navigate({ to: '/settings' }),
@@ -21,6 +21,6 @@ export function useNavigationCommands(): void {
   })
   useCommand('view.create', {
     handler: () =>
-      void navigate({ to: '/transactions', search: { createView: true } }),
+      void navigate({ to: '/cash-flow', search: { createView: true } }),
   })
 }

@@ -1,10 +1,10 @@
 import type { LucideIcon } from 'lucide-react'
 import {
   ArrowDownIcon,
-  ArrowDownLeft,
   ArrowUpIcon,
-  ArrowUpRight,
   Percent,
+  TrendingDown,
+  TrendingUp,
   Wallet,
 } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
@@ -141,7 +141,7 @@ export function FinancialSummaryBar({
       <SummaryStatCard
         label={t('summary.income')}
         value={fmt(totalIncome)}
-        icon={ArrowDownLeft}
+        icon={TrendingUp}
         deltaPercent={
           previous
             ? computeDeltaPercent(totalIncome, previous.totalIncome)
@@ -153,7 +153,7 @@ export function FinancialSummaryBar({
         label={t('summary.expenses')}
         value={fmt(totalExpenses)}
         subtitle={recurringSubtitle}
-        icon={ArrowUpRight}
+        icon={TrendingDown}
         deltaPercent={
           previous
             ? computeDeltaPercent(totalExpenses, previous.totalExpenses)

@@ -226,7 +226,7 @@ function ChatMessageBubble({
       collapseChat()
     }
 
-    void navigate({ to: '/transactions' }).then(() => {
+    void navigate({ to: '/cash-flow' }).then(() => {
       setTimeout(() => dispatchAIFilters(filters), 100)
     })
   }

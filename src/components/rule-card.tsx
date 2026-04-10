@@ -95,7 +95,7 @@ export function RuleCard({
               ) : (
                 <CollapsedBadges
                   items={rule.accountIds.map((id) => ({
-                    color: 'hsl(var(--muted-foreground))',
+                    color: 'var(--muted-foreground)',
                     name: bankAccountMap.get(id) ?? 'Unknown',
                   }))}
                   count={rule.accountIds.length}

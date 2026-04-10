@@ -39,19 +39,19 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
       icon: LayoutDashboard,
     },
     {
-      title: t('nav.transactions'),
-      url: '/transactions',
+      title: t('nav.accounts'),
+      url: '/accounts',
+      icon: Landmark,
+    },
+    {
+      title: t('nav.cashFlow'),
+      url: '/cash-flow',
       icon: ArrowLeftRight,
     },
     {
       title: t('nav.views'),
       url: '/views',
       icon: Layers,
-    },
-    {
-      title: t('nav.accounts'),
-      url: '/accounts',
-      icon: Landmark,
     },
   ]
 

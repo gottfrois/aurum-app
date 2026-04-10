@@ -168,7 +168,10 @@ export function createTransactionFilterFields(
         { value: 'is_not', label: t('filters.operators.isNot') },
       ],
       defaultOperator: 'contains',
-      accessor: (r) => r.wording,
+      accessor: (r) =>
+        [r.wording, r.originalWording, r.simplifiedWording, r.customDescription]
+          .filter(Boolean)
+          .join(' '),
       valueType: 'string',
     },
     {

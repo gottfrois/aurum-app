@@ -1,12 +1,11 @@
 import { useMutation, useQuery } from 'convex/react'
 import { addDays, differenceInDays, format, parseISO } from 'date-fns'
-import { ArrowLeftRight, ListFilter, Plus, Sparkles } from 'lucide-react'
+import { ArrowLeftRight, Plus, Sparkles } from 'lucide-react'
 import * as React from 'react'
 import { useTranslation } from 'react-i18next'
 import { toast } from 'sonner'
-import type { CashFlowData } from '~/components/cash-flow-chart'
 import { CashFlowChart } from '~/components/cash-flow-chart'
-import { CategoryPieChart } from '~/components/category-pie-chart'
+import { CategoryBreakdownChart } from '~/components/category-breakdown-chart'
 import {
   useAIFilterListener,
   useRegisterFilterFields,
@@ -17,12 +16,12 @@ import {
   ManualTransactionDialog,
   useManualTransactionDialog,
 } from '~/components/manual-transaction-dialog'
-import { PeriodNavigator } from '~/components/period-navigator'
+import { FilterRow, PageToolbar, PeriodRow } from '~/components/page-toolbar'
+import { RecurringExpensesCard } from '~/components/recurring-expenses-card'
 import {
   createFilter,
   type Filter,
   type FilterOption,
-  Filters,
 } from '~/components/reui/filters'
 import { SankeyChart } from '~/components/sankey-chart'
 import type { TransactionRow } from '~/components/transactions-list'
@@ -37,6 +36,7 @@ import {
   EmptyTitle,
 } from '~/components/ui/empty'
 import { Skeleton } from '~/components/ui/skeleton'
+import { Tabs, TabsList, TabsTrigger } from '~/components/ui/tabs'
 import { useCommandDispatch } from '~/contexts/command-context'
 import { usePortfolio } from '~/contexts/portfolio-context'
 import { useCachedDecryptRecords } from '~/hooks/use-cached-decrypt'
@@ -45,9 +45,21 @@ import { useCommand } from '~/hooks/use-command'
 import { useDateRange } from '~/hooks/use-date-range'
 import { useFilterI18n } from '~/hooks/use-filter-i18n'
 import { useFilters } from '~/hooks/use-filters'
-import { resolveTransactionCategoryKey, useCategories } from '~/lib/categories'
+import { useTransactions } from '~/hooks/use-transactions'
+import {
+  computeCashFlowData,
+  computeCategoryBreakdown,
+  computeSankeyData,
+} from '~/lib/cash-flow'
+import { useCategories } from '~/lib/categories'
 import { createTransactionFilterFields } from '~/lib/filters/transactions'
 import { toReUIFields, toSerializableFields } from '~/lib/filters/types'
+import type { InsightTransaction } from '~/lib/financial-analytics'
+import { detectRecurringExpenses } from '~/lib/financial-analytics'
+import {
+  computeFinancialSummary,
+  type TransactionRecord,
+} from '~/lib/financial-summary'
 import { api } from '../../convex/_generated/api'
 import type { Id } from '../../convex/_generated/dataModel'
 
@@ -62,38 +74,14 @@ type DecryptedBankAccount = NonNullable<
   customName?: string
 }
 
-interface TransactionRecord {
-  _id: string
-  bankAccountId: string
-  portfolioId: string
-  source?: 'manual' | 'csv_import'
-  date: string
-  rdate?: string
-  vdate?: string
-  wording: string
-  originalWording?: string
-  simplifiedWording?: string
-  category?: string
-  categoryParent?: string
-  userCategoryKey?: string
-  labelIds?: Array<string>
-  excludedFromBudget?: boolean
-  value: number
-  originalValue?: number
-  originalCurrency?: string
-  type?: string
-  coming: boolean
-  counterparty?: string
-  card?: string
-  comment?: string
-  customDescription?: string
-  encryptedData?: string
-}
+export type CashFlowTab = 'all' | 'expenses' | 'income'
 
 export interface TransactionsContentProps {
   initialFilters?: Array<Filter>
   onFiltersChange?: (filters: Array<Filter>) => void
   onSaveView?: () => void
+  tab?: CashFlowTab
+  onTabChange?: (tab: CashFlowTab) => void
   /** Slot rendered in the active filters bar area */
   filtersSlot?: (props: {
     filters: Array<Filter>
@@ -101,81 +89,12 @@ export interface TransactionsContentProps {
   }) => React.ReactNode
 }
 
-interface FinancialSummaryResult {
-  totalIncome: number
-  totalExpenses: number
-  delta: number
-  savingsRate: number
-  recurringTotal: number
-}
-
-const EMPTY_SUMMARY: FinancialSummaryResult = {
-  totalIncome: 0,
-  totalExpenses: 0,
-  delta: 0,
-  savingsRate: 0,
-  recurringTotal: 0,
-}
-
-function computeFinancialSummary(
-  transactions: Array<TransactionRecord> | undefined,
-): FinancialSummaryResult {
-  if (!transactions) return EMPTY_SUMMARY
-
-  let totalIncome = 0
-  let totalExpenses = 0
-  const counterpartyTotals = new Map<
-    string,
-    { months: Set<string>; total: number }
-  >()
-
-  for (const t of transactions) {
-    if (t.excludedFromBudget) continue
-    if (t.value > 0) {
-      totalIncome += t.value
-    } else {
-      const absValue = Math.abs(t.value)
-      totalExpenses += absValue
-      const key = t.counterparty ?? t.simplifiedWording ?? t.wording
-      if (key) {
-        const entry = counterpartyTotals.get(key) ?? {
-          months: new Set<string>(),
-          total: 0,
-        }
-        entry.months.add(t.date.slice(0, 7))
-        entry.total += absValue
-        counterpartyTotals.set(key, entry)
-      }
-    }
-  }
-
-  let recurringTotal = 0
-  for (const [, { months, total }] of counterpartyTotals) {
-    if (months.size >= 2) {
-      recurringTotal += total / months.size
-    }
-  }
-
-  const round = (n: number) => Math.round(n * 100) / 100
-  const delta = round(totalIncome - totalExpenses)
-  const savingsRate =
-    totalIncome > 0
-      ? Math.round(((totalIncome - totalExpenses) / totalIncome) * 1000) / 10
-      : 0
-
-  return {
-    totalIncome: round(totalIncome),
-    totalExpenses: round(totalExpenses),
-    delta,
-    savingsRate,
-    recurringTotal: round(recurringTotal),
-  }
-}
-
 export function TransactionsContent({
   initialFilters: externalInitialFilters,
   onFiltersChange,
   onSaveView,
+  tab = 'all',
+  onTabChange,
   filtersSlot,
 }: TransactionsContentProps) {
   const { t } = useTranslation()
@@ -204,45 +123,10 @@ export function TransactionsContent({
   } = useDateRange()
   const { categories, getCategory } = useCategories()
 
-  const transactionsSingle = useQuery(
-    api.transactions.listTransactionsByPortfolio,
-    singlePortfolioId
-      ? {
-          portfolioId: singlePortfolioId,
-          startDate: range.start,
-          endDate: range.end,
-        }
-      : 'skip',
-  )
-  const transactionsAll = useQuery(
-    api.transactions.listAllTransactionsByPortfolios,
-    isAllPortfolios && allPortfolioIds.length > 0
-      ? {
-          portfolioIds: allPortfolioIds,
-          startDate: range.start,
-          endDate: range.end,
-        }
-      : 'skip',
-  )
-  const transactionsTeam = useQuery(
-    api.team.listTeamTransactions,
-    isTeamView && workspaceId
-      ? {
-          workspaceId,
-          startDate: range.start,
-          endDate: range.end,
-        }
-      : 'skip',
-  )
-  const rawTransactions = isTeamView
-    ? transactionsTeam
-    : isAllPortfolios
-      ? transactionsAll
-      : transactionsSingle
-  const transactions = useCachedDecryptRecords(
-    'transactions',
-    rawTransactions as Array<TransactionRecord> | undefined,
-  )
+  const { transactions } = useTransactions({
+    range,
+    cacheKey: 'transactions',
+  })
 
   // Previous period range for comparison
   const previousRange = React.useMemo(() => {
@@ -257,45 +141,10 @@ export function TransactionsContent({
     }
   }, [range])
 
-  const prevTransactionsSingle = useQuery(
-    api.transactions.listTransactionsByPortfolio,
-    singlePortfolioId
-      ? {
-          portfolioId: singlePortfolioId,
-          startDate: previousRange.start,
-          endDate: previousRange.end,
-        }
-      : 'skip',
-  )
-  const prevTransactionsAll = useQuery(
-    api.transactions.listAllTransactionsByPortfolios,
-    isAllPortfolios && allPortfolioIds.length > 0
-      ? {
-          portfolioIds: allPortfolioIds,
-          startDate: previousRange.start,
-          endDate: previousRange.end,
-        }
-      : 'skip',
-  )
-  const prevTransactionsTeam = useQuery(
-    api.team.listTeamTransactions,
-    isTeamView && workspaceId
-      ? {
-          workspaceId,
-          startDate: previousRange.start,
-          endDate: previousRange.end,
-        }
-      : 'skip',
-  )
-  const rawPrevTransactions = isTeamView
-    ? prevTransactionsTeam
-    : isAllPortfolios
-      ? prevTransactionsAll
-      : prevTransactionsSingle
-  const previousTransactions = useCachedDecryptRecords(
-    'previousTransactions',
-    rawPrevTransactions as Array<TransactionRecord> | undefined,
-  )
+  const { transactions: previousTransactions } = useTransactions({
+    range: previousRange,
+    cacheKey: 'previousTransactions',
+  })
 
   const bankAccountsSingle = useQuery(
     api.powens.listBankAccounts,
@@ -416,8 +265,16 @@ export function TransactionsContent({
         labelOptions,
         transactionTypeOptions,
         t,
+        excludeFields: tab !== 'all' ? ['flow'] : undefined,
       }),
-    [accountOptions, categoryOptions, labelOptions, transactionTypeOptions, t],
+    [
+      accountOptions,
+      categoryOptions,
+      labelOptions,
+      transactionTypeOptions,
+      t,
+      tab,
+    ],
   )
 
   const reuiFields = React.useMemo(
@@ -437,12 +294,20 @@ export function TransactionsContent({
     [],
   )
 
+  // Pre-filter transactions by tab (flow direction) before applying user filters
+  const tabFilteredTransactions = React.useMemo(() => {
+    if (!transactions) return transactions
+    if (tab === 'expenses') return transactions.filter((t) => t.value < 0)
+    if (tab === 'income') return transactions.filter((t) => t.value > 0)
+    return transactions
+  }, [transactions, tab])
+
   const {
     filters,
     setFilters,
     filteredData: filteredTransactions,
     hasActiveFilters,
-  } = useFilters<TransactionRecord>(transactions, fieldDescriptors, {
+  } = useFilters<TransactionRecord>(tabFilteredTransactions, fieldDescriptors, {
     initialFilters: stableInitialFilters,
     onFiltersChange,
   })
@@ -516,154 +381,49 @@ export function TransactionsContent({
     [previousTransactions],
   )
 
-  const cashFlowData = React.useMemo<Array<CashFlowData>>(() => {
-    if (!filteredTransactions) return []
-    const monthMap = new Map<string, { income: number; expenses: number }>()
-    for (const t of filteredTransactions) {
-      if (t.excludedFromBudget) continue
-      const month = t.date.slice(0, 7)
-      const entry = monthMap.get(month) ?? { income: 0, expenses: 0 }
-      if (t.value > 0) {
-        entry.income += t.value
-      } else {
-        entry.expenses += Math.abs(t.value)
-      }
-      monthMap.set(month, entry)
-    }
-    return [...monthMap.entries()]
-      .sort(([a], [b]) => a.localeCompare(b))
-      .map(([month, data]) => ({
-        month: new Date(`${month}-01`).toLocaleDateString('fr-FR', {
-          month: 'short',
-          year: '2-digit',
-        }),
-        income: Math.round(data.income * 100) / 100,
-        expenses: Math.round(data.expenses * 100) / 100,
-      }))
-  }, [filteredTransactions])
+  const cashFlowData = React.useMemo(
+    () => computeCashFlowData(filteredTransactions),
+    [filteredTransactions],
+  )
 
-  const { categoryData, totalExpenses } = React.useMemo(() => {
-    if (!filteredTransactions) return { categoryData: [], totalExpenses: 0 }
-    const categoryTotals = new Map<string, number>()
-    let expenseSum = 0
-    for (const t of filteredTransactions) {
-      if (t.excludedFromBudget) continue
-      if (t.value >= 0) continue
-      const key = resolveTransactionCategoryKey(t)
-      categoryTotals.set(
-        key,
-        (categoryTotals.get(key) ?? 0) + Math.abs(t.value),
-      )
-      expenseSum += Math.abs(t.value)
-    }
-    const data = [...categoryTotals.entries()]
-      .sort(([, a], [, b]) => b - a)
-      .map(([key, value]) => {
-        const cat = getCategory(key)
-        return {
-          key,
-          label: cat.label,
-          value: Math.round(value * 100) / 100,
-          color: cat.color,
-        }
-      })
-    return {
-      categoryData: data,
-      totalExpenses: Math.round(expenseSum * 100) / 100,
-    }
-  }, [filteredTransactions, getCategory])
+  const sankeyData = React.useMemo(
+    () => computeSankeyData(filteredTransactions, getCategory),
+    [filteredTransactions, getCategory],
+  )
 
-  const sankeyData = React.useMemo(() => {
-    if (!filteredTransactions) return { nodes: [], links: [] }
+  const expenseBreakdown = React.useMemo(
+    () =>
+      computeCategoryBreakdown(filteredTransactions, getCategory, 'expense'),
+    [filteredTransactions, getCategory],
+  )
 
-    let totalIncome = 0
-    let totalExpenses = 0
-    const categoryExpenses = new Map<string, number>()
+  const incomeBreakdown = React.useMemo(
+    () => computeCategoryBreakdown(filteredTransactions, getCategory, 'income'),
+    [filteredTransactions, getCategory],
+  )
 
-    for (const t of filteredTransactions) {
-      if (t.excludedFromBudget) continue
-      if (t.value > 0) {
-        totalIncome += t.value
-      } else {
-        const absValue = Math.abs(t.value)
-        totalExpenses += absValue
-        const key = resolveTransactionCategoryKey(t)
-        categoryExpenses.set(key, (categoryExpenses.get(key) ?? 0) + absValue)
-      }
-    }
-
-    if (totalIncome === 0 || categoryExpenses.size === 0) {
-      return { nodes: [], links: [] }
-    }
-
-    const sortedEntries = [...categoryExpenses.entries()].sort(
-      ([, a], [, b]) => b - a,
+  const recurringForTab = React.useMemo(() => {
+    if (tab === 'all') return []
+    if (!tabFilteredTransactions) return []
+    const insightTxns: Array<InsightTransaction> = tabFilteredTransactions.map(
+      (t) => ({
+        _id: t._id,
+        date: t.date,
+        value: t.value,
+        wording: t.wording,
+        simplifiedWording: t.simplifiedWording,
+        counterparty: t.counterparty,
+        userCategoryKey: t.userCategoryKey,
+        categoryParent: t.categoryParent,
+        category: t.category,
+        excludedFromBudget: t.excludedFromBudget,
+      }),
     )
-
-    const round = (n: number) => Math.round(n * 100) / 100
-    const savings = round(totalIncome - totalExpenses)
-
-    // 3-column layout: Income (left) → intermediate (middle) → categories (right)
-    const nodes: Array<{
-      name: string
-      color: string
-      categoryKey?: string
-      intermediate?: boolean
-    }> = [
-      { name: 'Income', color: 'hsl(142 71% 45%)' },
-      { name: '', color: 'hsl(var(--muted))', intermediate: true },
-    ]
-
-    // Right-side nodes: expense categories + optional Savings
-    const targetOffset = 2
-    for (const [key] of sortedEntries) {
-      const cat = getCategory(key)
-      nodes.push({ name: cat.label, color: cat.color, categoryKey: key })
-    }
-
-    if (savings > 0) {
-      nodes.push({ name: 'Savings', color: 'hsl(142 71% 45%)' })
-    }
-
-    const links: Array<{
-      source: number
-      target: number
-      value: number
-      stroke: string
-    }> = []
-
-    // Income → intermediate
-    links.push({
-      source: 0,
-      target: 1,
-      value: round(totalIncome),
-      stroke: 'hsl(142 71% 45%)',
-    })
-
-    // Intermediate → each expense category
-    for (let i = 0; i < sortedEntries.length; i++) {
-      const [key, value] = sortedEntries[i]
-      const cat = getCategory(key)
-      links.push({
-        source: 1,
-        target: targetOffset + i,
-        value: round(value),
-        stroke: cat.color,
-      })
-    }
-
-    // Intermediate → Savings (if surplus)
-    if (savings > 0) {
-      links.push({
-        source: 1,
-        target: nodes.length - 1,
-        value: savings,
-        stroke: 'hsl(142 71% 45%)',
-      })
-    }
-
-    return { nodes, links }
-  }, [filteredTransactions, getCategory])
+    return detectRecurringExpenses(
+      insightTxns,
+      tab === 'income' ? 'income' : 'expense',
+    )
+  }, [tabFilteredTransactions, tab])
 
   const tableData = React.useMemo<Array<TransactionRow>>(() => {
     if (!filteredTransactions) return []
@@ -757,20 +517,18 @@ export function TransactionsContent({
   if (transactions.length === 0 && !hasActiveFilters) {
     return (
       <>
-        <div className="flex flex-col border-b">
-          <div className="flex flex-wrap items-center gap-3 px-4 py-3 lg:px-6">
-            <PeriodNavigator
-              start={start}
-              end={end}
-              activePeriod={activePeriod}
-              canGoNext={canGoNext}
-              onSelectPeriod={selectPeriod}
-              onCustomRange={setCustomRange}
-              onPrev={goPrev}
-              onNext={goNext}
-            />
-          </div>
-        </div>
+        <PageToolbar>
+          <PeriodRow
+            start={start}
+            end={end}
+            activePeriod={activePeriod}
+            canGoNext={canGoNext}
+            onSelectPeriod={selectPeriod}
+            onCustomRange={setCustomRange}
+            onPrev={goPrev}
+            onNext={goNext}
+          />
+        </PageToolbar>
         <div className="flex flex-col gap-4 p-4 md:gap-6 md:p-6">
           <Empty className="border">
             <EmptyHeader>
@@ -790,20 +548,17 @@ export function TransactionsContent({
 
   return (
     <>
-      <div className="flex flex-col border-b">
-        <div className="flex items-center gap-2 px-4 py-3 lg:px-6">
-          <div className="flex-1">
-            <PeriodNavigator
-              start={start}
-              end={end}
-              activePeriod={activePeriod}
-              canGoNext={canGoNext}
-              onSelectPeriod={selectPeriod}
-              onCustomRange={setCustomRange}
-              onPrev={goPrev}
-              onNext={goNext}
-            />
-          </div>
+      <PageToolbar>
+        <PeriodRow
+          start={start}
+          end={end}
+          activePeriod={activePeriod}
+          canGoNext={canGoNext}
+          onSelectPeriod={selectPeriod}
+          onCustomRange={setCustomRange}
+          onPrev={goPrev}
+          onNext={goNext}
+        >
           <Button
             variant="outline"
             size="sm"
@@ -812,50 +567,48 @@ export function TransactionsContent({
             <Plus />
             {t('transactions.addTransaction')}
           </Button>
-        </div>
+        </PeriodRow>
+        <FilterRow
+          filters={filters}
+          fields={reuiFields}
+          onChange={setFilters}
+          enableShortcut
+          i18n={filterI18n}
+          menuHeader={
+            <button
+              type="button"
+              className="flex w-full items-center gap-2 rounded-sm px-2 py-1.5 text-sm hover:bg-accent"
+              onClick={() => setPaletteState({ open: true, aiMode: true })}
+            >
+              <Sparkles className="size-4 text-muted-foreground" />
+              {t('filters.askAi')}
+            </button>
+          }
+          footer={filtersSlot?.({ filters, hasChanges: false })}
+        >
+          {onSaveView && filters.length > 0 && (
+            <Button variant="ghost" size="sm" onClick={onSaveView}>
+              Save view
+            </Button>
+          )}
+        </FilterRow>
         <div className="border-t px-4 py-2.5 lg:px-6">
-          <div className="flex items-start gap-2.5">
-            <div className="flex-1">
-              <Filters
-                filters={filters}
-                fields={reuiFields}
-                onChange={setFilters}
-                size="sm"
-                enableShortcut
-                i18n={filterI18n}
-                menuHeader={
-                  <button
-                    type="button"
-                    className="flex w-full items-center gap-2 rounded-sm px-2 py-1.5 text-sm hover:bg-accent"
-                    onClick={() =>
-                      setPaletteState({ open: true, aiMode: true })
-                    }
-                  >
-                    <Sparkles className="size-4 text-muted-foreground" />
-                    {t('filters.askAi')}
-                  </button>
-                }
-                trigger={
-                  <Button variant="ghost" size="icon" className="h-8 w-8">
-                    <ListFilter className="size-4" />
-                  </Button>
-                }
-              />
-            </div>
-            {filters.length > 0 && (
-              <Button variant="ghost" size="sm" onClick={() => setFilters([])}>
-                {t('transactions.clear')}
-              </Button>
-            )}
-            {onSaveView && filters.length > 0 && (
-              <Button variant="ghost" size="sm" onClick={onSaveView}>
-                Save view
-              </Button>
-            )}
-          </div>
-          {filtersSlot?.({ filters, hasChanges: false })}
+          <Tabs
+            value={tab}
+            onValueChange={(value) => onTabChange?.(value as CashFlowTab)}
+          >
+            <TabsList>
+              <TabsTrigger value="all">{t('cashFlow.tabAll')}</TabsTrigger>
+              <TabsTrigger value="expenses">
+                {t('cashFlow.tabExpenses')}
+              </TabsTrigger>
+              <TabsTrigger value="income">
+                {t('cashFlow.tabIncome')}
+              </TabsTrigger>
+            </TabsList>
+          </Tabs>
         </div>
-      </div>
+      </PageToolbar>
 
       <div className="flex flex-col gap-4 p-4 md:gap-6 md:p-6">
         <FinancialSummaryBar
@@ -868,40 +621,93 @@ export function TransactionsContent({
           currency={currency}
         />
 
-        <div className="grid gap-4 lg:grid-cols-3 md:gap-6">
-          <div className="lg:col-span-2">
-            {sankeyData.nodes.length > 0 ? (
-              <SankeyChart
-                nodes={sankeyData.nodes}
-                links={sankeyData.links}
-                currency={currency}
-                onLabelClick={(categoryKey) => {
-                  setFilters((prev) => [
-                    ...prev,
-                    createFilter('category', 'is_any_of', [categoryKey]),
-                  ])
-                }}
-              />
-            ) : (
-              <CashFlowChart
-                data={cashFlowData}
-                currency={currency}
-                isLoading={false}
-              />
-            )}
+        {tab === 'all' &&
+          (sankeyData.nodes.length > 0 ? (
+            <SankeyChart
+              nodes={sankeyData.nodes}
+              links={sankeyData.links}
+              currency={currency}
+              onLabelClick={(categoryKey) => {
+                setFilters((prev) => [
+                  ...prev,
+                  createFilter('category', 'is_any_of', [categoryKey]),
+                ])
+              }}
+            />
+          ) : (
+            <CashFlowChart
+              data={cashFlowData}
+              currency={currency}
+              isLoading={false}
+            />
+          ))}
+
+        {tab === 'expenses' && (
+          <div className="grid gap-4 md:grid-cols-2 md:gap-6">
+            <CategoryBreakdownChart
+              data={expenseBreakdown.categoryData}
+              currency={currency}
+              total={expenseBreakdown.total}
+              title={t('spending.byCategory')}
+              onCategoryClick={(categoryKey) => {
+                setFilters((prev) => [
+                  ...prev,
+                  createFilter('category', 'is_any_of', [categoryKey]),
+                ])
+              }}
+            />
+            <div className="relative">
+              <div className="md:absolute md:inset-0">
+                <RecurringExpensesCard
+                  items={recurringForTab}
+                  categories={categories}
+                  currency={currency}
+                  isLoading={false}
+                  onItemClick={(payee) => {
+                    setFilters((prev) => [
+                      ...prev,
+                      createFilter('wording', 'contains', [payee]),
+                    ])
+                  }}
+                />
+              </div>
+            </div>
           </div>
-          <CategoryPieChart
-            data={categoryData}
-            currency={currency}
-            total={totalExpenses}
-            onCategoryClick={(categoryKey) => {
-              setFilters((prev) => [
-                ...prev,
-                createFilter('category', 'is_any_of', [categoryKey]),
-              ])
-            }}
-          />
-        </div>
+        )}
+
+        {tab === 'income' && (
+          <div className="grid gap-4 md:grid-cols-2 md:gap-6">
+            <CategoryBreakdownChart
+              data={incomeBreakdown.categoryData}
+              currency={currency}
+              total={incomeBreakdown.total}
+              title={t('income.byCategory')}
+              onCategoryClick={(categoryKey) => {
+                setFilters((prev) => [
+                  ...prev,
+                  createFilter('category', 'is_any_of', [categoryKey]),
+                ])
+              }}
+            />
+            <div className="relative">
+              <div className="md:absolute md:inset-0">
+                <RecurringExpensesCard
+                  items={recurringForTab}
+                  categories={categories}
+                  currency={currency}
+                  isLoading={false}
+                  title={t('income.recurringIncome')}
+                  onItemClick={(payee) => {
+                    setFilters((prev) => [
+                      ...prev,
+                      createFilter('wording', 'contains', [payee]),
+                    ])
+                  }}
+                />
+              </div>
+            </div>
+          </div>
+        )}
 
         <TransactionsList
           data={tableData}

@@ -64,9 +64,9 @@ export const COMMAND_DEFINITIONS: Record<string, CommandDefinition> = {
     icon: LayoutDashboard,
     hotkey: { keys: 'g+d', scope: 'global' },
   },
-  'nav.transactions': {
-    id: 'nav.transactions',
-    labelKey: 'commands.goToTransactions',
+  'nav.cashFlow': {
+    id: 'nav.cashFlow',
+    labelKey: 'commands.goToCashFlow',
     groupKey: 'commands.groups.navigation',
     icon: ArrowLeftRight,
     hotkey: { keys: 'g+t', scope: 'global' },

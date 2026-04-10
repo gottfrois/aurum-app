@@ -14,6 +14,27 @@ interface CategoryEntry {
   color: string
 }
 
+const MAX_LEGEND_ITEMS = 8
+
+function collapseCategories(
+  data: Array<CategoryEntry>,
+  otherLabel: string,
+): Array<CategoryEntry> {
+  if (data.length <= MAX_LEGEND_ITEMS) return data
+  const top = data.slice(0, MAX_LEGEND_ITEMS - 1)
+  const rest = data.slice(MAX_LEGEND_ITEMS - 1)
+  const otherValue = rest.reduce((sum, e) => sum + e.value, 0)
+  return [
+    ...top,
+    {
+      key: '__other__',
+      label: otherLabel,
+      value: Math.round(otherValue * 100) / 100,
+      color: 'var(--muted-foreground)',
+    },
+  ]
+}
+
 interface CategoryPieChartProps {
   data: Array<CategoryEntry>
   currency: string
@@ -49,7 +70,7 @@ function CategoryTooltipContent({
   const percentage = total > 0 ? ((entry.value / total) * 100).toFixed(1) : '0'
 
   return (
-    <div className="grid min-w-[8rem] items-start gap-1.5 rounded-lg border border-border/50 bg-background px-2.5 py-1.5 text-xs shadow-xl">
+    <div className="grid min-w-32 items-start gap-1.5 rounded-lg border border-border/50 bg-background px-2.5 py-1.5 text-xs shadow-xl">
       <div className="flex items-center gap-2">
         <div
           className="size-2.5 shrink-0 rounded-[2px]"
@@ -98,17 +119,22 @@ export function CategoryPieChart({
     [isPrivate],
   )
 
+  const displayData = React.useMemo(
+    () => collapseCategories(data, t('insights.other')),
+    [data, t],
+  )
+
   const chartConfig = React.useMemo(() => {
     const config: ChartConfig = {}
-    for (const entry of data) {
+    for (const entry of displayData) {
       config[entry.key] = { label: entry.label, color: entry.color }
     }
     return config
-  }, [data])
+  }, [displayData])
 
   const formattedTotal = formatCurrency(total, currency)
 
-  if (data.length === 0) {
+  if (displayData.length === 0) {
     return (
       <Card className={cn(className)}>
         <CardHeader>
@@ -145,7 +171,7 @@ export function CategoryPieChart({
                 }
               />
               <Pie
-                data={data}
+                data={displayData}
                 dataKey="value"
                 nameKey="label"
                 isAnimationActive={false}
@@ -154,7 +180,7 @@ export function CategoryPieChart({
                 strokeWidth={2}
                 stroke="var(--color-background)"
               >
-                {data.map((entry) => (
+                {displayData.map((entry) => (
                   <Cell key={entry.key} fill={entry.color} />
                 ))}
                 <Label
@@ -184,10 +210,11 @@ export function CategoryPieChart({
             </PieChart>
           </ChartContainer>
           <div className="grid w-full gap-2 text-sm">
-            {data.map((entry) => {
+            {displayData.map((entry) => {
               const percentage =
                 total > 0 ? ((entry.value / total) * 100).toFixed(1) : '0'
-              return onCategoryClick ? (
+              const isOther = entry.key === '__other__'
+              return onCategoryClick && !isOther ? (
                 <button
                   key={entry.key}
                   type="button"
