@@ -365,10 +365,10 @@ export const checkCategoryKeyConflict = query({
       const otherPortfolio = existing.find(
         (c) => c.portfolioId && c.portfolioId !== args.portfolioId,
       )
-      if (otherPortfolio) {
+      if (otherPortfolio?.portfolioId) {
         const portfolio = await ctx.db.get(
           'portfolios',
-          otherPortfolio.portfolioId!,
+          otherPortfolio.portfolioId,
         )
         return {
           type: 'exists_in_portfolio' as const,

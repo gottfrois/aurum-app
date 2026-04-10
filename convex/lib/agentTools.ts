@@ -1175,10 +1175,11 @@ export const findAnomalies = createTool({
 
       const txMonth = tx.date.slice(0, 7)
 
-      if (!spendingByMonthCategory.has(txMonth)) {
-        spendingByMonthCategory.set(txMonth, new Map())
+      let monthMap = spendingByMonthCategory.get(txMonth)
+      if (!monthMap) {
+        monthMap = new Map()
+        spendingByMonthCategory.set(txMonth, monthMap)
       }
-      const monthMap = spendingByMonthCategory.get(txMonth)!
       monthMap.set(resolvedKey, (monthMap.get(resolvedKey) ?? 0) + value)
 
       // Collect target month transactions for large transaction detection
@@ -1600,10 +1601,11 @@ export const findSavingsOpportunities = createTool({
       const txMonth = tx.date.slice(0, 7)
 
       // Category spending by month
-      if (!spendingByMonthCategory.has(txMonth)) {
-        spendingByMonthCategory.set(txMonth, new Map())
+      let monthMap = spendingByMonthCategory.get(txMonth)
+      if (!monthMap) {
+        monthMap = new Map()
+        spendingByMonthCategory.set(txMonth, monthMap)
       }
-      const monthMap = spendingByMonthCategory.get(txMonth)!
       monthMap.set(resolvedKey, (monthMap.get(resolvedKey) ?? 0) + value)
 
       // Recurring tracking by counterparty
