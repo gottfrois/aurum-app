@@ -53,7 +53,7 @@ export function WaitlistCarousel({ className }: { className?: string }) {
   const [current, setCurrent] = useState(0)
   const [direction, setDirection] = useState(1)
   const directionRef = useRef(1)
-  const [resetKey, setResetKey] = useState(0)
+  const [_resetKey, setResetKey] = useState(0)
 
   useEffect(() => {
     const timer = setInterval(() => {
@@ -62,7 +62,7 @@ export function WaitlistCarousel({ className }: { className?: string }) {
       setCurrent((prev) => (prev + 1) % SLIDES.length)
     }, INTERVAL)
     return () => clearInterval(timer)
-  }, [resetKey])
+  }, [])
 
   function resetTimer() {
     setResetKey((k) => k + 1)

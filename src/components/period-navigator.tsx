@@ -236,13 +236,13 @@ export function PeriodNavigator({
           onClick={onPrev}
           aria-label={t('periodNavigator.previousPeriod')}
         >
-          <ChevronLeft className="size-4" />
+          <ChevronLeft />
         </Button>
 
         <Dialog open={open} onOpenChange={setOpen}>
           <DialogTrigger asChild>
             <Button variant="ghost" size="sm" className="gap-2">
-              <CalendarDays className="size-4" />
+              <CalendarDays />
               <span>{label}</span>
             </Button>
           </DialogTrigger>
@@ -276,7 +276,7 @@ export function PeriodNavigator({
           disabled={!canGoNext}
           aria-label={t('periodNavigator.nextPeriod')}
         >
-          <ChevronRight className="size-4" />
+          <ChevronRight />
         </Button>
       </div>
 

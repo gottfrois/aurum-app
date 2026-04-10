@@ -103,7 +103,7 @@ function AgentSettings() {
         toast.error(t('toast.failedSaveInstructions'))
       }
     },
-    [workspacePublicKey, updateSettings],
+    [workspacePublicKey, updateSettings, t],
   )
 
   const handleInstructionsChange = useCallback(

@@ -72,15 +72,15 @@ describe('createManualTransaction', () => {
     })
 
     expect(txn).not.toBeNull()
-    expect(txn!.source).toBe('manual')
-    expect(txn!.date).toBe('2026-04-01')
-    expect(txn!.coming).toBe(false)
-    expect(txn!.active).toBe(true)
-    expect(txn!.deleted).toBe(false)
-    expect(txn!.powensTransactionId).toBeUndefined()
-    expect(txn!.encryptedDetails).toBe('enc-details')
-    expect(txn!.encryptedFinancials).toBe('enc-financials')
-    expect(txn!.encryptedCategories).toBe('enc-categories')
+    expect(txn?.source).toBe('manual')
+    expect(txn?.date).toBe('2026-04-01')
+    expect(txn?.coming).toBe(false)
+    expect(txn?.active).toBe(true)
+    expect(txn?.deleted).toBe(false)
+    expect(txn?.powensTransactionId).toBeUndefined()
+    expect(txn?.encryptedDetails).toBe('enc-details')
+    expect(txn?.encryptedFinancials).toBe('enc-financials')
+    expect(txn?.encryptedCategories).toBe('enc-categories')
   })
 
   it('rejects when bank account does not belong to portfolio', async () => {
@@ -161,11 +161,11 @@ describe('updateManualTransaction', () => {
       return await ctx.db.get('transactions', transactionId)
     })
 
-    expect(txn!.date).toBe('2026-04-05')
-    expect(txn!.encryptedDetails).toBe('new-details')
-    expect(txn!.encryptedFinancials).toBe('new-financials')
+    expect(txn?.date).toBe('2026-04-05')
+    expect(txn?.encryptedDetails).toBe('new-details')
+    expect(txn?.encryptedFinancials).toBe('new-financials')
     // Categories should remain unchanged
-    expect(txn!.encryptedCategories).toBe('old-categories')
+    expect(txn?.encryptedCategories).toBe('old-categories')
   })
 
   it('rejects updating a synced transaction', async () => {
@@ -223,7 +223,7 @@ describe('deleteManualTransaction', () => {
     })
 
     expect(txn).not.toBeNull()
-    expect(txn!.deleted).toBe(true)
+    expect(txn?.deleted).toBe(true)
   })
 
   it('rejects deleting a synced transaction', async () => {

@@ -46,17 +46,17 @@ const Tool = ({ toolPart, defaultOpen = false, className }: ToolProps) => {
   const getStateIcon = () => {
     switch (state) {
       case 'input-streaming':
-        return <Loader2 className="h-4 w-4 animate-spin text-blue-500" />
+        return <Loader2 className="size-4 animate-spin text-info" />
       case 'input-available':
-        return <Settings className="h-4 w-4 text-orange-500" />
+        return <Settings className="size-4 text-warning" />
       case 'output-available':
-        return <CheckCircle className="h-4 w-4 text-green-500" />
+        return <CheckCircle className="size-4 text-success" />
       case 'output-error':
-        return <XCircle className="h-4 w-4 text-red-500" />
+        return <XCircle className="size-4 text-destructive" />
       case 'output-denied':
-        return <XCircle className="h-4 w-4 text-orange-500" />
+        return <XCircle className="size-4 text-warning" />
       default:
-        return <Settings className="text-muted-foreground h-4 w-4" />
+        return <Settings className="text-muted-foreground size-4" />
     }
   }
 
@@ -65,67 +65,39 @@ const Tool = ({ toolPart, defaultOpen = false, className }: ToolProps) => {
     switch (state) {
       case 'input-streaming':
         return (
-          <span
-            className={cn(
-              baseClasses,
-              'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400',
-            )}
-          >
+          <span className={cn(baseClasses, 'bg-info/10 text-info')}>
             Processing
           </span>
         )
       case 'input-available':
         return (
-          <span
-            className={cn(
-              baseClasses,
-              'bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-400',
-            )}
-          >
+          <span className={cn(baseClasses, 'bg-warning/10 text-warning')}>
             Ready
           </span>
         )
       case 'output-available':
         return (
-          <span
-            className={cn(
-              baseClasses,
-              'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400',
-            )}
-          >
+          <span className={cn(baseClasses, 'bg-success/10 text-success')}>
             Completed
           </span>
         )
       case 'output-error':
         return (
           <span
-            className={cn(
-              baseClasses,
-              'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400',
-            )}
+            className={cn(baseClasses, 'bg-destructive/10 text-destructive')}
           >
             Error
           </span>
         )
       case 'output-denied':
         return (
-          <span
-            className={cn(
-              baseClasses,
-              'bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-400',
-            )}
-          >
+          <span className={cn(baseClasses, 'bg-warning/10 text-warning')}>
             Rejected
           </span>
         )
       default:
         return (
-          <span
-            className={cn(
-              baseClasses,
-              'bg-gray-100 text-gray-700 dark:bg-gray-900/30 dark:text-gray-400',
-            )}
-          >
+          <span className={cn(baseClasses, 'bg-muted text-muted-foreground')}>
             Pending
           </span>
         )
@@ -163,7 +135,7 @@ const Tool = ({ toolPart, defaultOpen = false, className }: ToolProps) => {
               {getStateBadge()}
             </div>
             <ChevronDown
-              className={cn('h-4 w-4 shrink-0', isOpen && 'rotate-180')}
+              className={cn('size-4 shrink-0', isOpen && 'rotate-180')}
             />
           </Button>
         </CollapsibleTrigger>
@@ -205,8 +177,10 @@ const Tool = ({ toolPart, defaultOpen = false, className }: ToolProps) => {
 
             {state === 'output-error' && toolPart.errorText && (
               <div>
-                <h4 className="mb-2 text-sm font-medium text-red-500">Error</h4>
-                <div className="bg-background rounded border border-red-200 p-2 text-sm dark:border-red-950 dark:bg-red-900/20">
+                <h4 className="mb-2 text-sm font-medium text-destructive">
+                  Error
+                </h4>
+                <div className="rounded border border-destructive/20 bg-destructive/5 p-2 text-sm">
                   {toolPart.errorText}
                 </div>
               </div>
@@ -219,7 +193,7 @@ const Tool = ({ toolPart, defaultOpen = false, className }: ToolProps) => {
             )}
 
             {toolCallId && (
-              <div className="text-muted-foreground border-t border-blue-200 pt-2 text-xs">
+              <div className="text-muted-foreground border-t border-border pt-2 text-xs">
                 <span className="font-mono">Call ID: {toolCallId}</span>
               </div>
             )}

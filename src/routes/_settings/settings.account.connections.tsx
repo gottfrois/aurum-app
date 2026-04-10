@@ -75,7 +75,7 @@ function getConnectionState(
     case 'SyncDone':
       return {
         label: t('settings.connections.statusConnected'),
-        dotColor: 'bg-emerald-500',
+        dotColor: 'bg-success',
       }
     case 'SCARequired':
     case 'additionalInformationNeeded':
@@ -83,12 +83,12 @@ function getConnectionState(
     case 'webauthRequired':
       return {
         label: t('settings.connections.statusActionNeeded'),
-        dotColor: 'bg-amber-500',
+        dotColor: 'bg-warning',
       }
     case 'validating':
       return {
         label: t('settings.connections.statusSyncing'),
-        dotColor: 'bg-blue-500',
+        dotColor: 'bg-info',
       }
     case 'wrongpass':
     case 'bug':
@@ -99,7 +99,7 @@ function getConnectionState(
     case 'rateLimiting':
       return {
         label: t('settings.connections.statusRateLimited'),
-        dotColor: 'bg-amber-500',
+        dotColor: 'bg-warning',
       }
     default:
       return {
