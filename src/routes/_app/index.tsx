@@ -389,7 +389,7 @@ function DashboardMonthlyPace() {
       dailyRate={pace.dailyRate}
       currency="EUR"
       isLoading={isLoading}
-      spentHref="/cash-flow?tab=expenses"
+      spentHref="/cash-flow"
     />
   )
 }
@@ -448,7 +448,7 @@ function DashboardExpensesAndRecurring() {
         total={total}
         title={t('spending.byCategory')}
         onCategoryClick={() => {
-          navigate({ to: '/cash-flow', search: { tab: 'expenses' } })
+          navigate({ to: '/cash-flow', search: {} })
         }}
       />
       <div className="relative">

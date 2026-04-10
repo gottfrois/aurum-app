@@ -5,7 +5,6 @@ import * as React from 'react'
 import { useTranslation } from 'react-i18next'
 import { toast } from 'sonner'
 import { CashFlowChart } from '~/components/cash-flow-chart'
-import { CategoryBreakdownChart } from '~/components/category-breakdown-chart'
 import {
   useAIFilterListener,
   useRegisterFilterFields,
@@ -17,7 +16,6 @@ import {
   useManualTransactionDialog,
 } from '~/components/manual-transaction-dialog'
 import { FilterRow, PageToolbar, PeriodRow } from '~/components/page-toolbar'
-import { RecurringExpensesCard } from '~/components/recurring-expenses-card'
 import {
   createFilter,
   type Filter,
@@ -36,7 +34,6 @@ import {
   EmptyTitle,
 } from '~/components/ui/empty'
 import { Skeleton } from '~/components/ui/skeleton'
-import { Tabs, TabsList, TabsTrigger } from '~/components/ui/tabs'
 import { useCommandDispatch } from '~/contexts/command-context'
 import { usePortfolio } from '~/contexts/portfolio-context'
 import { useCachedDecryptRecords } from '~/hooks/use-cached-decrypt'
@@ -46,16 +43,10 @@ import { useDateRange } from '~/hooks/use-date-range'
 import { useFilterI18n } from '~/hooks/use-filter-i18n'
 import { useFilters } from '~/hooks/use-filters'
 import { useTransactions } from '~/hooks/use-transactions'
-import {
-  computeCashFlowData,
-  computeCategoryBreakdown,
-  computeSankeyData,
-} from '~/lib/cash-flow'
+import { computeCashFlowData, computeSankeyData } from '~/lib/cash-flow'
 import { useCategories } from '~/lib/categories'
 import { createTransactionFilterFields } from '~/lib/filters/transactions'
 import { toReUIFields, toSerializableFields } from '~/lib/filters/types'
-import type { InsightTransaction } from '~/lib/financial-analytics'
-import { detectRecurringExpenses } from '~/lib/financial-analytics'
 import {
   computeFinancialSummary,
   type TransactionRecord,
@@ -74,14 +65,10 @@ type DecryptedBankAccount = NonNullable<
   customName?: string
 }
 
-export type CashFlowTab = 'all' | 'expenses' | 'income'
-
 export interface TransactionsContentProps {
   initialFilters?: Array<Filter>
   onFiltersChange?: (filters: Array<Filter>) => void
   onSaveView?: () => void
-  tab?: CashFlowTab
-  onTabChange?: (tab: CashFlowTab) => void
   /** Slot rendered in the active filters bar area */
   filtersSlot?: (props: {
     filters: Array<Filter>
@@ -93,8 +80,6 @@ export function TransactionsContent({
   initialFilters: externalInitialFilters,
   onFiltersChange,
   onSaveView,
-  tab = 'all',
-  onTabChange,
   filtersSlot,
 }: TransactionsContentProps) {
   const { t } = useTranslation()
@@ -265,16 +250,8 @@ export function TransactionsContent({
         labelOptions,
         transactionTypeOptions,
         t,
-        excludeFields: tab !== 'all' ? ['flow'] : undefined,
       }),
-    [
-      accountOptions,
-      categoryOptions,
-      labelOptions,
-      transactionTypeOptions,
-      t,
-      tab,
-    ],
+    [accountOptions, categoryOptions, labelOptions, transactionTypeOptions, t],
   )
 
   const reuiFields = React.useMemo(
@@ -294,20 +271,12 @@ export function TransactionsContent({
     [],
   )
 
-  // Pre-filter transactions by tab (flow direction) before applying user filters
-  const tabFilteredTransactions = React.useMemo(() => {
-    if (!transactions) return transactions
-    if (tab === 'expenses') return transactions.filter((t) => t.value < 0)
-    if (tab === 'income') return transactions.filter((t) => t.value > 0)
-    return transactions
-  }, [transactions, tab])
-
   const {
     filters,
     setFilters,
     filteredData: filteredTransactions,
     hasActiveFilters,
-  } = useFilters<TransactionRecord>(tabFilteredTransactions, fieldDescriptors, {
+  } = useFilters<TransactionRecord>(transactions, fieldDescriptors, {
     initialFilters: stableInitialFilters,
     onFiltersChange,
   })
@@ -390,40 +359,6 @@ export function TransactionsContent({
     () => computeSankeyData(filteredTransactions, getCategory),
     [filteredTransactions, getCategory],
   )
-
-  const expenseBreakdown = React.useMemo(
-    () =>
-      computeCategoryBreakdown(filteredTransactions, getCategory, 'expense'),
-    [filteredTransactions, getCategory],
-  )
-
-  const incomeBreakdown = React.useMemo(
-    () => computeCategoryBreakdown(filteredTransactions, getCategory, 'income'),
-    [filteredTransactions, getCategory],
-  )
-
-  const recurringForTab = React.useMemo(() => {
-    if (tab === 'all') return []
-    if (!tabFilteredTransactions) return []
-    const insightTxns: Array<InsightTransaction> = tabFilteredTransactions.map(
-      (t) => ({
-        _id: t._id,
-        date: t.date,
-        value: t.value,
-        wording: t.wording,
-        simplifiedWording: t.simplifiedWording,
-        counterparty: t.counterparty,
-        userCategoryKey: t.userCategoryKey,
-        categoryParent: t.categoryParent,
-        category: t.category,
-        excludedFromBudget: t.excludedFromBudget,
-      }),
-    )
-    return detectRecurringExpenses(
-      insightTxns,
-      tab === 'income' ? 'income' : 'expense',
-    )
-  }, [tabFilteredTransactions, tab])
 
   const tableData = React.useMemo<Array<TransactionRow>>(() => {
     if (!filteredTransactions) return []
@@ -592,22 +527,6 @@ export function TransactionsContent({
             </Button>
           )}
         </FilterRow>
-        <div className="border-t px-4 py-2.5 lg:px-6">
-          <Tabs
-            value={tab}
-            onValueChange={(value) => onTabChange?.(value as CashFlowTab)}
-          >
-            <TabsList>
-              <TabsTrigger value="all">{t('cashFlow.tabAll')}</TabsTrigger>
-              <TabsTrigger value="expenses">
-                {t('cashFlow.tabExpenses')}
-              </TabsTrigger>
-              <TabsTrigger value="income">
-                {t('cashFlow.tabIncome')}
-              </TabsTrigger>
-            </TabsList>
-          </Tabs>
-        </div>
       </PageToolbar>
 
       <div className="flex flex-col gap-4 p-4 md:gap-6 md:p-6">
@@ -621,92 +540,24 @@ export function TransactionsContent({
           currency={currency}
         />
 
-        {tab === 'all' &&
-          (sankeyData.nodes.length > 0 ? (
-            <SankeyChart
-              nodes={sankeyData.nodes}
-              links={sankeyData.links}
-              currency={currency}
-              onLabelClick={(categoryKey) => {
-                setFilters((prev) => [
-                  ...prev,
-                  createFilter('category', 'is_any_of', [categoryKey]),
-                ])
-              }}
-            />
-          ) : (
-            <CashFlowChart
-              data={cashFlowData}
-              currency={currency}
-              isLoading={false}
-            />
-          ))}
-
-        {tab === 'expenses' && (
-          <div className="grid gap-4 md:grid-cols-2 md:gap-6">
-            <CategoryBreakdownChart
-              data={expenseBreakdown.categoryData}
-              currency={currency}
-              total={expenseBreakdown.total}
-              title={t('spending.byCategory')}
-              onCategoryClick={(categoryKey) => {
-                setFilters((prev) => [
-                  ...prev,
-                  createFilter('category', 'is_any_of', [categoryKey]),
-                ])
-              }}
-            />
-            <div className="relative">
-              <div className="md:absolute md:inset-0">
-                <RecurringExpensesCard
-                  items={recurringForTab}
-                  categories={categories}
-                  currency={currency}
-                  isLoading={false}
-                  onItemClick={(payee) => {
-                    setFilters((prev) => [
-                      ...prev,
-                      createFilter('wording', 'contains', [payee]),
-                    ])
-                  }}
-                />
-              </div>
-            </div>
-          </div>
-        )}
-
-        {tab === 'income' && (
-          <div className="grid gap-4 md:grid-cols-2 md:gap-6">
-            <CategoryBreakdownChart
-              data={incomeBreakdown.categoryData}
-              currency={currency}
-              total={incomeBreakdown.total}
-              title={t('income.byCategory')}
-              onCategoryClick={(categoryKey) => {
-                setFilters((prev) => [
-                  ...prev,
-                  createFilter('category', 'is_any_of', [categoryKey]),
-                ])
-              }}
-            />
-            <div className="relative">
-              <div className="md:absolute md:inset-0">
-                <RecurringExpensesCard
-                  items={recurringForTab}
-                  categories={categories}
-                  currency={currency}
-                  isLoading={false}
-                  title={t('income.recurringIncome')}
-                  onItemClick={(payee) => {
-                    setFilters((prev) => [
-                      ...prev,
-                      createFilter('wording', 'contains', [payee]),
-                    ])
-                  }}
-                />
-              </div>
-            </div>
-          </div>
+        {sankeyData.nodes.length > 0 ? (
+          <SankeyChart
+            nodes={sankeyData.nodes}
+            links={sankeyData.links}
+            currency={currency}
+            onLabelClick={(categoryKey) => {
+              setFilters((prev) => [
+                ...prev,
+                createFilter('category', 'is_any_of', [categoryKey]),
+              ])
+            }}
+          />
+        ) : (
+          <CashFlowChart
+            data={cashFlowData}
+            currency={currency}
+            isLoading={false}
+          />
         )}
 
         <TransactionsList
