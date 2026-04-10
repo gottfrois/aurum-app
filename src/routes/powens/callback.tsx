@@ -98,7 +98,7 @@ function PowensCallback() {
         )}
         {status === 'success' && (
           <>
-            <CheckCircle2 className="size-12 text-green-500" />
+            <CheckCircle2 className="size-12 text-success" />
             <h2 className="text-lg font-semibold">
               Bank connected successfully!
             </h2>

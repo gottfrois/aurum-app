@@ -372,7 +372,7 @@ function MemberPresenceCell({ row }: { row: MemberRow }) {
   if (row.online) {
     return (
       <div className="flex items-center gap-2 text-sm">
-        <span className="inline-block size-2 rounded-full bg-green-500" />
+        <span className="inline-block size-2 rounded-full bg-success" />
         <span className="text-muted-foreground">
           {t('settings.members.online')}
         </span>

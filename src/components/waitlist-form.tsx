@@ -50,7 +50,7 @@ export function WaitlistForm({
       <div className={cn('flex flex-col gap-6', className)} {...props}>
         <FieldGroup>
           <div className="flex flex-col items-center gap-3 text-center">
-            <CircleCheck className="size-10 text-green-500" />
+            <CircleCheck className="size-10 text-success" />
             <h1 className="text-2xl font-bold">{t('waitlist.successTitle')}</h1>
             <p className="text-balance text-sm text-muted-foreground">
               {t('waitlist.successDescription', { email })}
