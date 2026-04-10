@@ -19,8 +19,4 @@ export function useNavigationCommands(): void {
   useCommand('nav.views', {
     handler: () => void navigate({ to: '/views' }),
   })
-  useCommand('view.create', {
-    handler: () =>
-      void navigate({ to: '/cash-flow', search: { createView: true } }),
-  })
 }
