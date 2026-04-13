@@ -619,6 +619,7 @@
 
   "dialogs.confirm.typeLabel": "Tapez",
   "dialogs.confirm.toConfirm": "pour confirmer",
+  "dialogs.confirm.copyToClipboard": "Copier {{value}} dans le presse-papiers",
 
   "dialogs.passphrase.title": "Entrez votre phrase secrète",
   "dialogs.passphrase.defaultDescription": "Votre phrase secrète est nécessaire pour déchiffrer la clé de l'espace de travail.",

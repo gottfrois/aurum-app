@@ -1,5 +1,5 @@
 import { Check, Copy } from 'lucide-react'
-import { useCallback, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { useHotkeys } from 'react-hotkeys-hook'
 import { useTranslation } from 'react-i18next'
 import {
@@ -46,15 +46,29 @@ export function ConfirmDialog({
   const resolvedCancelLabel = cancelLabel ?? t('common.cancel')
   const [inputValue, setInputValue] = useState('')
   const [copied, setCopied] = useState(false)
+  const copyTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   const needsConfirmation = confirmValue !== undefined
   const isConfirmed = !needsConfirmation || inputValue === confirmValue
+
+  const clearCopyTimer = useCallback(() => {
+    if (copyTimerRef.current !== null) {
+      clearTimeout(copyTimerRef.current)
+      copyTimerRef.current = null
+    }
+  }, [])
+
+  useEffect(() => clearCopyTimer, [clearCopyTimer])
 
   function handleCopy() {
     if (!confirmValue) return
     navigator.clipboard.writeText(confirmValue)
     setCopied(true)
-    setTimeout(() => setCopied(false), 1500)
+    clearCopyTimer()
+    copyTimerRef.current = setTimeout(() => {
+      setCopied(false)
+      copyTimerRef.current = null
+    }, 1500)
   }
 
   const handleOpenChange = useCallback(
@@ -62,10 +76,11 @@ export function ConfirmDialog({
       if (!nextOpen) {
         setInputValue('')
         setCopied(false)
+        clearCopyTimer()
       }
       onOpenChange(nextOpen)
     },
-    [onOpenChange],
+    [onOpenChange, clearCopyTimer],
   )
 
   const handleCancel = useCallback(() => {
@@ -101,17 +116,22 @@ export function ConfirmDialog({
           <div className="grid gap-2 py-2">
             <Label className="flex flex-wrap items-center gap-1">
               {t('dialogs.confirm.typeLabel')}
-              <Badge
-                variant="secondary"
-                className="cursor-pointer gap-1 font-mono"
-                onClick={handleCopy}
-              >
-                {confirmValue}
-                {copied ? (
-                  <Check className="size-3" />
-                ) : (
-                  <Copy className="size-3" />
-                )}
+              <Badge asChild variant="secondary" className="font-mono">
+                <button
+                  type="button"
+                  onClick={handleCopy}
+                  aria-label={t('dialogs.confirm.copyToClipboard', {
+                    value: confirmValue,
+                  })}
+                  className="cursor-pointer"
+                >
+                  {confirmValue}
+                  {copied ? (
+                    <Check className="size-3" />
+                  ) : (
+                    <Copy className="size-3" />
+                  )}
+                </button>
               </Badge>
               {t('dialogs.confirm.toConfirm')}
             </Label>

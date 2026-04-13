@@ -619,6 +619,7 @@
 
   "dialogs.confirm.typeLabel": "Type",
   "dialogs.confirm.toConfirm": "to confirm",
+  "dialogs.confirm.copyToClipboard": "Copy {{value}} to clipboard",
 
   "dialogs.passphrase.title": "Enter your passphrase",
   "dialogs.passphrase.defaultDescription": "Your passphrase is needed to decrypt the workspace key.",
