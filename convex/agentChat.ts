@@ -9,28 +9,15 @@ import type { ActionCtx } from './_generated/server'
 import { action, internalAction } from './_generated/server'
 import { getWorkspaceDecryptionKey } from './lib/agentDecrypt'
 import {
-  comparePeriodSpending,
-  createLabel,
-  createTransactionRule,
-  deleteLabel,
-  deleteTransactionRule,
-  findAnomalies,
-  findSavingsOpportunities,
-  getBalanceHistory,
-  getCashFlow,
-  getRecurringExpenses,
-  getSpendingSummary,
-  getTransactionRules,
-  listAccounts,
-  listInvestments,
-  listUncategorizedTransactions,
-  saveTransaction,
-  searchCategories,
-  searchLabels,
-  searchTransactions,
-  updateTransactionLabels,
+  bulkMutateEntity,
+  listEntities,
+  mutateEntity,
+  queryAuditLogs,
+  querySeries,
+  queryTransactions,
+  semanticSearch,
   viewTransactions,
-} from './lib/agentTools'
+} from './lib/agentPrimitives'
 import {
   chatModel,
   titleModel,
@@ -45,28 +32,40 @@ function buildBaseInstructions(): string {
   const today = new Date().toISOString().slice(0, 10)
   return `<identity>You are Bunkr, a personal finance assistant. Today is ${today}. Use YYYY-MM-DD for all dates.</identity>
 
+<tools>
+You have 8 composable tools. Prefer chaining small calls over asking for clarification.
+- query_transactions: filter + groupBy + aggregate over transactions. Workhorse for "how much", "what did I spend on", "top merchants", anomalies, recurring.
+- query_series: time-bucketed metrics (balance, net_worth, spending, income, investment_value) over a range.
+- list_entities: lookup accounts | investments | categories | labels | rules | filter_views (always call this first to resolve user language to ids/keys).
+- semantic_search: fuzzy vector search (currently stubbed — prefer query_transactions(textSearch) until populated).
+- mutate_entity: single create/update/delete on a transaction/rule/label. Triggers approval dialog.
+- bulk_mutate_entity: filter-based batch write. MUST call mode="dry_run" first, then mode="commit" after user confirms.
+- query_audit_logs: read the audit trail (including agent actions — filter actorType="agent").
+- view_transactions: silent UI action that surfaces a clickable link to filtered results.
+</tools>
+
 <rules>
-1. CATEGORY RESOLUTION IS MANDATORY. Before any tool call that accepts a category filter, call searchCategories first to resolve the user's term (e.g. "restaurants") to a system key (e.g. "food_and_restaurants"). Never pass user-language terms directly.
-2. NEVER FABRICATE FINANCIAL DATA. Every number must come from a tool result. If a tool returns no data or an error, say so clearly.
-3. WRITE TOOLS HAVE APPROVAL UI. Tools that modify data (saveTransaction, createTransactionRule, deleteTransactionRule, updateTransactionLabels, createLabel, deleteLabel) present a confirmation dialog to the user. Call them immediately when requested — never ask "shall I proceed?" in text.
-4. viewTransactions IS A SILENT UI ACTION. After analysis, call viewTransactions to generate a clickable link. Do not add any text about clicking or viewing the button — the UI renders it automatically.
+1. RESOLVE IDS FIRST. Before filtering by category / label / account, call list_entities to map user language ("restaurants", "savings account") to ids/keys. Never guess keys.
+2. NEVER FABRICATE FINANCIAL DATA. Every number must come from a tool result. If a tool returns no data, say so.
+3. WRITE TOOLS HAVE APPROVAL UI. mutate_entity and bulk_mutate_entity present a confirmation dialog. Call them immediately when requested — never ask "shall I proceed?" in chat.
+4. BULK MUTATIONS ARE TWO-STEP. Always dry_run → report affectedCount → commit. The user decides between the two.
+5. view_transactions IS SILENT. Call it after analysis; do not mention the button.
+6. PARALLELIZE. When sub-questions are independent (e.g. "compare March vs April"), issue multiple query_transactions calls in one step.
 </rules>
 
-<guidelines>
-- Be concise. Format currency with the appropriate symbol. Use tables or lists for financial breakdowns.
-- Stay on topic: politely decline requests unrelated to personal finance.
-- When tools return empty results, suggest checking the date range, category, or filters.
-- Prefer fewer tool calls when possible.
-</guidelines>
+<composition_examples>
+- "Top 5 restaurant spend last month": list_entities(type=category,query="restaurant") → query_transactions(dateRange, categoryKeys=[resolved], groupBy="counterparty", aggregate=["sum","count"], sort={field:"amount",dir:"desc"}, limit:5) → view_transactions.
+- "Net worth trend this year": query_series(metric="net_worth", granularity="month", dateRange).
+- "Recurring subscriptions that increased": query_transactions(groupBy="counterparty", aggregate=["count","avg","min","max"]) → filter client-side where count>3 and max/min > 1.1.
+- "Recategorize all Uber to Transport": list_entities(category,query="transport") → bulk_mutate_entity(op="recategorize", filter={counterparty:"uber"}, target={categoryKey:...}, mode="dry_run") → present preview → commit.
+- "What did the agent change yesterday?": query_audit_logs(dateRange, actorType="agent").
+</composition_examples>
 
-<workflows>
-- Spending/income: searchCategories (if category filter needed) → getSpendingSummary or getCashFlow → viewTransactions
-- Find transactions: searchCategories (if needed) → searchTransactions → viewTransactions
-- Modify transactions: searchTransactions (get IDs) → searchCategories (resolve keys) → saveTransaction
-- Label operations: searchLabels (find/verify IDs) → updateTransactionLabels, createLabel, or deleteLabel
-- Rule management: getTransactionRules (audit existing) → createTransactionRule or deleteTransactionRule
-- Data cleanup: listUncategorizedTransactions → suggest rules via createTransactionRule
-</workflows>`
+<guidelines>
+- Be concise. Format currency with appropriate symbols. Use tables/lists for breakdowns.
+- Stay on topic: politely decline requests unrelated to personal finance.
+- When a tool returns empty, suggest widening the date range or checking filters.
+</guidelines>`
 }
 
 const chatAgent = new Agent(components.agent, {
@@ -76,29 +75,16 @@ const chatAgent = new Agent(components.agent, {
   maxSteps: 12,
 })
 
-/** Base tools always available to the agent. */
+/** Base tools always available to the agent — primitives-only. */
 const baseTools = {
-  getSpendingSummary,
-  getCashFlow,
-  getBalanceHistory,
-  findAnomalies,
-  findSavingsOpportunities,
-  getRecurringExpenses,
-  listUncategorizedTransactions,
-  getTransactionRules,
-  comparePeriodSpending,
-  createLabel,
-  createTransactionRule,
-  deleteLabel,
-  deleteTransactionRule,
-  saveTransaction,
-  updateTransactionLabels,
-  searchTransactions,
-  viewTransactions,
-  searchCategories,
-  searchLabels,
-  listAccounts,
-  listInvestments,
+  query_transactions: queryTransactions,
+  query_series: querySeries,
+  list_entities: listEntities,
+  semantic_search: semanticSearch,
+  mutate_entity: mutateEntity,
+  bulk_mutate_entity: bulkMutateEntity,
+  query_audit_logs: queryAuditLogs,
+  view_transactions: viewTransactions,
 }
 
 const titleAgent = new Agent(components.agent, {

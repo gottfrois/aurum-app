@@ -11,10 +11,10 @@ import {
 } from '~/components/ui/empty'
 
 const SUGGESTION_KEYS = [
-  'chat.suggestion.unusualSpending',
-  'chat.suggestion.recurringExpenses',
-  'chat.suggestion.savingsRate',
   'chat.suggestion.topSpending',
+  'chat.suggestion.netWorthTrend',
+  'chat.suggestion.biggestExpenses',
+  'chat.suggestion.recentChanges',
 ] as const
 
 interface ChatEmptyStateProps {

@@ -328,7 +328,12 @@ export default defineSchema({
     workspaceName: v.string(),
     portfolioId: v.optional(v.id('portfolios')),
     portfolioName: v.optional(v.string()),
-    actorType: v.union(v.literal('user'), v.literal('system')),
+    actorType: v.union(
+      v.literal('user'),
+      v.literal('system'),
+      v.literal('agent'),
+    ),
+    agentThreadId: v.optional(v.string()),
     actorId: v.optional(v.string()),
     actorName: v.optional(v.string()),
     actorAvatarUrl: v.optional(v.string()),

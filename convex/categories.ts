@@ -1,4 +1,5 @@
 import { ConvexError, v } from 'convex/values'
+import { internal } from './_generated/api'
 import { internalMutation, mutation, query } from './_generated/server'
 import { getAuthUserId, requireAuthUserId } from './lib/auth'
 
@@ -239,7 +240,7 @@ export const createCategory = mutation({
         throw new ConvexError('A category with this name already exists')
     }
 
-    return await ctx.db.insert('transactionCategories', {
+    const categoryId = await ctx.db.insert('transactionCategories', {
       workspaceId: member.workspaceId,
       portfolioId: args.portfolioId,
       key,
@@ -251,6 +252,11 @@ export const createCategory = mutation({
       builtIn: false,
       createdAt: Date.now(),
     })
+    await ctx.scheduler.runAfter(0, internal.rag.indexCategory, {
+      workspaceId: member.workspaceId,
+      categoryId,
+    })
+    return categoryId
   },
 })
 
@@ -295,6 +301,14 @@ export const updateCategory = mutation({
     if (args.parentKey !== undefined) patch.parentKey = args.parentKey
 
     await ctx.db.patch('transactionCategories', args.categoryId, patch)
+
+    // Only re-index when searchable fields (label or description) changed.
+    if (args.label !== undefined || args.description !== undefined) {
+      await ctx.scheduler.runAfter(0, internal.rag.indexCategory, {
+        workspaceId: category.workspaceId,
+        categoryId: args.categoryId,
+      })
+    }
   },
 })
 
@@ -329,6 +343,11 @@ export const deleteCategory = mutation({
     }
 
     await ctx.db.delete('transactionCategories', args.categoryId)
+    await ctx.scheduler.runAfter(0, internal.rag.removeEntity, {
+      workspaceId: category.workspaceId,
+      type: 'category',
+      id: args.categoryId,
+    })
   },
 })
 
@@ -458,6 +477,11 @@ export const batchDeleteCategories = mutation({
       if (!category.portfolioId && member.role !== 'owner') continue
 
       await ctx.db.delete('transactionCategories', categoryId)
+      await ctx.scheduler.runAfter(0, internal.rag.removeEntity, {
+        workspaceId: category.workspaceId,
+        type: 'category',
+        id: categoryId,
+      })
     }
   },
 })

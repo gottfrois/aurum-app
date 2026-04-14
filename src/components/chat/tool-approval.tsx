@@ -1,10 +1,11 @@
-import { useMutation } from 'convex/react'
+import { useMutation, useQuery } from 'convex/react'
 import type { TFunction } from 'i18next'
 import { Check, X } from 'lucide-react'
-import { useState } from 'react'
+import { useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Button } from '~/components/ui/button'
 import { Input } from '~/components/ui/input'
+import { useWorkspace } from '~/contexts/workspace-context'
 import { api } from '../../../convex/_generated/api'
 
 /** Human-readable summary for tool inputs using i18n. */
@@ -87,24 +88,192 @@ function formatExclusionSummary(
   return t('chat.toolApproval.reincludeInBudget', { count })
 }
 
-function getToolSummaries(
+/**
+ * mutate_entity and bulk_mutate_entity are generic wrappers — unpack their
+ * (type, action, payload) discriminator into the existing per-action
+ * formatters so the user sees the same human-readable preview regardless of
+ * which tool produced the call.
+ */
+function formatMutateEntitySummary(
   t: TFunction,
-): Record<string, (input: Record<string, unknown>) => string> {
-  return {
-    createTransactionRule: (input) => formatRuleSummary(t, input),
-    updateTransactionCategory: (input) => formatCategorySummary(t, input),
-    updateTransactionLabels: (input) => formatLabelSummary(t, input),
-    createLabel: (input) => formatCreateLabelSummary(t, input),
-    deleteLabel: (input) => {
-      const count = (input.labelIds as string[] | undefined)?.length ?? 0
-      return t('chat.toolApproval.deleteLabels', { count })
-    },
-    deleteTransactionRule: (input) => {
-      const count = (input.ruleIds as string[] | undefined)?.length ?? 0
-      return t('chat.toolApproval.deleteRules', { count })
-    },
-    excludeFromBudget: (input) => formatExclusionSummary(t, input),
+  input: Record<string, unknown>,
+): string {
+  const type = input.type as string | undefined
+  const action = input.action as string | undefined
+  const payload = (input.payload as Record<string, unknown> | undefined) ?? {}
+
+  if (type === 'rule' && action === 'create') {
+    return formatRuleSummary(t, payload)
   }
+  if (type === 'rule' && action === 'delete') {
+    const count = (payload.ids as string[] | undefined)?.length ?? 0
+    return t('chat.toolApproval.deleteRules', { count })
+  }
+  if (type === 'label' && action === 'create') {
+    return formatCreateLabelSummary(t, payload)
+  }
+  if (type === 'label' && action === 'delete') {
+    const count = (payload.ids as string[] | undefined)?.length ?? 0
+    return t('chat.toolApproval.deleteLabels', { count })
+  }
+  if (type === 'transaction' && action === 'update_labels') {
+    return formatLabelSummary(t, {
+      transactionIds: payload.ids,
+      addLabelIds: payload.addLabelIds,
+      removeLabelIds: payload.removeLabelIds,
+    })
+  }
+  if (type === 'transaction' && action === 'update') {
+    const ids = (payload.ids as string[] | undefined)?.length ?? 0
+    const parts: string[] = []
+    if (payload.categoryKey)
+      parts.push(
+        formatCategorySummary(t, {
+          transactionIds: payload.ids,
+          categoryKey: payload.categoryKey,
+        }),
+      )
+    if (payload.excludedFromBudget !== undefined)
+      parts.push(
+        formatExclusionSummary(t, {
+          transactionIds: payload.ids,
+          exclude: payload.excludedFromBudget,
+        }),
+      )
+    if (payload.customName)
+      parts.push(`rename ${ids} transaction(s) → "${payload.customName}"`)
+    return parts.join(' · ') || t('chat.toolApproval.confirmAction')
+  }
+  return `${type ?? 'entity'}.${action ?? '?'}`
+}
+
+function quoteJoin(names: string[]): string {
+  return names.map((n) => `"${n}"`).join(', ')
+}
+
+function formatBulkFilter(
+  t: TFunction,
+  filter: Record<string, unknown>,
+  labelsById: Map<string, string>,
+  categoriesByKey: Map<string, string>,
+): string | null {
+  const parts: string[] = []
+  const dateRange = filter.dateRange as
+    | { from?: string; to?: string }
+    | undefined
+  if (dateRange?.from && dateRange?.to) {
+    parts.push(
+      t('chat.toolApproval.bulk.filterDateRange', {
+        from: dateRange.from,
+        to: dateRange.to,
+      }),
+    )
+  }
+  const categoryKeys = filter.categoryKeys as string[] | undefined
+  if (categoryKeys && categoryKeys.length > 0) {
+    const names = categoryKeys.map((k) => categoriesByKey.get(k) ?? k)
+    parts.push(
+      t('chat.toolApproval.bulk.filterCategories', {
+        count: names.length,
+        names: quoteJoin(names),
+      }),
+    )
+  }
+  const labelIds = filter.labelIds as string[] | undefined
+  if (labelIds && labelIds.length > 0) {
+    const names = labelIds.map((id) => labelsById.get(id) ?? id)
+    parts.push(
+      t('chat.toolApproval.bulk.filterLabels', {
+        count: names.length,
+        names: quoteJoin(names),
+      }),
+    )
+  }
+  const counterparty = filter.counterparty as string | undefined
+  if (counterparty)
+    parts.push(t('chat.toolApproval.bulk.filterCounterparty', { counterparty }))
+  const textSearch = filter.textSearch as string | undefined
+  if (textSearch)
+    parts.push(t('chat.toolApproval.bulk.filterText', { text: textSearch }))
+  const sign = filter.sign as 'income' | 'expense' | undefined
+  if (sign === 'expense') parts.push(t('chat.toolApproval.bulk.filterExpense'))
+  else if (sign === 'income')
+    parts.push(t('chat.toolApproval.bulk.filterIncome'))
+  if (parts.length === 0) return null
+  return parts.join(' · ')
+}
+
+function formatBulkMutateSummary(
+  t: TFunction,
+  input: Record<string, unknown>,
+  labelsById: Map<string, string>,
+  categoriesByKey: Map<string, string>,
+): { action: string; scope: string | null } {
+  const op = input.operation as string | undefined
+  const target = (input.target as Record<string, unknown> | undefined) ?? {}
+  const filter = (input.filter as Record<string, unknown> | undefined) ?? {}
+
+  let action: string
+  if (op === 'recategorize') {
+    const key = target.categoryKey as string | undefined
+    const name = (key && categoriesByKey.get(key)) || key || '?'
+    action = t('chat.toolApproval.bulk.recategorize', { category: name })
+  } else if (op === 'relabel') {
+    const addIds = (target.addLabelIds as string[] | undefined) ?? []
+    const removeIds = (target.removeLabelIds as string[] | undefined) ?? []
+    const segments: string[] = []
+    if (addIds.length > 0) {
+      const names = addIds.map((id) => labelsById.get(id) ?? id)
+      segments.push(
+        t('chat.toolApproval.bulk.addLabels', {
+          count: names.length,
+          names: quoteJoin(names),
+        }),
+      )
+    }
+    if (removeIds.length > 0) {
+      const names = removeIds.map((id) => labelsById.get(id) ?? id)
+      segments.push(
+        t('chat.toolApproval.bulk.removeLabels', {
+          count: names.length,
+          names: quoteJoin(names),
+        }),
+      )
+    }
+    action = segments.join(' · ') || t('chat.toolApproval.confirmAction')
+  } else if (op === 'exclude_from_budget') {
+    action = t('chat.toolApproval.bulk.excludeFromBudget')
+  } else if (op === 'include_in_budget') {
+    action = t('chat.toolApproval.bulk.includeInBudget')
+  } else {
+    action = op ?? 'bulk'
+  }
+
+  return {
+    action,
+    scope: formatBulkFilter(t, filter, labelsById, categoriesByKey),
+  }
+}
+
+interface ToolSummary {
+  action: string
+  scope?: string | null
+}
+
+function getToolSummary(
+  t: TFunction,
+  toolName: string,
+  input: Record<string, unknown>,
+  labelsById: Map<string, string>,
+  categoriesByKey: Map<string, string>,
+): ToolSummary {
+  if (toolName === 'mutate_entity') {
+    return { action: formatMutateEntitySummary(t, input) }
+  }
+  if (toolName === 'bulk_mutate_entity') {
+    return formatBulkMutateSummary(t, input, labelsById, categoriesByKey)
+  }
+  return { action: JSON.stringify(input) }
 }
 
 interface ToolApprovalProps {
@@ -124,12 +293,42 @@ export function ToolApproval({
 }: ToolApprovalProps) {
   const { t } = useTranslation()
   const submitApproval = useMutation(api.agentChatQueries.submitApproval)
+  const { workspace } = useWorkspace()
   const [loading, setLoading] = useState(false)
   const [rejecting, setRejecting] = useState(false)
   const [reason, setReason] = useState('')
 
-  const toolSummaries = getToolSummaries(t)
-  const summary = toolSummaries[toolName]?.(input) ?? JSON.stringify(input)
+  // Resolve label and category ids/keys to display names so the summary
+  // reads as "Remove label 'foo'" rather than "remove (+0/-1)".
+  const labels = useQuery(
+    api.transactionLabels.listLabels,
+    workspace
+      ? { workspaceId: workspace._id, includeAllPortfolios: true }
+      : 'skip',
+  )
+  const categories = useQuery(
+    api.categories.listCategories,
+    workspace ? { includeAllPortfolios: true } : 'skip',
+  )
+
+  const labelsById = useMemo(() => {
+    const m = new Map<string, string>()
+    for (const l of labels ?? []) m.set(l._id, l.name)
+    return m
+  }, [labels])
+  const categoriesByKey = useMemo(() => {
+    const m = new Map<string, string>()
+    for (const c of categories ?? []) m.set(c.key, c.label)
+    return m
+  }, [categories])
+
+  const summary = getToolSummary(
+    t,
+    toolName,
+    input,
+    labelsById,
+    categoriesByKey,
+  )
 
   async function handleApprove() {
     setLoading(true)
@@ -169,7 +368,10 @@ export function ToolApproval({
       <p className="text-sm font-medium">
         {t('chat.toolApproval.confirmAction')}
       </p>
-      <p className="mt-1 text-sm text-muted-foreground">{summary}</p>
+      <p className="mt-1 text-sm text-muted-foreground">{summary.action}</p>
+      {summary.scope ? (
+        <p className="mt-0.5 text-xs text-muted-foreground">{summary.scope}</p>
+      ) : null}
       {rejecting && (
         <Input
           autoFocus

@@ -16,10 +16,11 @@ export async function insertAuditLogDirect(
     workspaceName: string
     portfolioId?: Id<'portfolios'>
     portfolioName?: string
-    actorType: 'user' | 'system'
+    actorType: 'user' | 'system' | 'agent'
     actorId?: string
     actorName?: string
     actorAvatarUrl?: string
+    agentThreadId?: string
     event: string
     resourceType?: string
     resourceId?: string
@@ -39,6 +40,7 @@ export async function insertAuditLogDirect(
     actorId: entry.actorId,
     actorName: entry.actorName,
     actorAvatarUrl: entry.actorAvatarUrl,
+    agentThreadId: entry.agentThreadId,
     event: entry.event,
     resourceType: entry.resourceType,
     resourceId: entry.resourceId,
@@ -143,6 +145,11 @@ export type AuditMetadata =
   | { type: 'rule.batch_deleted'; data: { ruleIds: string[]; count: number } }
   | { type: 'rule.reordered'; data: { count: number } }
   | {
+      type: 'label.created'
+      data: { labelId: string; name: string; scope: 'workspace' | 'portfolio' }
+    }
+  | { type: 'label.batch_deleted'; data: { labelIds: string[]; count: number } }
+  | {
       type: 'workspace.renamed'
       data: { previousName: string; newName: string }
     }
@@ -200,10 +207,15 @@ export const insertAuditLog = internalMutation({
     workspaceName: v.string(),
     portfolioId: v.optional(v.id('portfolios')),
     portfolioName: v.optional(v.string()),
-    actorType: v.union(v.literal('user'), v.literal('system')),
+    actorType: v.union(
+      v.literal('user'),
+      v.literal('system'),
+      v.literal('agent'),
+    ),
     actorId: v.optional(v.string()),
     actorName: v.optional(v.string()),
     actorAvatarUrl: v.optional(v.string()),
+    agentThreadId: v.optional(v.string()),
     event: v.string(),
     resourceType: v.optional(v.string()),
     resourceId: v.optional(v.string()),
@@ -223,6 +235,7 @@ export const insertAuditLog = internalMutation({
       actorId: args.actorId,
       actorName: args.actorName,
       actorAvatarUrl: args.actorAvatarUrl,
+      agentThreadId: args.agentThreadId,
       event: args.event,
       resourceType: args.resourceType,
       resourceId: args.resourceId,
@@ -292,6 +305,48 @@ export const listByWorkspace = query({
       )
       .order('desc')
       .take(args.limit ?? 100)
+  },
+})
+
+/**
+ * Write an audit log entry on behalf of the agent.
+ *
+ * Called from agent primitive tools (actions can't touch ctx.db directly)
+ * after a successful mutation. Resolves workspace/portfolio names so callers
+ * only need to pass ids, and stamps actorType='agent' + the thread id so the
+ * audit trail answers "did the agent change anything here".
+ */
+export const writeAgentAuditLog = internalMutation({
+  args: {
+    workspaceId: v.id('workspaces'),
+    portfolioId: v.optional(v.id('portfolios')),
+    actorUserId: v.optional(v.string()),
+    agentThreadId: v.string(),
+    event: v.string(),
+    resourceType: v.optional(v.string()),
+    resourceId: v.optional(v.string()),
+    resourceName: v.optional(v.string()),
+    metadata: v.string(),
+  },
+  handler: async (ctx, args) => {
+    const workspace = await ctx.db.get(args.workspaceId)
+    const portfolio = args.portfolioId
+      ? await ctx.db.get(args.portfolioId)
+      : null
+    await insertAuditLogDirect(ctx.db, {
+      workspaceId: args.workspaceId,
+      workspaceName: workspace?.name ?? '',
+      portfolioId: args.portfolioId,
+      portfolioName: portfolio?.name,
+      actorType: 'agent',
+      actorId: args.actorUserId,
+      agentThreadId: args.agentThreadId,
+      event: args.event,
+      resourceType: args.resourceType,
+      resourceId: args.resourceId,
+      resourceName: args.resourceName,
+      metadata: args.metadata,
+    })
   },
 })
 

@@ -1678,7 +1678,7 @@ function TransactionDetailSheet({
                     id: log._id,
                     timestamp: log.timestamp,
                     event: log.event,
-                    actorType: log.actorType as 'user' | 'system',
+                    actorType: log.actorType,
                     actorName: log.actorName,
                     actorAvatarUrl: log.actorAvatarUrl ?? undefined,
                     metadata: log.metadata,

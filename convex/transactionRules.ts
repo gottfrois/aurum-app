@@ -1,4 +1,5 @@
 import { v } from 'convex/values'
+import { internal } from './_generated/api'
 import {
   internalMutation,
   internalQuery,
@@ -90,6 +91,11 @@ export const createRuleInternal = internalMutation({
       sortOrder: scopeRules.length === 0 ? 0 : maxOrder + 1,
       createdBy: args.createdBy,
       createdAt: Date.now(),
+    })
+
+    await ctx.scheduler.runAfter(0, internal.rag.indexRule, {
+      workspaceId: args.workspaceId,
+      ruleId,
     })
 
     return ruleId
@@ -198,6 +204,11 @@ export const createRule = mutation({
       sortOrder: scopeRules.length === 0 ? 0 : maxOrder + 1,
       createdBy: userId,
       createdAt: Date.now(),
+    })
+
+    await ctx.scheduler.runAfter(0, internal.rag.indexRule, {
+      workspaceId: member.workspaceId,
+      ruleId,
     })
 
     const workspace = await ctx.db.get('workspaces', member.workspaceId)
@@ -323,6 +334,18 @@ export const updateRule = mutation({
       }),
     })
 
+    // Re-index when any searchable field (pattern, customDescription, categoryKey) changed.
+    if (
+      changedFields.includes('pattern') ||
+      changedFields.includes('customDescription') ||
+      changedFields.includes('categoryKey')
+    ) {
+      await ctx.scheduler.runAfter(0, internal.rag.indexRule, {
+        workspaceId: member.workspaceId,
+        ruleId: args.ruleId,
+      })
+    }
+
     const workspace = await ctx.db.get('workspaces', member.workspaceId)
     const identity = await ctx.auth.getUserIdentity()
     await insertAuditLogDirect(ctx.db, {
@@ -416,6 +439,11 @@ export const deleteRule = mutation({
     }
 
     await ctx.db.delete(args.ruleId)
+    await ctx.scheduler.runAfter(0, internal.rag.removeEntity, {
+      workspaceId: member.workspaceId,
+      type: 'rule',
+      id: args.ruleId,
+    })
 
     const workspace = await ctx.db.get('workspaces', member.workspaceId)
     const identity = await ctx.auth.getUserIdentity()
@@ -455,6 +483,11 @@ export const batchDeleteRules = mutation({
           throw new Error('Only workspace owners can delete workspace rules')
         }
         await ctx.db.delete(ruleId)
+        await ctx.scheduler.runAfter(0, internal.rag.removeEntity, {
+          workspaceId: rule.workspaceId,
+          type: 'rule',
+          id: ruleId,
+        })
         deletedCount++
       }
     }

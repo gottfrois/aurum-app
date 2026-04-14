@@ -1,4 +1,5 @@
 import { v } from 'convex/values'
+import { internal } from './_generated/api'
 import { mutation, query } from './_generated/server'
 import { getAuthUserId, requireAuthUserId } from './lib/auth'
 
@@ -85,7 +86,7 @@ export const createLabel = mutation({
       }
     }
 
-    return ctx.db.insert('transactionLabels', {
+    const labelId = await ctx.db.insert('transactionLabels', {
       workspaceId: args.workspaceId,
       portfolioId: args.portfolioId,
       name: args.name,
@@ -93,6 +94,11 @@ export const createLabel = mutation({
       color: args.color,
       createdAt: Date.now(),
     })
+    await ctx.scheduler.runAfter(0, internal.rag.indexLabel, {
+      workspaceId: args.workspaceId,
+      labelId,
+    })
+    return labelId
   },
 })
 
@@ -134,6 +140,13 @@ export const updateLabel = mutation({
     if (args.color !== undefined) patch.color = args.color
 
     await ctx.db.patch('transactionLabels', args.labelId, patch)
+
+    if (args.name !== undefined || args.description !== undefined) {
+      await ctx.scheduler.runAfter(0, internal.rag.indexLabel, {
+        workspaceId: label.workspaceId,
+        labelId: args.labelId,
+      })
+    }
   },
 })
 
@@ -190,6 +203,11 @@ export const deleteLabel = mutation({
     }
 
     await ctx.db.delete('transactionLabels', args.labelId)
+    await ctx.scheduler.runAfter(0, internal.rag.removeEntity, {
+      workspaceId: label.workspaceId,
+      type: 'label',
+      id: args.labelId,
+    })
   },
 })
 
@@ -237,6 +255,11 @@ export const batchDeleteLabels = mutation({
       }
 
       await ctx.db.delete('transactionLabels', labelId)
+      await ctx.scheduler.runAfter(0, internal.rag.removeEntity, {
+        workspaceId: label.workspaceId,
+        type: 'label',
+        id: labelId,
+      })
     }
   },
 })

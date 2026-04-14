@@ -17,7 +17,7 @@ export interface TimelineEntry {
   id: string;
   timestamp: number;
   event: string;
-  actorType: "user" | "system";
+  actorType: "user" | "system" | "agent";
   actorName?: string;
   actorAvatarUrl?: string;
   metadata: string;
@@ -244,6 +244,7 @@ function getInitials(name?: string): string {
 
 function getDisplayName(entry: TimelineEntry): string {
   if (entry.actorType === "system") return "Bunkr";
+  if (entry.actorType === "agent") return "Bunkr Agent";
   return entry.actorName ?? "Someone";
 }
 
@@ -278,7 +279,7 @@ export function AuditTimeline({
           <TimelineHeader>
             <TimelineSeparator className="bg-border! group-data-[orientation=vertical]/timeline:top-1.5 group-data-[orientation=vertical]/timeline:-left-5 group-data-[orientation=vertical]/timeline:h-[calc(100%-1.75rem)] group-data-[orientation=vertical]/timeline:translate-y-5" />
             <TimelineIndicator className="size-6 overflow-hidden rounded-full border-none group-data-[orientation=vertical]/timeline:-left-5">
-              {entry.actorType === "system" ? (
+              {entry.actorType === "system" || entry.actorType === "agent" ? (
                 <div className="flex size-6 items-center justify-center rounded-full bg-muted">
                   <Bot className="size-3 text-muted-foreground" />
                 </div>

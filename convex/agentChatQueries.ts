@@ -409,6 +409,95 @@ export const listTransactionsByDateRange = internalQuery({
   },
 })
 
+/**
+ * Like listTransactionsByDateRange but returns all active transactions
+ * (including excluded-from-budget and coming ones) so a primitive tool
+ * can apply its own filter based on user intent.
+ */
+export const listTransactionsByDateRangeAll = internalQuery({
+  args: {
+    portfolioId: v.id('portfolios'),
+    startDate: v.string(),
+    endDate: v.string(),
+  },
+  handler: async (ctx, { portfolioId, startDate, endDate }) => {
+    const results = await ctx.db
+      .query('transactions')
+      .withIndex('by_portfolioId_date', (q) =>
+        q
+          .eq('portfolioId', portfolioId)
+          .gte('date', startDate)
+          .lte('date', endDate),
+      )
+      .collect()
+    return results.filter((t) => !t.deleted)
+  },
+})
+
+export const listFilterViewsByWorkspace = internalQuery({
+  args: { workspaceId: v.id('workspaces') },
+  handler: async (ctx, { workspaceId }) => {
+    return ctx.db
+      .query('filterViews')
+      .withIndex('by_workspaceId', (q) => q.eq('workspaceId', workspaceId))
+      .collect()
+  },
+})
+
+export const listAuditLogsByWorkspace = internalQuery({
+  args: {
+    workspaceId: v.id('workspaces'),
+    fromTs: v.optional(v.number()),
+    toTs: v.optional(v.number()),
+    actorType: v.optional(
+      v.union(v.literal('user'), v.literal('system'), v.literal('agent')),
+    ),
+    eventTypes: v.optional(v.array(v.string())),
+    resourceType: v.optional(v.string()),
+    resourceId: v.optional(v.string()),
+    limit: v.optional(v.number()),
+  },
+  handler: async (
+    ctx,
+    {
+      workspaceId,
+      fromTs,
+      toTs,
+      actorType,
+      eventTypes,
+      resourceType,
+      resourceId,
+      limit,
+    },
+  ) => {
+    const cap = Math.min(limit ?? 100, 500)
+    const all = await ctx.db
+      .query('auditLogs')
+      .withIndex('by_workspaceId_timestamp', (q) => {
+        const base = q.eq('workspaceId', workspaceId)
+        if (fromTs !== undefined && toTs !== undefined) {
+          return base.gte('timestamp', fromTs).lte('timestamp', toTs)
+        }
+        if (fromTs !== undefined) return base.gte('timestamp', fromTs)
+        if (toTs !== undefined) return base.lte('timestamp', toTs)
+        return base
+      })
+      .order('desc')
+      .take(cap * 3)
+
+    const eventSet = eventTypes?.length ? new Set(eventTypes) : null
+    return all
+      .filter((log) => {
+        if (actorType && log.actorType !== actorType) return false
+        if (eventSet && !eventSet.has(log.event)) return false
+        if (resourceType && log.resourceType !== resourceType) return false
+        if (resourceId && log.resourceId !== resourceId) return false
+        return true
+      })
+      .slice(0, cap)
+  },
+})
+
 export const listBankAccountsByPortfolios = internalQuery({
   args: {
     portfolioIds: v.array(v.id('portfolios')),
@@ -565,7 +654,14 @@ export const deleteTransactionRulesInternal = internalMutation({
   handler: async (ctx, { ruleIds }) => {
     for (const ruleId of ruleIds) {
       const rule = await ctx.db.get(ruleId)
-      if (rule) await ctx.db.delete(ruleId)
+      if (rule) {
+        await ctx.db.delete(ruleId)
+        await ctx.scheduler.runAfter(0, internal.rag.removeEntity, {
+          workspaceId: rule.workspaceId,
+          type: 'rule',
+          id: ruleId,
+        })
+      }
     }
   },
 })
@@ -577,7 +673,14 @@ export const deleteLabelsInternal = internalMutation({
   handler: async (ctx, { labelIds }) => {
     for (const labelId of labelIds) {
       const label = await ctx.db.get(labelId)
-      if (label) await ctx.db.delete(labelId)
+      if (label) {
+        await ctx.db.delete(labelId)
+        await ctx.scheduler.runAfter(0, internal.rag.removeEntity, {
+          workspaceId: label.workspaceId,
+          type: 'label',
+          id: labelId,
+        })
+      }
     }
   },
 })
@@ -591,7 +694,7 @@ export const createLabelInternal = internalMutation({
     color: v.string(),
   },
   handler: async (ctx, args) => {
-    return ctx.db.insert('transactionLabels', {
+    const labelId = await ctx.db.insert('transactionLabels', {
       workspaceId: args.workspaceId,
       portfolioId: args.portfolioId,
       name: args.name,
@@ -599,6 +702,11 @@ export const createLabelInternal = internalMutation({
       color: args.color,
       createdAt: Date.now(),
     })
+    await ctx.scheduler.runAfter(0, internal.rag.indexLabel, {
+      workspaceId: args.workspaceId,
+      labelId,
+    })
+    return labelId
   },
 })
 
