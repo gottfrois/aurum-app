@@ -106,24 +106,41 @@ export function ChatMessages({
     lastApprovalMessageIdRef.current = messageId
   }, [])
 
-  // Show "Thinking" when waiting for assistant response:
+  // Show "Thinking" when the model is actively working:
   // - Last message is from the user (assistant hasn't started yet)
-  // - Last message is assistant but has no text yet (even if tool parts exist — agent is still working)
-  // - BUT NOT when waiting for user approval (approval-requested state)
+  // - Last message is an assistant message whose stream is still open
+  //   (status === 'streaming'), and either no text has arrived yet or the
+  //   latest part is a just-completed tool call — i.e. the model is mid-turn
+  //   between a tool result and the next output.
+  //
+  // Notes on status values (from @convex-dev/agent UIMessages):
+  //   'streaming' → stream is still open (message.streaming === true)
+  //   'pending'   → stream closed but the row wasn't marked 'success' yet;
+  //                 this happens when a turn ends on a terminal tool call.
+  //                 We treat this as "done" — not as "still running".
+  //   'success' / 'failed' → finalized.
+  //
+  // Also hidden while a tool approval is pending (user's turn to act).
   const lastMessage = messages.at(-1)
   const lastHasApprovalPending =
     lastMessage?.role === 'assistant' &&
     (lastMessage.parts ?? []).some(
       (p) => isToolUIPart(p) && p.state === 'approval-requested',
     )
+  const lastPart = (lastMessage?.parts ?? []).at(-1)
+  const lastPartIsCompletedTool =
+    !!lastPart &&
+    isToolUIPart(lastPart) &&
+    (lastPart as ToolUIPartType).state === 'output-available'
+  const assistantStreamOpen =
+    lastMessage?.role === 'assistant' && lastMessage.status === 'streaming'
   const isWaitingForReply =
     messages.length === 0
       ? !!pendingMessage
       : !lastHasApprovalPending &&
         (lastMessage?.role === 'user' ||
-          (lastMessage?.role === 'assistant' &&
-            !lastMessage.text &&
-            lastMessage.status !== 'failed'))
+          (assistantStreamOpen &&
+            (!lastMessage?.text || lastPartIsCompletedTool)))
 
   useEffect(() => {
     onWaitingChange?.(isWaitingForReply)
