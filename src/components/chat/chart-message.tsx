@@ -59,16 +59,14 @@ export function ChartMessage({
   return (
     <Card className="w-full">
       {(spec.title || spec.description) && (
-        <CardHeader className="pb-2">
-          {spec.title && (
-            <CardTitle className="text-base">{spec.title}</CardTitle>
-          )}
+        <CardHeader>
+          {spec.title && <CardTitle>{spec.title}</CardTitle>}
           {spec.description && (
             <p className="text-sm text-muted-foreground">{spec.description}</p>
           )}
         </CardHeader>
       )}
-      <CardContent className="pt-2">
+      <CardContent>
         {/*
          * ChartContainer wraps its children in Recharts' ResponsiveContainer,
          * which clones its single child to inject width/height. The child
