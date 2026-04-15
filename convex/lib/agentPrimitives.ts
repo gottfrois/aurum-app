@@ -122,6 +122,48 @@ async function writeAgentAuditLog(
   }
 }
 
+type CreatePolicyKey = 'categoryCreation' | 'labelCreation' | 'ruleCreation'
+
+/**
+ * Enforce the workspace `owners_only` / `all_members` policy for creating
+ * workspace-scoped categories, labels, and rules via the agent. Mirrors the
+ * checks in `categories.createCategory`, `transactionLabels.createLabel`, and
+ * `transactionRules.createRule`. Portfolio-scoped creates are unrestricted
+ * (same as the user-facing mutations).
+ *
+ * Returns null when allowed, or a user-facing error message when denied.
+ * Tool handlers return `{ error: <message> }` on denial; the chat UI promotes
+ * that shape to an `output-error` state so the call renders as a failure.
+ */
+async function checkWorkspaceCreatePermission(
+  ctx: ActionCtx & { userId?: string },
+  workspaceId: Id<'workspaces'>,
+  policyKey: CreatePolicyKey,
+): Promise<string | null> {
+  const userId = ctx.userId
+  if (!userId) return 'Not authorized'
+  const perms = (await ctx.runQuery(
+    internal.agentChatQueries.getWorkspaceCreatePermissionsInternal,
+    { workspaceId, userId },
+  )) as {
+    role: 'owner' | 'member'
+    policies: {
+      categoryCreation?: 'owners_only' | 'all_members'
+      labelCreation?: 'owners_only' | 'all_members'
+      ruleCreation?: 'owners_only' | 'all_members'
+    } | null
+  } | null
+  if (!perms) return 'Not authorized'
+  if (perms.role === 'owner') return null
+  if (perms.policies?.[policyKey] === 'all_members') return null
+  const labels: Record<CreatePolicyKey, string> = {
+    categoryCreation: 'workspace categories',
+    labelCreation: 'workspace labels',
+    ruleCreation: 'workspace rules',
+  }
+  return `Only workspace owners can create ${labels[policyKey]}`
+}
+
 async function resolvePortfolioIds(
   ctx: ActionCtx,
   threadCtx: ThreadContext,
@@ -1030,6 +1072,12 @@ export const mutateEntity = createTool({
 
       // rule.create
       if (input.type === 'rule' && input.action === 'create') {
+        const denied = await checkWorkspaceCreatePermission(
+          ctx,
+          threadCtx.workspaceId,
+          'ruleCreation',
+        )
+        if (denied) return { error: denied }
         const pattern = String(p.pattern ?? '')
         const matchType = (p.matchType as 'contains' | 'regex') ?? 'contains'
         const categoryKey = p.categoryKey as string | undefined
@@ -1091,6 +1139,14 @@ export const mutateEntity = createTool({
             ? 'portfolio'
             : 'workspace')
         const portfolioId = scope === 'portfolio' ? threadCtx.portfolioId : null
+        if (!portfolioId) {
+          const denied = await checkWorkspaceCreatePermission(
+            ctx,
+            threadCtx.workspaceId,
+            'labelCreation',
+          )
+          if (denied) return { error: denied }
+        }
         const rawName = String(p.name ?? '')
         const name = rawName.charAt(0).toUpperCase() + rawName.slice(1)
         const labelId = (await ctx.runMutation(
@@ -1145,6 +1201,14 @@ export const mutateEntity = createTool({
             ? 'portfolio'
             : 'workspace')
         const portfolioId = scope === 'portfolio' ? threadCtx.portfolioId : null
+        if (!portfolioId) {
+          const denied = await checkWorkspaceCreatePermission(
+            ctx,
+            threadCtx.workspaceId,
+            'categoryCreation',
+          )
+          if (denied) return { error: denied }
+        }
         const { categoryId, key } = (await ctx.runMutation(
           internal.agentChatQueries.createCategoryInternal,
           {
@@ -1324,6 +1388,16 @@ export const bulkMutateEntity = createTool({
           .replace(/^_|_$/g, '')
         return { ...c, scope, key }
       })
+
+      // Enforce workspace creation policy if any spec targets workspace scope.
+      if (specs.some((s) => s.scope === 'workspace')) {
+        const denied = await checkWorkspaceCreatePermission(
+          ctx,
+          threadCtx.workspaceId,
+          'categoryCreation',
+        )
+        if (denied) return { error: denied }
+      }
 
       if (input.mode === 'dry_run') {
         // Group keys by scope to check conflicts within the right bucket.

@@ -387,6 +387,28 @@ export const getMemberLanguage = internalQuery({
   },
 })
 
+/**
+ * Return the acting user's role and the workspace creation policies, so the
+ * agent tool layer can enforce the same `owners_only` / `all_members` gates
+ * that user-facing mutations apply when creating workspace-level entities.
+ */
+export const getWorkspaceCreatePermissionsInternal = internalQuery({
+  args: { workspaceId: v.id('workspaces'), userId: v.string() },
+  handler: async (ctx, { workspaceId, userId }) => {
+    const member = await ctx.db
+      .query('workspaceMembers')
+      .withIndex('by_workspaceId', (q) => q.eq('workspaceId', workspaceId))
+      .filter((q) => q.eq(q.field('userId'), userId))
+      .first()
+    if (!member) return null
+    const workspace = await ctx.db.get(workspaceId)
+    return {
+      role: member.role,
+      policies: workspace?.policies ?? null,
+    }
+  },
+})
+
 export const listPortfoliosByWorkspace = internalQuery({
   args: { workspaceId: v.id('workspaces') },
   handler: async (ctx, { workspaceId }) => {

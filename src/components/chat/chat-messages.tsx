@@ -372,7 +372,27 @@ function ChatMessageBubble({
       continue
     }
 
-    // Regular tool → render Tool card
+    // Regular tool → render Tool card.
+    // Tools surface hard failures as { error: string } outputs (e.g. permission
+    // denials from mutate_entity). The Agent SDK still marks those results as
+    // `output-available`, so we promote them to `output-error` here so the UI
+    // shows the red error badge instead of a green "completed".
+    const rawOutput =
+      'output' in part ? (part.output as Record<string, unknown>) : undefined
+    const outputError =
+      rawOutput && typeof rawOutput.error === 'string'
+        ? rawOutput.error
+        : undefined
+    const rawState = part.state as ToolPart['state']
+    const effectiveState: ToolPart['state'] =
+      rawState === 'output-available' && outputError ? 'output-error' : rawState
+    const effectiveErrorText =
+      'errorText' in part
+        ? (part.errorText as string)
+        : effectiveState === 'output-error'
+          ? outputError
+          : undefined
+
     renderedParts.push(
       <Tool
         key={'toolCallId' in part ? (part.toolCallId as string) : `tool-${i}`}
@@ -380,19 +400,15 @@ function ChatMessageBubble({
           type: TOOL_LABEL_KEYS[toolName]
             ? t(TOOL_LABEL_KEYS[toolName])
             : toolName,
-          state: part.state as ToolPart['state'],
+          state: effectiveState,
           input:
             'input' in part
               ? (part.input as Record<string, unknown>)
               : undefined,
-          output:
-            'output' in part
-              ? (part.output as Record<string, unknown>)
-              : undefined,
+          output: rawOutput,
           toolCallId:
             'toolCallId' in part ? (part.toolCallId as string) : undefined,
-          errorText:
-            'errorText' in part ? (part.errorText as string) : undefined,
+          errorText: effectiveErrorText,
         }}
       />,
     )
