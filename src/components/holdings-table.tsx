@@ -1,4 +1,5 @@
 import { useTranslation } from 'react-i18next'
+import { CopyButton } from '~/components/ui/copy-button'
 import { Money } from '~/components/ui/money'
 import {
   Table,
@@ -70,7 +71,23 @@ export function HoldingsTable({
           <TableRow key={inv._id}>
             <TableCell className="font-medium">{inv.label}</TableCell>
             <TableCell className="text-muted-foreground">
-              {inv.code ?? '—'}
+              {inv.code ? (
+                <div className="group/isin flex min-w-0 items-center gap-1">
+                  <span
+                    className="max-w-[8ch] truncate font-mono text-xs"
+                    title={inv.code}
+                  >
+                    {inv.code}
+                  </span>
+                  <CopyButton
+                    value={inv.code}
+                    iconSize={12}
+                    className="size-6 shrink-0 opacity-0 transition-opacity group-hover/isin:opacity-100 focus-visible:opacity-100"
+                  />
+                </div>
+              ) : (
+                '—'
+              )}
             </TableCell>
             <TableCell className="text-right">{inv.quantity}</TableCell>
             <TableCell className="text-right">

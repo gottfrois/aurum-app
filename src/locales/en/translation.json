@@ -912,6 +912,8 @@
   "common.unlock": "Unlock",
   "common.done": "Done",
   "common.leave": "Leave",
+  "common.copy": "Copy",
+  "common.copied": "Copied!",
 
   "toast.removedFromFavorites": "Removed from favorites",
   "toast.failedRemoveFavorite": "Failed to remove favorite",

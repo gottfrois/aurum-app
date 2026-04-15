@@ -912,6 +912,8 @@
   "common.unlock": "Déverrouiller",
   "common.done": "Terminé",
   "common.leave": "Quitter",
+  "common.copy": "Copier",
+  "common.copied": "Copié !",
 
   "toast.removedFromFavorites": "Retiré des favoris",
   "toast.failedRemoveFavorite": "Échec du retrait des favoris",

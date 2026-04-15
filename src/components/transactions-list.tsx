@@ -13,12 +13,10 @@ import {
   ArrowDown,
   ArrowUp,
   ArrowUpDown,
-  Check,
   ChevronLeft,
   ChevronRight,
   ChevronsLeft,
   ChevronsRight,
-  Copy,
   Ellipsis,
   Eye,
   EyeOff,
@@ -47,6 +45,7 @@ import { SelectionBar } from '~/components/selection-bar'
 import { Badge } from '~/components/ui/badge'
 import { Button } from '~/components/ui/button'
 import { Checkbox } from '~/components/ui/checkbox'
+import { CopyButton } from '~/components/ui/copy-button'
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -1632,6 +1631,8 @@ function TransactionDetailSheet({
               </span>
               <CopyButton
                 value={`${transaction.value > 0 ? '+' : ''}${formatCurrency(transaction.value, currency)}`}
+                iconSize={14}
+                className="size-7 opacity-0 transition-opacity group-hover/copy:opacity-100 focus-visible:opacity-100"
               />
             </div>
             {hasOriginalCurrency && (
@@ -1755,7 +1756,11 @@ function TransactionDetailSheet({
                     </dt>
                     <dd className="mt-1 flex items-start gap-1.5 text-sm break-words">
                       <span className="flex-1">{d.value}</span>
-                      <CopyButton value={d.value as string} />
+                      <CopyButton
+                        value={d.value as string}
+                        iconSize={14}
+                        className="size-7 opacity-0 transition-opacity group-hover/copy:opacity-100 focus-visible:opacity-100"
+                      />
                     </dd>
                   </div>
                 ))}
@@ -1878,27 +1883,6 @@ function BulkExclusionView({
         ))}
       </div>
     </>
-  )
-}
-
-function CopyButton({ value }: { value: string }) {
-  const [copied, setCopied] = React.useState(false)
-
-  function handleCopy() {
-    navigator.clipboard.writeText(value)
-    setCopied(true)
-    setTimeout(() => setCopied(false), 1500)
-  }
-
-  return (
-    <button
-      type="button"
-      onClick={handleCopy}
-      className="inline-flex shrink-0 items-center justify-center rounded-md text-muted-foreground opacity-0 transition-opacity hover:text-foreground group-hover/copy:opacity-100"
-      aria-label="Copy to clipboard"
-    >
-      {copied ? <Check className="size-3.5" /> : <Copy className="size-3.5" />}
-    </button>
   )
 }
 
