@@ -150,6 +150,34 @@ export type AuditMetadata =
     }
   | { type: 'label.batch_deleted'; data: { labelIds: string[]; count: number } }
   | {
+      type: 'category.created'
+      data: {
+        categoryId: string
+        key: string
+        label: string
+        scope: 'workspace' | 'portfolio'
+      }
+    }
+  | {
+      type: 'category.updated'
+      data: { categoryId: string; changedFields: string[] }
+    }
+  | {
+      type: 'category.batch_created'
+      data: {
+        createdCount: number
+        skipped: Array<{ label: string; reason: string }>
+      }
+    }
+  | {
+      type: 'category.batch_deleted'
+      data: {
+        categoryIds: string[]
+        count: number
+        skipped?: Array<{ id: string; reason: string }>
+      }
+    }
+  | {
       type: 'workspace.renamed'
       data: { previousName: string; newName: string }
     }

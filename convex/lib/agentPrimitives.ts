@@ -838,12 +838,15 @@ export const mutateEntity = createTool({
     '- ("rule", "delete", { ids: string[] })',
     '- ("label", "create", { name, description?, color?, scope?: "portfolio"|"workspace" })',
     '- ("label", "delete", { ids: string[] })',
+    '- ("category", "create", { label, description?, color, icon?, parentKey?, scope?: "portfolio"|"workspace" })',
+    '- ("category", "update", { id, label?, description?, color?, icon?, parentKey? })',
+    '- ("category", "delete", { ids: string[] })',
     '',
     'Resolve category keys and label ids first via list_entities.',
   ].join('\n'),
   needsApproval: true,
   inputSchema: z.object({
-    type: z.enum(['transaction', 'rule', 'label']),
+    type: z.enum(['transaction', 'rule', 'label', 'category']),
     action: z.enum(['create', 'update', 'update_labels', 'delete']),
     payload: MutatePayload,
   }),
@@ -1132,6 +1135,89 @@ export const mutateEntity = createTool({
         return { deleted: ids.length }
       }
 
+      // category.create
+      if (input.type === 'category' && input.action === 'create') {
+        const label = String(p.label ?? '').trim()
+        if (!label) return { error: 'label is required' }
+        const scope =
+          (p.scope as 'portfolio' | 'workspace' | undefined) ??
+          (threadCtx.portfolioScope === 'portfolio' && threadCtx.portfolioId
+            ? 'portfolio'
+            : 'workspace')
+        const portfolioId = scope === 'portfolio' ? threadCtx.portfolioId : null
+        const { categoryId, key } = (await ctx.runMutation(
+          internal.agentChatQueries.createCategoryInternal,
+          {
+            workspaceId: threadCtx.workspaceId,
+            label,
+            description: p.description as string | undefined,
+            color: (p.color as string | undefined) ?? '#6366f1',
+            icon: p.icon as string | undefined,
+            parentKey: p.parentKey as string | undefined,
+            ...(portfolioId ? { portfolioId } : {}),
+          },
+        )) as { categoryId: string; key: string }
+        await writeAgentAuditLog(
+          ctx,
+          threadCtx.workspaceId,
+          'category.created',
+          { categoryId, key, label, scope },
+          {
+            resourceType: 'category',
+            resourceId: categoryId,
+            resourceName: label,
+            ...(portfolioId ? { portfolioId } : {}),
+          },
+        )
+        return { categoryId, key }
+      }
+
+      // category.update
+      if (input.type === 'category' && input.action === 'update') {
+        const categoryId = p.id as string | undefined
+        if (!categoryId) return { error: 'id is required' }
+        const { changedFields } = (await ctx.runMutation(
+          internal.agentChatQueries.updateCategoryInternal,
+          {
+            categoryId: categoryId as Id<'transactionCategories'>,
+            label: p.label as string | undefined,
+            description: p.description as string | undefined,
+            color: p.color as string | undefined,
+            icon: p.icon as string | undefined,
+            parentKey: p.parentKey as string | undefined,
+          },
+        )) as { changedFields: string[] }
+        await writeAgentAuditLog(
+          ctx,
+          threadCtx.workspaceId,
+          'category.updated',
+          { categoryId, changedFields },
+          { resourceType: 'category', resourceId: categoryId },
+        )
+        return { updated: 1, changedFields }
+      }
+
+      // category.delete
+      if (input.type === 'category' && input.action === 'delete') {
+        const ids = (p.ids as string[] | undefined) ?? []
+        if (!ids.length) return { error: 'ids is required' }
+        const { deleted, skipped } = (await ctx.runMutation(
+          internal.agentChatQueries.deleteCategoriesInternal,
+          { categoryIds: ids as Id<'transactionCategories'>[] },
+        )) as {
+          deleted: number
+          skipped: Array<{ id: string; reason: string }>
+        }
+        await writeAgentAuditLog(
+          ctx,
+          threadCtx.workspaceId,
+          'category.batch_deleted',
+          { categoryIds: ids, count: deleted, skipped },
+          { resourceType: 'category' },
+        )
+        return { deleted, skipped }
+      }
+
       return {
         error: `Unsupported (type, action): (${input.type}, ${input.action})`,
       }
@@ -1150,15 +1236,19 @@ export const mutateEntity = createTool({
 export const bulkMutateEntity = createTool({
   title: 'Bulk Mutate Entity',
   description: [
-    'Preview and apply a write across many transactions selected by a filter.',
+    'Preview and apply a write across many entities in one step.',
     'ALWAYS call with mode="dry_run" first so the user can see the affected count and sample ids;',
     'then call again with mode="commit" to apply. The dry_run call is read-only and does not require user approval; only commit calls prompt the user.',
     '',
-    'Operations:',
+    'Transaction operations (use filter + target):',
     '- "recategorize" (target.categoryKey required)',
     '- "relabel" (target.addLabelIds and/or target.removeLabelIds)',
     '- "exclude_from_budget" (target.excluded=true)',
     '- "include_in_budget" (target.excluded=false)',
+    '',
+    'Category operations (filter and target are ignored):',
+    '- "batch_create_categories": pass top-level `categories: [{ label, description?, color?, icon?, parentKey?, scope? }]`. dry_run returns { wouldCreate, conflicts: [keys] }.',
+    '- "batch_delete_categories": pass top-level `ids: string[]`. dry_run returns { wouldDelete, builtInBlocked: [{ id, label }] }.',
     '',
     'Filter shape matches query_transactions filters.',
   ].join('\n'),
@@ -1173,39 +1263,223 @@ export const bulkMutateEntity = createTool({
       'relabel',
       'exclude_from_budget',
       'include_in_budget',
+      'batch_create_categories',
+      'batch_delete_categories',
     ]),
-    filter: z.object({
-      dateRange: DateRange.optional(),
-      accountIds: z.array(z.string()).optional(),
-      portfolioIds: z.array(z.string()).optional(),
-      categoryKeys: z.array(z.string()).optional(),
-      labelIds: z.array(z.string()).optional(),
-      counterparty: z.string().optional(),
-      textSearch: z.string().optional(),
-      amountRange: AmountRange.optional(),
-      sign: z.enum(['income', 'expense']).optional(),
-      excludedFromBudget: z.boolean().optional(),
-    }),
-    target: z.object({
-      categoryKey: z.string().optional(),
-      addLabelIds: z.array(z.string()).optional(),
-      removeLabelIds: z.array(z.string()).optional(),
-      excluded: z.boolean().optional(),
-    }),
+    filter: z
+      .object({
+        dateRange: DateRange.optional(),
+        accountIds: z.array(z.string()).optional(),
+        portfolioIds: z.array(z.string()).optional(),
+        categoryKeys: z.array(z.string()).optional(),
+        labelIds: z.array(z.string()).optional(),
+        counterparty: z.string().optional(),
+        textSearch: z.string().optional(),
+        amountRange: AmountRange.optional(),
+        sign: z.enum(['income', 'expense']).optional(),
+        excludedFromBudget: z.boolean().optional(),
+      })
+      .optional(),
+    target: z
+      .object({
+        categoryKey: z.string().optional(),
+        addLabelIds: z.array(z.string()).optional(),
+        removeLabelIds: z.array(z.string()).optional(),
+        excluded: z.boolean().optional(),
+      })
+      .optional(),
+    categories: z
+      .array(
+        z.object({
+          label: z.string(),
+          description: z.string().optional(),
+          color: z.string().optional(),
+          icon: z.string().optional(),
+          parentKey: z.string().optional(),
+          scope: z.enum(['portfolio', 'workspace']).optional(),
+        }),
+      )
+      .optional(),
+    ids: z.array(z.string()).optional(),
     mode: z.enum(['dry_run', 'commit']),
   }),
   execute: async (ctx, input) => {
     const threadCtx = await resolveContext(ctx)
+
+    // Category ops don't need filter/target/decryption — handle them up front.
+    if (input.operation === 'batch_create_categories') {
+      const categories = input.categories ?? []
+      if (!categories.length) {
+        return { error: 'categories array is required' }
+      }
+      const defaultScope =
+        threadCtx.portfolioScope === 'portfolio' && threadCtx.portfolioId
+          ? 'portfolio'
+          : 'workspace'
+      const specs = categories.map((c) => {
+        const scope = c.scope ?? defaultScope
+        const key = c.label
+          .toLowerCase()
+          .replace(/[^a-z0-9]+/g, '_')
+          .replace(/^_|_$/g, '')
+        return { ...c, scope, key }
+      })
+
+      if (input.mode === 'dry_run') {
+        // Group keys by scope to check conflicts within the right bucket.
+        const workspaceKeys = specs
+          .filter((s) => s.scope === 'workspace')
+          .map((s) => s.key)
+        const portfolioKeys = specs
+          .filter((s) => s.scope === 'portfolio')
+          .map((s) => s.key)
+        const invalid = specs
+          .filter((s) => !s.key)
+          .map((s) => ({ label: s.label, reason: 'invalid_label' as const }))
+        const conflicts: Array<{ label: string; key: string; reason: string }> =
+          []
+        if (workspaceKeys.length) {
+          const { conflicts: wsConflicts } = (await ctx.runQuery(
+            internal.agentChatQueries.previewCategoryConflictsInternal,
+            { workspaceId: threadCtx.workspaceId, keys: workspaceKeys },
+          )) as { conflicts: string[] }
+          for (const key of wsConflicts) {
+            const spec = specs.find(
+              (s) => s.scope === 'workspace' && s.key === key,
+            )
+            if (spec)
+              conflicts.push({
+                label: spec.label,
+                key,
+                reason: 'duplicate_key',
+              })
+          }
+        }
+        if (portfolioKeys.length && threadCtx.portfolioId) {
+          const { conflicts: pConflicts } = (await ctx.runQuery(
+            internal.agentChatQueries.previewCategoryConflictsInternal,
+            {
+              workspaceId: threadCtx.workspaceId,
+              portfolioId: threadCtx.portfolioId,
+              keys: portfolioKeys,
+            },
+          )) as { conflicts: string[] }
+          for (const key of pConflicts) {
+            const spec = specs.find(
+              (s) => s.scope === 'portfolio' && s.key === key,
+            )
+            if (spec)
+              conflicts.push({
+                label: spec.label,
+                key,
+                reason: 'duplicate_key',
+              })
+          }
+        }
+        return {
+          wouldCreate: specs.length - conflicts.length - invalid.length,
+          conflicts: [...invalid, ...conflicts],
+          sampleLabels: specs.slice(0, 10).map((s) => s.label),
+        }
+      }
+
+      // commit
+      const created: Array<{ categoryId: string; key: string; label: string }> =
+        []
+      const skipped: Array<{ label: string; reason: string }> = []
+      for (const spec of specs) {
+        const portfolioId =
+          spec.scope === 'portfolio' ? threadCtx.portfolioId : null
+        try {
+          const { categoryId, key } = (await ctx.runMutation(
+            internal.agentChatQueries.createCategoryInternal,
+            {
+              workspaceId: threadCtx.workspaceId,
+              label: spec.label,
+              description: spec.description,
+              color: spec.color ?? '#6366f1',
+              icon: spec.icon,
+              parentKey: spec.parentKey,
+              ...(portfolioId ? { portfolioId } : {}),
+            },
+          )) as { categoryId: string; key: string }
+          created.push({ categoryId, key, label: spec.label })
+        } catch (err) {
+          skipped.push({
+            label: spec.label,
+            reason: err instanceof Error ? err.message : 'create_failed',
+          })
+        }
+      }
+      await writeAgentAuditLog(
+        ctx,
+        threadCtx.workspaceId,
+        'category.batch_created',
+        { createdCount: created.length, skipped },
+        { resourceType: 'category' },
+      )
+      return {
+        createdCount: created.length,
+        created,
+        skipped,
+        committed: true,
+      }
+    }
+
+    if (input.operation === 'batch_delete_categories') {
+      const ids = input.ids ?? []
+      if (!ids.length) return { error: 'ids array is required' }
+
+      if (input.mode === 'dry_run') {
+        const rows = (await ctx.runQuery(
+          internal.agentChatQueries.getCategoriesByIdsInternal,
+          {
+            categoryIds: ids as Id<'transactionCategories'>[],
+          },
+        )) as Array<{
+          id: string
+          found: boolean
+          builtIn: boolean
+          label?: string
+        }>
+        const missing = rows.filter((r) => !r.found).map((r) => r.id)
+        const builtInBlocked = rows
+          .filter((r) => r.found && r.builtIn)
+          .map((r) => ({ id: r.id, label: r.label ?? '' }))
+        const wouldDelete = rows.filter((r) => r.found && !r.builtIn).length
+        return { wouldDelete, builtInBlocked, missing }
+      }
+
+      const { deleted, skipped } = (await ctx.runMutation(
+        internal.agentChatQueries.deleteCategoriesInternal,
+        { categoryIds: ids as Id<'transactionCategories'>[] },
+      )) as {
+        deleted: number
+        skipped: Array<{ id: string; reason: string }>
+      }
+      await writeAgentAuditLog(
+        ctx,
+        threadCtx.workspaceId,
+        'category.batch_deleted',
+        { categoryIds: ids, count: deleted, skipped },
+        { resourceType: 'category' },
+      )
+      return { deleted, skipped, committed: true }
+    }
+
+    // Transaction ops — filter-based path.
     const wsKey = await getWorkspaceDecryptionKey(ctx, threadCtx.workspaceId)
     if (!wsKey) return { error: 'Unable to access encrypted data' }
 
+    const filter = input.filter ?? {}
+    const target = input.target ?? {}
     const portfolioIds = await resolvePortfolioIds(
       ctx,
       threadCtx,
-      input.filter.portfolioIds,
+      filter.portfolioIds,
     )
-    const from = input.filter.dateRange?.from ?? '1900-01-01'
-    const to = input.filter.dateRange?.to ?? '2999-12-31'
+    const from = filter.dateRange?.from ?? '1900-01-01'
+    const to = filter.dateRange?.to ?? '2999-12-31'
     const raw: RawTransaction[] = (
       await Promise.all(
         portfolioIds.map((pid) =>
@@ -1261,7 +1535,7 @@ export const bulkMutateEntity = createTool({
       )
 
     const { filterTransactions } = await import('./agentPrimitivesCore')
-    const matched = filterTransactions(decrypted, input.filter) as Array<
+    const matched = filterTransactions(decrypted, filter) as Array<
       DecryptedTransaction & { _raw: RawTransaction }
     >
 
@@ -1274,7 +1548,7 @@ export const bulkMutateEntity = createTool({
 
     // commit — delegate to the single-entity paths for consistency
     if (input.operation === 'recategorize') {
-      if (!input.target.categoryKey)
+      if (!target.categoryKey)
         return { error: 'target.categoryKey is required' }
       const publicKey = (await ctx.runQuery(
         internal.agentChatQueries.getWorkspacePublicKey,
@@ -1292,7 +1566,7 @@ export const bulkMutateEntity = createTool({
           m.id,
           'encryptedCategories',
         )
-        cats.userCategoryKey = input.target.categoryKey
+        cats.userCategoryKey = target.categoryKey
         updates.push({
           transactionId: m.id as Id<'transactions'>,
           encryptedCategories: await encryptForProfile(
@@ -1312,7 +1586,7 @@ export const bulkMutateEntity = createTool({
         'transaction.category_batch_updated',
         {
           affectedCount: updates.length,
-          categoryKey: input.target.categoryKey,
+          categoryKey: target.categoryKey,
         },
         { resourceType: 'transaction' },
       )
@@ -1320,8 +1594,8 @@ export const bulkMutateEntity = createTool({
     }
 
     if (input.operation === 'relabel') {
-      const addSet = new Set(input.target.addLabelIds ?? [])
-      const removeSet = new Set(input.target.removeLabelIds ?? [])
+      const addSet = new Set(target.addLabelIds ?? [])
+      const removeSet = new Set(target.removeLabelIds ?? [])
       if (!addSet.size && !removeSet.size) {
         return { error: 'Provide addLabelIds or removeLabelIds' }
       }

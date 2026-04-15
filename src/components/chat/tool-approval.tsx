@@ -94,9 +94,40 @@ function formatExclusionSummary(
  * formatters so the user sees the same human-readable preview regardless of
  * which tool produced the call.
  */
+function resolveIdsToNames(
+  ids: string[],
+  byId: Map<string, string>,
+): { names: string[]; unknownCount: number } {
+  const names: string[] = []
+  let unknownCount = 0
+  for (const id of ids) {
+    const name = byId.get(id)
+    if (name) names.push(name)
+    else unknownCount++
+  }
+  return { names, unknownCount }
+}
+
+function formatNamedDelete(
+  t: TFunction,
+  namedKey: string,
+  fallbackKey: string,
+  ids: string[],
+  byId: Map<string, string>,
+): string {
+  const { names, unknownCount } = resolveIdsToNames(ids, byId)
+  if (names.length > 0 && unknownCount === 0) {
+    return t(namedKey, { count: names.length, names: quoteJoin(names) })
+  }
+  return t(fallbackKey, { count: ids.length })
+}
+
 function formatMutateEntitySummary(
   t: TFunction,
   input: Record<string, unknown>,
+  labelsById: Map<string, string>,
+  categoriesById: Map<string, string>,
+  rulesById: Map<string, string>,
 ): string {
   const type = input.type as string | undefined
   const action = input.action as string | undefined
@@ -106,15 +137,56 @@ function formatMutateEntitySummary(
     return formatRuleSummary(t, payload)
   }
   if (type === 'rule' && action === 'delete') {
-    const count = (payload.ids as string[] | undefined)?.length ?? 0
-    return t('chat.toolApproval.deleteRules', { count })
+    const ids = (payload.ids as string[] | undefined) ?? []
+    return formatNamedDelete(
+      t,
+      'chat.toolApproval.deleteRulesNamed',
+      'chat.toolApproval.deleteRules',
+      ids,
+      rulesById,
+    )
   }
   if (type === 'label' && action === 'create') {
     return formatCreateLabelSummary(t, payload)
   }
   if (type === 'label' && action === 'delete') {
-    const count = (payload.ids as string[] | undefined)?.length ?? 0
-    return t('chat.toolApproval.deleteLabels', { count })
+    const ids = (payload.ids as string[] | undefined) ?? []
+    return formatNamedDelete(
+      t,
+      'chat.toolApproval.deleteLabelsNamed',
+      'chat.toolApproval.deleteLabels',
+      ids,
+      labelsById,
+    )
+  }
+  if (type === 'category' && action === 'create') {
+    const label = payload.label as string | undefined
+    const scope = payload.scope as string | undefined
+    return t(
+      scope
+        ? 'chat.toolApproval.createCategoryWithScope'
+        : 'chat.toolApproval.createCategory',
+      { label: label ?? 'unknown', scope: scope ?? '' },
+    )
+  }
+  if (type === 'category' && action === 'update') {
+    const id = payload.id as string | undefined
+    const name = (id && categoriesById.get(id)) || id || 'unknown'
+    const changed = Object.keys(payload).filter((k) => k !== 'id')
+    return t('chat.toolApproval.updateCategory', {
+      name,
+      fields: changed.join(', '),
+    })
+  }
+  if (type === 'category' && action === 'delete') {
+    const ids = (payload.ids as string[] | undefined) ?? []
+    return formatNamedDelete(
+      t,
+      'chat.toolApproval.deleteCategoriesNamed',
+      'chat.toolApproval.deleteCategories',
+      ids,
+      categoriesById,
+    )
   }
   if (type === 'transaction' && action === 'update_labels') {
     return formatLabelSummary(t, {
@@ -208,6 +280,7 @@ function formatBulkMutateSummary(
   input: Record<string, unknown>,
   labelsById: Map<string, string>,
   categoriesByKey: Map<string, string>,
+  categoriesById: Map<string, string>,
 ): { action: string; scope: string | null } {
   const op = input.operation as string | undefined
   const target = (input.target as Record<string, unknown> | undefined) ?? {}
@@ -245,6 +318,32 @@ function formatBulkMutateSummary(
     action = t('chat.toolApproval.bulk.excludeFromBudget')
   } else if (op === 'include_in_budget') {
     action = t('chat.toolApproval.bulk.includeInBudget')
+  } else if (op === 'batch_create_categories') {
+    const categories =
+      (input.categories as Array<{ label: string }> | undefined) ?? []
+    const preview = categories
+      .slice(0, 3)
+      .map((c) => `"${c.label}"`)
+      .join(', ')
+    return {
+      action: t('chat.toolApproval.bulk.batchCreateCategories', {
+        count: categories.length,
+        preview,
+      }),
+      scope: null,
+    }
+  } else if (op === 'batch_delete_categories') {
+    const ids = (input.ids as string[] | undefined) ?? []
+    return {
+      action: formatNamedDelete(
+        t,
+        'chat.toolApproval.bulk.batchDeleteCategoriesNamed',
+        'chat.toolApproval.bulk.batchDeleteCategories',
+        ids,
+        categoriesById,
+      ),
+      scope: null,
+    }
   } else {
     action = op ?? 'bulk'
   }
@@ -266,12 +365,28 @@ function getToolSummary(
   input: Record<string, unknown>,
   labelsById: Map<string, string>,
   categoriesByKey: Map<string, string>,
+  categoriesById: Map<string, string>,
+  rulesById: Map<string, string>,
 ): ToolSummary {
   if (toolName === 'mutate_entity') {
-    return { action: formatMutateEntitySummary(t, input) }
+    return {
+      action: formatMutateEntitySummary(
+        t,
+        input,
+        labelsById,
+        categoriesById,
+        rulesById,
+      ),
+    }
   }
   if (toolName === 'bulk_mutate_entity') {
-    return formatBulkMutateSummary(t, input, labelsById, categoriesByKey)
+    return formatBulkMutateSummary(
+      t,
+      input,
+      labelsById,
+      categoriesByKey,
+      categoriesById,
+    )
   }
   return { action: JSON.stringify(input) }
 }
@@ -298,8 +413,8 @@ export function ToolApproval({
   const [rejecting, setRejecting] = useState(false)
   const [reason, setReason] = useState('')
 
-  // Resolve label and category ids/keys to display names so the summary
-  // reads as "Remove label 'foo'" rather than "remove (+0/-1)".
+  // Resolve label / category / rule ids to display names so the summary reads
+  // as "Delete label 'foo', 'bar'" rather than "Delete 2 labels".
   const labels = useQuery(
     api.transactionLabels.listLabels,
     workspace
@@ -309,6 +424,10 @@ export function ToolApproval({
   const categories = useQuery(
     api.categories.listCategories,
     workspace ? { includeAllPortfolios: true } : 'skip',
+  )
+  const rules = useQuery(
+    api.transactionRules.listRules,
+    workspace ? {} : 'skip',
   )
 
   const labelsById = useMemo(() => {
@@ -321,6 +440,16 @@ export function ToolApproval({
     for (const c of categories ?? []) m.set(c.key, c.label)
     return m
   }, [categories])
+  const categoriesById = useMemo(() => {
+    const m = new Map<string, string>()
+    for (const c of categories ?? []) m.set(c._id, c.label)
+    return m
+  }, [categories])
+  const rulesById = useMemo(() => {
+    const m = new Map<string, string>()
+    for (const r of rules ?? []) m.set(r._id, r.pattern)
+    return m
+  }, [rules])
 
   const summary = getToolSummary(
     t,
@@ -328,6 +457,8 @@ export function ToolApproval({
     input,
     labelsById,
     categoriesByKey,
+    categoriesById,
+    rulesById,
   )
 
   async function handleApprove() {

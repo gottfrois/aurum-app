@@ -1,7 +1,7 @@
 import { Agent, listUIMessages, syncStreams } from '@convex-dev/agent'
 import { vStreamArgs } from '@convex-dev/agent/validators'
 import { paginationOptsValidator } from 'convex/server'
-import { v } from 'convex/values'
+import { ConvexError, v } from 'convex/values'
 import { api, components, internal } from './_generated/api'
 import {
   internalAction,
@@ -717,6 +717,185 @@ export const createLabelInternal = internalMutation({
       labelId,
     })
     return labelId
+  },
+})
+
+export const createCategoryInternal = internalMutation({
+  args: {
+    workspaceId: v.id('workspaces'),
+    portfolioId: v.optional(v.id('portfolios')),
+    label: v.string(),
+    description: v.optional(v.string()),
+    color: v.string(),
+    icon: v.optional(v.string()),
+    parentKey: v.optional(v.string()),
+  },
+  handler: async (ctx, args) => {
+    const key = args.label
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, '_')
+      .replace(/^_|_$/g, '')
+    if (!key)
+      throw new ConvexError('Category label must contain a letter or number')
+
+    const existingWithKey = await ctx.db
+      .query('transactionCategories')
+      .withIndex('by_workspaceId_key', (q) =>
+        q.eq('workspaceId', args.workspaceId).eq('key', key),
+      )
+      .collect()
+
+    if (args.portfolioId) {
+      const samePortfolio = existingWithKey.find(
+        (c) => c.portfolioId === args.portfolioId,
+      )
+      if (samePortfolio)
+        throw new ConvexError('A category with this name already exists')
+    } else {
+      const sameWorkspace = existingWithKey.find((c) => !c.portfolioId)
+      if (sameWorkspace)
+        throw new ConvexError('A category with this name already exists')
+    }
+
+    const categoryId = await ctx.db.insert('transactionCategories', {
+      workspaceId: args.workspaceId,
+      portfolioId: args.portfolioId,
+      key,
+      label: args.label,
+      description: args.description,
+      color: args.color,
+      icon: args.icon,
+      parentKey: args.parentKey,
+      builtIn: false,
+      createdAt: Date.now(),
+    })
+    await ctx.scheduler.runAfter(0, internal.rag.indexCategory, {
+      workspaceId: args.workspaceId,
+      categoryId,
+    })
+    return { categoryId, key }
+  },
+})
+
+export const updateCategoryInternal = internalMutation({
+  args: {
+    categoryId: v.id('transactionCategories'),
+    label: v.optional(v.string()),
+    description: v.optional(v.string()),
+    color: v.optional(v.string()),
+    icon: v.optional(v.string()),
+    parentKey: v.optional(v.string()),
+  },
+  handler: async (ctx, args) => {
+    const category = await ctx.db.get(args.categoryId)
+    if (!category) throw new ConvexError('Category not found')
+
+    const patch: Record<string, string | undefined> = {}
+    const changedFields: string[] = []
+    if (args.label !== undefined) {
+      patch.label = args.label
+      changedFields.push('label')
+    }
+    if (args.description !== undefined) {
+      patch.description = args.description
+      changedFields.push('description')
+    }
+    if (args.color !== undefined) {
+      patch.color = args.color
+      changedFields.push('color')
+    }
+    if (args.icon !== undefined) {
+      patch.icon = args.icon
+      changedFields.push('icon')
+    }
+    if (args.parentKey !== undefined) {
+      patch.parentKey = args.parentKey
+      changedFields.push('parentKey')
+    }
+
+    await ctx.db.patch(args.categoryId, patch)
+
+    if (args.label !== undefined || args.description !== undefined) {
+      await ctx.scheduler.runAfter(0, internal.rag.indexCategory, {
+        workspaceId: category.workspaceId,
+        categoryId: args.categoryId,
+      })
+    }
+    return { changedFields }
+  },
+})
+
+export const deleteCategoriesInternal = internalMutation({
+  args: {
+    categoryIds: v.array(v.id('transactionCategories')),
+  },
+  handler: async (ctx, { categoryIds }) => {
+    let deleted = 0
+    const skipped: Array<{
+      id: string
+      reason: 'not_found' | 'built_in'
+    }> = []
+    for (const categoryId of categoryIds) {
+      const category = await ctx.db.get(categoryId)
+      if (!category) {
+        skipped.push({ id: categoryId, reason: 'not_found' })
+        continue
+      }
+      if (category.builtIn) {
+        skipped.push({ id: categoryId, reason: 'built_in' })
+        continue
+      }
+      await ctx.db.delete(categoryId)
+      await ctx.scheduler.runAfter(0, internal.rag.removeEntity, {
+        workspaceId: category.workspaceId,
+        type: 'category',
+        id: categoryId,
+      })
+      deleted++
+    }
+    return { deleted, skipped }
+  },
+})
+
+export const previewCategoryConflictsInternal = internalQuery({
+  args: {
+    workspaceId: v.id('workspaces'),
+    portfolioId: v.optional(v.id('portfolios')),
+    keys: v.array(v.string()),
+  },
+  handler: async (ctx, args) => {
+    const conflicts: string[] = []
+    for (const key of args.keys) {
+      const existing = await ctx.db
+        .query('transactionCategories')
+        .withIndex('by_workspaceId_key', (q) =>
+          q.eq('workspaceId', args.workspaceId).eq('key', key),
+        )
+        .collect()
+      if (args.portfolioId) {
+        if (existing.some((c) => c.portfolioId === args.portfolioId)) {
+          conflicts.push(key)
+        }
+      } else if (existing.some((c) => !c.portfolioId)) {
+        conflicts.push(key)
+      }
+    }
+    return { conflicts }
+  },
+})
+
+export const getCategoriesByIdsInternal = internalQuery({
+  args: {
+    categoryIds: v.array(v.id('transactionCategories')),
+  },
+  handler: async (ctx, { categoryIds }) => {
+    const rows = await Promise.all(categoryIds.map((id) => ctx.db.get(id)))
+    return rows.map((row, i) => ({
+      id: categoryIds[i],
+      found: row !== null,
+      builtIn: row?.builtIn ?? false,
+      label: row?.label,
+    }))
   },
 })
 
