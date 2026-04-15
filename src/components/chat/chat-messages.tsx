@@ -139,11 +139,20 @@ export function ChatMessages({
     (lastPart as ToolUIPartType).state === 'output-available'
   const assistantStreamOpen =
     lastMessage?.role === 'assistant' && lastMessage.status === 'streaming'
+  // A freshly-inserted assistant row appears briefly with status === 'pending'
+  // before the stream attaches. Without this, the "Thinking" indicator flickers
+  // off between the user prompt and the first stream event.
+  const assistantPendingEmpty =
+    lastMessage?.role === 'assistant' &&
+    lastMessage.status === 'pending' &&
+    !lastMessage.text &&
+    (lastMessage.parts ?? []).length === 0
   const isWaitingForReply =
     messages.length === 0
       ? !!pendingMessage
       : !lastHasApprovalPending &&
         (lastMessage?.role === 'user' ||
+          assistantPendingEmpty ||
           (assistantStreamOpen &&
             (!lastMessage?.text || lastPartIsCompletedTool)))
 
