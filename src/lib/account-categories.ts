@@ -40,7 +40,19 @@ export function getAccountCategoryLabel(key: string, t: TFunction): string {
 
 export { getCategoryKey } from '../../convex/lib/accountCategories'
 
-const INVESTMENT_ACCOUNT_TYPES = new Set(ACCOUNT_CATEGORIES.investments.types)
+// Account types that hold securities — kept in sync with INVESTMENT_TYPES in
+// convex/powens.ts (what the backend fetches from /users/me/accounts/{id}/investments).
+const INVESTMENT_ACCOUNT_TYPES = new Set([
+  'market',
+  'pea',
+  'pee',
+  'lifeinsurance',
+  'per',
+  'perco',
+  'perp',
+  'madelin',
+  'article83',
+])
 
 export function isInvestmentAccount(type?: string): boolean {
   return INVESTMENT_ACCOUNT_TYPES.has(type ?? '')

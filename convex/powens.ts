@@ -94,24 +94,34 @@ interface PowensInvestmentResponse {
 
 interface PowensRawInvestment {
   id: number
-  code?: string
-  code_type?: string
-  label?: string
-  description?: string
-  quantity?: number
-  unitprice?: number
-  unitvalue?: number
-  valuation?: number
-  portfolio_share?: number
-  diff?: number
-  diff_percent?: number
-  original_currency?: { id?: string }
-  original_valuation?: number
-  vdate?: string
+  code?: string | null
+  code_type?: string | null
+  label?: string | null
+  description?: string | null
+  quantity?: number | null
+  unitprice?: number | null
+  unitvalue?: number | null
+  valuation?: number | null
+  portfolio_share?: number | null
+  diff?: number | null
+  diff_percent?: number | null
+  original_currency?: { id?: string | null } | null
+  original_valuation?: number | null
+  vdate?: string | null
   deleted?: unknown
 }
 
-const INVESTMENT_TYPES = ['market', 'pea', 'pee']
+const INVESTMENT_TYPES = [
+  'market',
+  'pea',
+  'pee',
+  'lifeinsurance',
+  'per',
+  'perco',
+  'perp',
+  'madelin',
+  'article83',
+]
 
 async function recordBalanceSnapshot(
   ctx: MutationCtx,
@@ -913,20 +923,20 @@ interface MappedInvestment {
 function mapPowensInvestment(raw: PowensRawInvestment): MappedInvestment {
   return {
     powensInvestmentId: raw.id,
-    code: raw.code,
-    codeType: raw.code_type,
+    code: raw.code ?? undefined,
+    codeType: raw.code_type ?? undefined,
     label: raw.label ?? 'Unknown',
-    description: raw.description,
+    description: raw.description ?? undefined,
     quantity: raw.quantity ?? 0,
     unitprice: raw.unitprice ?? 0,
     unitvalue: raw.unitvalue ?? 0,
     valuation: raw.valuation ?? 0,
-    portfolioShare: raw.portfolio_share,
-    diff: raw.diff,
-    diffPercent: raw.diff_percent,
-    originalCurrency: raw.original_currency?.id,
+    portfolioShare: raw.portfolio_share ?? undefined,
+    diff: raw.diff ?? undefined,
+    diffPercent: raw.diff_percent ?? undefined,
+    originalCurrency: raw.original_currency?.id ?? undefined,
     originalValuation: raw.original_valuation ?? undefined,
-    vdate: raw.vdate,
+    vdate: raw.vdate ?? undefined,
     deleted: raw.deleted != null,
   }
 }
@@ -1045,18 +1055,39 @@ export const syncInvestmentsFromWebhook = internalAction({
       { connectionId: connection._id },
     )
 
+    console.log(
+      `[powens] Syncing investments for ${bankAccounts.length} bank accounts on connection ${args.powensConnectionId}`,
+    )
+
     for (const ba of bankAccounts) {
-      if (!INVESTMENT_TYPES.includes(ba.type ?? '')) continue
+      console.log(
+        `[powens] Investment sync candidate: account=${ba.powensBankAccountId} type=${ba.type ?? 'null'}`,
+      )
+      if (!INVESTMENT_TYPES.includes(ba.type ?? '')) {
+        console.log(
+          `[powens] Skipping account ${ba.powensBankAccountId} — type "${ba.type ?? 'null'}" not in INVESTMENT_TYPES`,
+        )
+        continue
+      }
 
       const response = await fetch(
         `${baseUrl}/users/me/accounts/${ba.powensBankAccountId}/investments`,
         { headers: { Authorization: `Bearer ${portfolio.powensUserToken}` } },
       )
 
-      if (!response.ok) continue
+      if (!response.ok) {
+        const text = await response.text()
+        console.error(
+          `[powens] Investment fetch failed for account ${ba.powensBankAccountId} (type: ${ba.type}): ${response.status} ${text}`,
+        )
+        continue
+      }
 
       const data = (await response.json()) as PowensInvestmentResponse
       const rawInvestments = (data.investments ?? []).map(mapPowensInvestment)
+      console.log(
+        `[powens] Fetched ${rawInvestments.length} investments for account ${ba.powensBankAccountId} (type: ${ba.type})`,
+      )
 
       // Step 1: Upsert with placeholder encrypted data to get IDs
       const placeholderInvestments = rawInvestments.map((inv) => ({

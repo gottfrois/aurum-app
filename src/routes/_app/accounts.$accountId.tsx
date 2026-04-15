@@ -301,7 +301,7 @@ function AccountDetailPage() {
     [holdingsAllocation],
   )
 
-  const showAllocationChart = isInvestment && holdingsAllocation.length >= 2
+  const showAllocationChart = isInvestment && holdingsAllocation.length >= 1
 
   const chartData = React.useMemo(() => {
     if (!snapshots) return []
