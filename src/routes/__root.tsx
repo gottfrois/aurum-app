@@ -27,6 +27,7 @@ import { TooltipProvider } from '~/components/ui/tooltip'
 import { BillingProvider } from '~/contexts/billing-context'
 import { BulkOperationProvider } from '~/contexts/bulk-operation-context'
 import { EncryptionProvider } from '~/contexts/encryption-context'
+import { ListPreferencesProvider } from '~/contexts/list-preferences-context'
 import { MoneyPreferencesProvider } from '~/contexts/money-preferences-context'
 import { PortfolioProvider, usePortfolio } from '~/contexts/portfolio-context'
 import { WorkspaceProvider } from '~/contexts/workspace-context'
@@ -214,11 +215,13 @@ function RootComponent() {
                     <EncryptionProvider>
                       <BulkOperationProvider>
                         <MoneyPreferencesProvider>
-                          <RootDocument>
-                            <OnboardingGuard>
-                              <Outlet />
-                            </OnboardingGuard>
-                          </RootDocument>
+                          <ListPreferencesProvider>
+                            <RootDocument>
+                              <OnboardingGuard>
+                                <Outlet />
+                              </OnboardingGuard>
+                            </RootDocument>
+                          </ListPreferencesProvider>
                         </MoneyPreferencesProvider>
                       </BulkOperationProvider>
                     </EncryptionProvider>

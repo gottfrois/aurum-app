@@ -88,6 +88,10 @@
   "settings.preferences.currencySign.description": "Comment les montants négatifs sont affichés.",
   "settings.preferences.currencySign.standard": "Signe moins",
   "settings.preferences.currencySign.accounting": "Parenthèses",
+  "settings.preferences.lists.title": "Listes",
+  "settings.preferences.lists.description": "Comportement des listes et tableaux dans l'application.",
+  "settings.preferences.transactionsPageSize.title": "Transactions par page",
+  "settings.preferences.transactionsPageSize.description": "Nombre de transactions affichées par page dans la liste de cash-flow.",
 
   "settings.profile.title": "Profil",
   "settings.profile.description": "Vos informations personnelles et paramètres d'affichage.",

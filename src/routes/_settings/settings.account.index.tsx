@@ -20,7 +20,12 @@ import {
   SelectValue,
 } from '~/components/ui/select'
 import { SelectWithHint } from '~/components/ui/select-with-hint'
+import { useListPreferences } from '~/contexts/list-preferences-context'
 import { useMoneyPreferences } from '~/contexts/money-preferences-context'
+import {
+  TRANSACTIONS_PAGE_SIZE_OPTIONS,
+  type TransactionsPageSize,
+} from '~/lib/list-prefs/storage'
 import type { CurrencyDisplay, CurrencySign } from '~/lib/money/format'
 import { formatMoney } from '~/lib/money/format'
 import {
@@ -52,6 +57,8 @@ function PreferencesPage() {
     setCurrencyDisplay,
     setCurrencySign,
   } = useMoneyPreferences()
+
+  const { transactionsPageSize, setTransactionsPageSize } = useListPreferences()
 
   const themeOptions = [
     { value: 'system', label: t('settings.preferences.theme.system') },
@@ -283,6 +290,57 @@ function PreferencesPage() {
                     options={currencySignOptions}
                     ariaLabel={t('settings.preferences.currencySign.title')}
                   />
+                </ItemCardItemAction>
+              </ItemCardItem>
+            </ItemCardItems>
+          </ItemCard>
+        </section>
+
+        <section className="space-y-3">
+          <div>
+            <h2 className="text-lg font-medium">
+              {t('settings.preferences.lists.title')}
+            </h2>
+            <p className="text-sm text-muted-foreground">
+              {t('settings.preferences.lists.description')}
+            </p>
+          </div>
+          <ItemCard>
+            <ItemCardItems>
+              <ItemCardItem>
+                <ItemCardItemContent>
+                  <ItemCardItemTitle>
+                    {t('settings.preferences.transactionsPageSize.title')}
+                  </ItemCardItemTitle>
+                  <ItemCardItemDescription>
+                    {t('settings.preferences.transactionsPageSize.description')}
+                  </ItemCardItemDescription>
+                </ItemCardItemContent>
+                <ItemCardItemAction>
+                  <Select
+                    value={String(transactionsPageSize)}
+                    onValueChange={(value) =>
+                      setTransactionsPageSize(
+                        Number(value) as TransactionsPageSize,
+                      )
+                    }
+                  >
+                    <SelectTrigger
+                      aria-label={t(
+                        'settings.preferences.transactionsPageSize.title',
+                      )}
+                      className="w-fit focus:shadow-none focus:ring-0 focus:ring-offset-0"
+                    >
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {TRANSACTIONS_PAGE_SIZE_OPTIONS.map((size) => (
+                        <SelectItem key={size} value={String(size)}>
+                          {size}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                 </ItemCardItemAction>
               </ItemCardItem>
             </ItemCardItems>

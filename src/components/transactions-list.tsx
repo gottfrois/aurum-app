@@ -77,6 +77,7 @@ import {
   TableRow,
 } from '~/components/ui/table'
 import { useEncryption } from '~/contexts/encryption-context'
+import { useListPreferences } from '~/contexts/list-preferences-context'
 import { usePortfolio } from '~/contexts/portfolio-context'
 import { SectionedSelectionProvider } from '~/contexts/sectioned-selection-context'
 import { useCommand } from '~/hooks/use-command'
@@ -166,6 +167,7 @@ function TransactionsListBody({
   const { format: formatCurrency } = useMoney()
   const { categories, getCategory } = useCategories()
   const { workspacePublicKey } = useEncryption()
+  const { transactionsPageSize } = useListPreferences()
   const [sorting, setSorting] = React.useState<SortingState>([
     { id: 'date', desc: true },
   ])
@@ -644,7 +646,7 @@ function TransactionsListBody({
     getFilteredRowModel: getFilteredRowModel(),
     getPaginationRowModel: getPaginationRowModel(),
     autoResetPageIndex: shouldResetPageIndex.current,
-    initialState: { pagination: { pageSize: 25 } },
+    initialState: { pagination: { pageSize: transactionsPageSize } },
     globalFilterFn: (row, _columnId, filterValue: string) => {
       const search = filterValue.toLowerCase()
       const wording = row.original.wording.toLowerCase()
@@ -657,6 +659,11 @@ function TransactionsListBody({
   React.useEffect(() => {
     shouldResetPageIndex.current = false
   })
+
+  // Keep page size in sync when the user changes the preference
+  React.useEffect(() => {
+    table.setPageSize(transactionsPageSize)
+  }, [table, transactionsPageSize])
 
   const { pageIndex, pageSize } = table.getState().pagination
   const totalRows = table.getFilteredRowModel().rows.length
@@ -1066,7 +1073,7 @@ function TransactionsListBody({
             value={String(pageSize)}
             onValueChange={(val) => table.setPageSize(Number(val))}
           >
-            <SelectTrigger className="h-8 w-[70px]">
+            <SelectTrigger className="h-8 w-auto">
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
