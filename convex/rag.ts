@@ -5,8 +5,8 @@
  * workspace-scoped RAG namespace so the agent's `semantic_search` primitive
  * can answer fuzzy phrasing ("the label I use for subscriptions", "that rule
  * about Uber"). Transactions are NOT indexed here because their descriptions
- * are E2E-encrypted; fuzzy transaction search stays on the structured
- * `query_transactions(textSearch)` path for now.
+ * are E2E-encrypted and cannot be embedded server-side; fuzzy transaction
+ * text is handled by `query_transactions(textSearch)` instead.
  *
  * Each entity is stored as a single RAG entry keyed by `<type>:<id>` so a
  * re-index of the same entity replaces the old entry.
