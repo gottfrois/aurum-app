@@ -308,8 +308,9 @@ function ChatMessageBubble({
       continue
     }
 
-    // viewTransactions → render button
-    if (toolName === 'viewTransactions' && part.state === 'output-available') {
+    // view_transactions → render button (silent UI tool that surfaces a
+    // clickable link to filtered transactions)
+    if (toolName === 'view_transactions' && part.state === 'output-available') {
       const output =
         'output' in part ? (part.output as Record<string, unknown>) : null
       if (output) {
