@@ -1,3 +1,4 @@
+import { vProviderMetadata, vUsage } from '@convex-dev/agent/validators'
 import { defineSchema, defineTable } from 'convex/server'
 import { v } from 'convex/values'
 
@@ -320,6 +321,21 @@ export default defineSchema({
     .index('by_threadId', ['threadId'])
     .index('by_workspaceId', ['workspaceId'])
     .index('by_userId', ['userId']),
+
+  aiUsage: defineTable({
+    userId: v.optional(v.string()),
+    workspaceId: v.optional(v.id('workspaces')),
+    threadId: v.optional(v.string()),
+    agentName: v.optional(v.string()),
+    model: v.string(),
+    provider: v.string(),
+    usage: vUsage,
+    providerMetadata: v.optional(vProviderMetadata),
+    createdAt: v.number(),
+  })
+    .index('by_workspace_createdAt', ['workspaceId', 'createdAt'])
+    .index('by_user_createdAt', ['userId', 'createdAt'])
+    .index('by_threadId', ['threadId']),
 
   auditLogs: defineTable({
     timestamp: v.number(),

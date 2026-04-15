@@ -365,6 +365,16 @@ export const getThreadMetadata = internalQuery({
   },
 })
 
+export const getMembershipForUser = internalQuery({
+  args: { userId: v.string() },
+  handler: async (ctx, { userId }) => {
+    return ctx.db
+      .query('workspaceMembers')
+      .withIndex('by_userId', (q) => q.eq('userId', userId))
+      .first()
+  },
+})
+
 export const getMemberLanguage = internalQuery({
   args: { workspaceId: v.id('workspaces'), userId: v.string() },
   handler: async (ctx, { workspaceId, userId }) => {

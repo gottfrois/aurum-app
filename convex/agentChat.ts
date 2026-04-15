@@ -26,6 +26,7 @@ import {
 } from './lib/aiModels'
 import { getAuthUserId } from './lib/auth'
 import { decryptForProfile } from './lib/serverCrypto'
+import { buildUsageHandler } from './lib/usageHandler'
 
 // --- Agent definitions ---
 
@@ -82,11 +83,23 @@ Call render_chart AFTER a data tool when a chart helps more than a table. Follow
 - When a tool returns empty, suggest widening the date range or checking filters.
 </guidelines>`
 
+// Resolve the workspaceId for a usage row from the thread the call belongs
+// to. Agents are constructed at module scope, but the `ctx` handed to the
+// handler comes from the Action that invoked the LLM call, so runQuery works.
+const usageHandler = buildUsageHandler(async (ctx, threadId) => {
+  if (!threadId) return undefined
+  const meta = await ctx.runQuery(internal.agentChatQueries.getThreadMetadata, {
+    threadId,
+  })
+  return meta?.workspaceId
+})
+
 const chatAgent = new Agent(components.agent, {
   name: 'bunkr-assistant',
   languageModel: chatModel(),
   instructions: BASE_INSTRUCTIONS,
   maxSteps: 12,
+  usageHandler,
 })
 
 /** Base tools always available to the agent — primitives-only. */
@@ -115,6 +128,7 @@ const titleAgent = new Agent(components.agent, {
 - Return ONLY the title text, nothing else.
 </rules>`,
   maxSteps: 1,
+  usageHandler,
 })
 
 // --- Actions (require Node.js for LLM calls) ---
