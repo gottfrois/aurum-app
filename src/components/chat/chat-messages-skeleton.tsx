@@ -1,27 +1,23 @@
-import { ChatDisclaimer } from '~/components/chat/chat-disclaimer'
-import {
-  ChatContainerContent,
-  ChatContainerRoot,
-} from '~/components/ui/chat-container'
 import { Message } from '~/components/ui/message'
 import { Skeleton } from '~/components/ui/skeleton'
 
 /**
  * Skeleton placeholder shown while the first page of thread messages is
- * loading (e.g. when reopening a minimized chat). Mirrors the bubble layout
- * of `ChatMessages` so the transition to real content is seamless.
+ * loading (e.g. when opening a conversation from the history dropdown).
+ * Bubbles are aligned to the bottom to match the scrolled-to-bottom state
+ * messages land in — avoids a jarring top-aligned → bottom-aligned jump.
+ * The disclaimer is intentionally omitted: it lives at the top of the
+ * scroll container and would flash into view before being scrolled above
+ * the fold when real messages arrive.
  */
 export function ChatMessagesSkeleton() {
   return (
-    <ChatContainerRoot className="relative flex-1">
-      <ChatContainerContent className="gap-4 p-4">
-        <ChatDisclaimer />
-        <MessageSkeleton variant="user" widthClass="w-40" />
-        <MessageSkeleton variant="assistant" lines={3} />
-        <MessageSkeleton variant="user" widthClass="w-56" />
-        <MessageSkeleton variant="assistant" lines={2} />
-      </ChatContainerContent>
-    </ChatContainerRoot>
+    <div className="flex flex-1 flex-col justify-end gap-4 p-4">
+      <MessageSkeleton variant="user" widthClass="w-40" />
+      <MessageSkeleton variant="assistant" lines={3} />
+      <MessageSkeleton variant="user" widthClass="w-56" />
+      <MessageSkeleton variant="assistant" lines={2} />
+    </div>
   )
 }
 
