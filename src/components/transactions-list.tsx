@@ -1,9 +1,5 @@
 import * as Sentry from '@sentry/tanstackstart-react'
-import type {
-  ColumnDef,
-  RowSelectionState,
-  SortingState,
-} from '@tanstack/react-table'
+import type { ColumnDef, SortingState } from '@tanstack/react-table'
 import {
   flexRender,
   getCoreRowModel,
@@ -83,8 +79,11 @@ import {
 } from '~/components/ui/table'
 import { useEncryption } from '~/contexts/encryption-context'
 import { usePortfolio } from '~/contexts/portfolio-context'
+import { SectionedSelectionProvider } from '~/contexts/sectioned-selection-context'
 import { useCommand } from '~/hooks/use-command'
+import { useListSelectionKeyboard } from '~/hooks/use-list-selection-keyboard'
 import { useMoney } from '~/hooks/use-money'
+import { useSectionedSelection } from '~/hooks/use-sectioned-selection'
 import type { CategoryInfo } from '~/lib/categories'
 import { resolveTransactionCategoryKey, useCategories } from '~/lib/categories'
 import { encryptData, importPublicKey } from '~/lib/crypto'
@@ -134,7 +133,6 @@ interface TransactionsListProps {
 
 const PAGE_SIZE_OPTIONS = ['25', '50', '100']
 const MAX_VISIBLE_LABELS = 2
-const SELECTION_COMMAND_GROUP = 'Selection'
 
 function formatDate(date: string): string {
   return new Date(date).toLocaleDateString('fr-FR', {
@@ -144,7 +142,18 @@ function formatDate(date: string): string {
   })
 }
 
-export function TransactionsList({
+const TRANSACTIONS_SECTION = 'transactions' as const
+type TransactionsSection = typeof TRANSACTIONS_SECTION
+
+export function TransactionsList(props: TransactionsListProps) {
+  return (
+    <SectionedSelectionProvider>
+      <TransactionsListBody {...props} />
+    </SectionedSelectionProvider>
+  )
+}
+
+function TransactionsListBody({
   data,
   currency,
   labels = [],
@@ -179,7 +188,16 @@ export function TransactionsList({
     prevSorting.current = sorting
     prevDataLength.current = data.length
   }
-  const [rowSelection, setRowSelection] = React.useState<RowSelectionState>({})
+  const {
+    selectedIds,
+    selectionCount: contextSelectionCount,
+    toggleItemSelection,
+    selectRangeInSection,
+    selectAllVisibleInSection,
+    clearSelection: clearContextSelection,
+    highlightedId,
+    handleListMouseMove,
+  } = useSectionedSelection<TransactionsSection>()
   const [selectAllMatching, setSelectAllMatching] = React.useState(false)
   const [selectedTransactionId, setSelectedTransactionId] = React.useState<
     string | null
@@ -322,27 +340,35 @@ export function TransactionsList({
     () => [
       {
         id: 'select',
-        header: ({ table }) => (
-          // biome-ignore lint/a11y/noStaticElementInteractions: wrapper only stops click propagation to parent row
-          <div
-            role="presentation"
-            onClick={(e) => e.stopPropagation()}
-            onKeyDown={(e) => e.stopPropagation()}
-          >
-            <Checkbox
-              checked={
-                table.getIsAllPageRowsSelected() ||
-                (table.getIsSomePageRowsSelected() && 'indeterminate')
-              }
-              onCheckedChange={(value) => {
-                table.toggleAllPageRowsSelected(!!value)
-                if (!value) setSelectAllMatching(false)
-              }}
-              aria-label="Select all"
-            />
-          </div>
-        ),
-        cell: ({ row }) => (
+        header: ({ table }) => {
+          const allSelected = table.getIsAllPageRowsSelected()
+          const someSelected = table.getIsSomePageRowsSelected()
+          return (
+            // biome-ignore lint/a11y/noStaticElementInteractions: wrapper only stops click propagation to parent row
+            <div
+              role="presentation"
+              onClick={(e) => e.stopPropagation()}
+              onKeyDown={(e) => e.stopPropagation()}
+            >
+              <Checkbox
+                checked={allSelected || (someSelected && 'indeterminate')}
+                onCheckedChange={(value) => {
+                  if (value) {
+                    const pageIds = table
+                      .getRowModel()
+                      .rows.map((r) => r.original._id)
+                    selectAllVisibleInSection(pageIds, TRANSACTIONS_SECTION)
+                  } else {
+                    clearContextSelection()
+                    setSelectAllMatching(false)
+                  }
+                }}
+                aria-label="Select all"
+              />
+            </div>
+          )
+        },
+        cell: ({ row, table: cellTable }) => (
           // biome-ignore lint/a11y/noStaticElementInteractions: wrapper only stops click propagation to parent row
           <div
             role="presentation"
@@ -351,7 +377,22 @@ export function TransactionsList({
           >
             <Checkbox
               checked={row.getIsSelected()}
-              onCheckedChange={(value) => row.toggleSelected(!!value)}
+              onClick={(e) => {
+                if (e.shiftKey) {
+                  e.preventDefault()
+                  const pageIds = cellTable
+                    .getRowModel()
+                    .rows.map((r) => r.original._id)
+                  selectRangeInSection(
+                    row.original._id,
+                    TRANSACTIONS_SECTION,
+                    pageIds,
+                  )
+                }
+              }}
+              onCheckedChange={() => {
+                toggleItemSelection(row.original._id, TRANSACTIONS_SECTION)
+              }}
               aria-label="Select row"
             />
           </div>
@@ -578,8 +619,18 @@ export function TransactionsList({
       onDeleteManualTransaction,
       onEditManualTransaction,
       t,
+      selectAllVisibleInSection,
+      selectRangeInSection,
+      toggleItemSelection,
+      clearContextSelection,
     ],
   )
+
+  const rowSelection = React.useMemo(() => {
+    const obj: Record<string, boolean> = {}
+    for (const id of selectedIds) obj[id] = true
+    return obj
+  }, [selectedIds])
 
   const table = useReactTable({
     data: effectiveData,
@@ -587,7 +638,6 @@ export function TransactionsList({
     state: { sorting, globalFilter, rowSelection },
     onSortingChange: setSorting,
     onGlobalFilterChange: setGlobalFilter,
-    onRowSelectionChange: setRowSelection,
     enableRowSelection: true,
     getRowId: (row) => row._id,
     getCoreRowModel: getCoreRowModel(),
@@ -614,29 +664,32 @@ export function TransactionsList({
   const from = totalRows === 0 ? 0 : pageIndex * pageSize + 1
   const to = Math.min((pageIndex + 1) * pageSize, totalRows)
 
-  const selectedCount = selectAllMatching
-    ? totalRows
-    : Object.keys(rowSelection).length
+  const selectedCount = selectAllMatching ? totalRows : contextSelectionCount
   const hasSelection = selectedCount > 0
 
   const clearSelection = React.useCallback(() => {
-    setRowSelection({})
+    clearContextSelection()
     setSelectAllMatching(false)
-  }, [])
+  }, [clearContextSelection])
 
   const getSelectedIds = React.useCallback((): Array<string> => {
     if (selectAllMatching) {
       return table.getFilteredRowModel().rows.map((r) => r.original._id)
     }
-    return Object.keys(rowSelection)
-  }, [selectAllMatching, rowSelection, table])
+    return [...selectedIds]
+  }, [selectAllMatching, selectedIds, table])
 
   const getSelectedRows = React.useCallback((): Array<TransactionRow> => {
     if (selectAllMatching) {
       return table.getFilteredRowModel().rows.map((r) => r.original)
     }
-    return Object.keys(rowSelection).map((id) => table.getRow(id).original)
-  }, [selectAllMatching, rowSelection, table])
+    return [...selectedIds]
+      .map((id) => {
+        const row = table.getRow(id)
+        return row?.original
+      })
+      .filter((row): row is TransactionRow => row !== undefined)
+  }, [selectAllMatching, selectedIds, table])
 
   const handleBulkLabelToggle = React.useCallback(
     async (labelId: string, checked: boolean) => {
@@ -884,6 +937,25 @@ export function TransactionsList({
     disabled: !hasSelection,
   })
 
+  const visibleRows = table.getRowModel().rows
+  const visiblePageIds = React.useMemo(
+    () => visibleRows.map((r) => r.original._id),
+    [visibleRows],
+  )
+  const selectableSectionIds = React.useMemo<
+    Record<TransactionsSection, Array<string>>
+  >(() => ({ [TRANSACTIONS_SECTION]: visiblePageIds }), [visiblePageIds])
+  const getSectionForId = React.useCallback(
+    (): TransactionsSection => TRANSACTIONS_SECTION,
+    [],
+  )
+  useListSelectionKeyboard<TransactionsSection>({
+    allSelectableIds: visiblePageIds,
+    selectableSectionIds,
+    getSectionForId,
+    enabled: selectedTransactionId === null,
+  })
+
   return (
     <div className="space-y-4">
       <div className="flex flex-wrap items-center gap-3">
@@ -919,28 +991,53 @@ export function TransactionsList({
               </TableRow>
             ))}
           </TableHeader>
-          <TableBody>
+          <TableBody onMouseMove={handleListMouseMove}>
             {table.getRowModel().rows.length ? (
-              table.getRowModel().rows.map((row) => (
-                <TableRow
-                  key={row.id}
-                  className={cn(
-                    'group/row cursor-pointer',
-                    row.original.excludedFromBudget && 'text-muted-foreground',
-                  )}
-                  data-state={row.getIsSelected() && 'selected'}
-                  onClick={() => setSelectedTransactionId(row.original._id)}
-                >
-                  {row.getVisibleCells().map((cell) => (
-                    <TableCell key={cell.id}>
-                      {flexRender(
-                        cell.column.columnDef.cell,
-                        cell.getContext(),
-                      )}
-                    </TableCell>
-                  ))}
-                </TableRow>
-              ))
+              table.getRowModel().rows.map((row) => {
+                const isHighlighted = highlightedId === row.original._id
+                return (
+                  <TableRow
+                    key={row.id}
+                    className={cn(
+                      'group/row cursor-pointer',
+                      row.original.excludedFromBudget &&
+                        'text-muted-foreground',
+                      isHighlighted && 'bg-muted/50',
+                    )}
+                    data-state={row.getIsSelected() && 'selected'}
+                    onClick={(e) => {
+                      if (e.shiftKey) {
+                        const pageIds = table
+                          .getRowModel()
+                          .rows.map((r) => r.original._id)
+                        selectRangeInSection(
+                          row.original._id,
+                          TRANSACTIONS_SECTION,
+                          pageIds,
+                        )
+                        return
+                      }
+                      if (hasSelection) {
+                        toggleItemSelection(
+                          row.original._id,
+                          TRANSACTIONS_SECTION,
+                        )
+                        return
+                      }
+                      setSelectedTransactionId(row.original._id)
+                    }}
+                  >
+                    {row.getVisibleCells().map((cell) => (
+                      <TableCell key={cell.id}>
+                        {flexRender(
+                          cell.column.columnDef.cell,
+                          cell.getContext(),
+                        )}
+                      </TableCell>
+                    ))}
+                  </TableRow>
+                )
+              })
             ) : (
               <TableRow>
                 <TableCell
@@ -1032,7 +1129,6 @@ export function TransactionsList({
         selectAllMatching={selectAllMatching}
         onSelectAllMatching={() => setSelectAllMatching(true)}
         onClear={clearSelection}
-        commandGroup={SELECTION_COMMAND_GROUP}
       />
 
       <TransactionDetailSheet

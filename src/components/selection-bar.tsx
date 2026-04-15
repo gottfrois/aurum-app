@@ -9,7 +9,6 @@ interface SelectionBarProps {
   selectAllMatching: boolean
   onSelectAllMatching: () => void
   onClear: () => void
-  commandGroup: string
 }
 
 export function SelectionBar({
@@ -18,7 +17,6 @@ export function SelectionBar({
   selectAllMatching,
   onSelectAllMatching,
   onClear,
-  commandGroup,
 }: SelectionBarProps) {
   const { t } = useTranslation()
   const { openPalette } = useCommandRegistry()
@@ -58,7 +56,7 @@ export function SelectionBar({
         <Button
           variant="outline"
           className="rounded-full"
-          onClick={() => openPalette({ group: commandGroup })}
+          onClick={() => openPalette()}
         >
           <Command />
           {t('common.actions')}

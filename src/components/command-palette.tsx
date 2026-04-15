@@ -65,7 +65,6 @@ export function CommandPalette() {
   const askAI = useAction(api.aiFilters.askAI)
 
   const open = paletteState.open
-  const filterGroup = paletteState.filterGroup
   const aiMode = paletteState.aiMode ?? false
 
   const activeCommand = activeCommandId
@@ -121,20 +120,26 @@ export function CommandPalette() {
     }
   }
 
-  // Group registered commands, filtering out hidden ones
+  // Group registered commands, filtering out hidden ones.
+  // The "Selection" group is sorted to the top when it has any visible commands,
+  // so batch actions are front-and-center as soon as a selection exists.
   const groupedCommands = React.useMemo(() => {
     const visible = commands.filter((c) => !c.hidden && !c.disabled)
-    const filtered = filterGroup
-      ? visible.filter((c) => c.group === filterGroup)
-      : visible
-    const groups = new Map<string, typeof filtered>()
-    for (const cmd of filtered) {
+    const groups = new Map<string, typeof visible>()
+    for (const cmd of visible) {
       const list = groups.get(cmd.group) ?? []
       list.push(cmd)
       groups.set(cmd.group, list)
     }
-    return groups
-  }, [commands, filterGroup])
+    const selectionGroup = t('commands.groups.selection')
+    return new Map(
+      [...groups.entries()].sort(([a], [b]) => {
+        if (a === selectionGroup) return -1
+        if (b === selectionGroup) return 1
+        return 0
+      }),
+    )
+  }, [commands, t])
 
   const handleCommandSelect = (cmd: CommandEntry) => {
     if (cmd.view) {
@@ -223,7 +228,7 @@ export function CommandPalette() {
                     </CommandItem>
                   ))}
                 </CommandGroup>
-                {!filterGroup && <CommandSeparator />}
+                <CommandSeparator />
               </React.Fragment>
             ))}
           </CommandList>

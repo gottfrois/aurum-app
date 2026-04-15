@@ -19,11 +19,10 @@ export interface CommandEntry {
 /** Stable dispatch functions — never changes identity after mount */
 interface CommandDispatch {
   register: (commands: Array<CommandEntry>) => () => void
-  openPalette: (opts?: { group?: string }) => void
+  openPalette: () => void
   setPaletteState: React.Dispatch<
     React.SetStateAction<{
       open: boolean
-      filterGroup?: string
       aiMode?: boolean
     }>
   >
@@ -32,7 +31,7 @@ interface CommandDispatch {
 /** Reactive state — changes when commands or palette state update */
 interface CommandState {
   commands: Array<CommandEntry>
-  paletteState: { open: boolean; filterGroup?: string; aiMode?: boolean }
+  paletteState: { open: boolean; aiMode?: boolean }
 }
 
 const DispatchContext = React.createContext<CommandDispatch | null>(null)
@@ -42,7 +41,6 @@ export function CommandProvider({ children }: { children: React.ReactNode }) {
   const [commands, setCommands] = React.useState<Array<CommandEntry>>([])
   const [paletteState, setPaletteState] = React.useState<{
     open: boolean
-    filterGroup?: string
     aiMode?: boolean
   }>({ open: false })
 
@@ -56,8 +54,8 @@ export function CommandProvider({ children }: { children: React.ReactNode }) {
     }
   }, [])
 
-  const openPalette = React.useCallback((opts?: { group?: string }) => {
-    setPaletteState({ open: true, filterGroup: opts?.group })
+  const openPalette = React.useCallback(() => {
+    setPaletteState({ open: true })
   }, [])
 
   const dispatch = React.useMemo(
