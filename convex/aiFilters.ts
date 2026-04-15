@@ -1,6 +1,5 @@
 'use node'
 
-import { google } from '@ai-sdk/google'
 import { generateObject } from 'ai'
 import { v } from 'convex/values'
 import { parseAIFilterResponse } from '../src/lib/filters/ai/parse'
@@ -8,6 +7,7 @@ import type { SerializableField } from '../src/lib/filters/ai/prompt'
 import { buildSystemPrompt } from '../src/lib/filters/ai/prompt'
 import { aiFilterSchema } from '../src/lib/filters/ai/schema'
 import { action } from './_generated/server'
+import { filterModel } from './lib/aiModels'
 import { requireAuthUserId } from './lib/auth'
 
 export const askAI = action({
@@ -44,7 +44,7 @@ export const askAI = action({
     const userPrompt = `Today: ${today}\n\n${trimmedQuery}`
 
     const { object } = await generateObject({
-      model: google('gemini-2.5-flash'),
+      model: filterModel(),
       system: systemPrompt,
       prompt: userPrompt,
       schema: aiFilterSchema,
