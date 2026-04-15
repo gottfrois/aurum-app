@@ -26,7 +26,7 @@ export function SelectionBar({
   const canSelectAll = !selectAllMatching && totalMatchingCount > count
 
   return (
-    <div className="fixed bottom-8 left-1/2 z-50 -translate-x-1/2 animate-in fade-in slide-in-from-bottom-2">
+    <div className="fixed bottom-8 left-[calc(50%-var(--removed-body-scroll-bar-size,0px)/2)] z-50 -translate-x-1/2 animate-in fade-in slide-in-from-bottom-2">
       <div className="flex items-center gap-2 rounded-full border bg-background px-2 py-2 shadow-xl">
         <Button variant="outline" className="pointer-events-none rounded-full">
           {t('selectionBar.countSelected', { count })}
