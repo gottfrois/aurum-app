@@ -2,7 +2,7 @@ import * as Sentry from '@sentry/tanstackstart-react'
 import { createFileRoute } from '@tanstack/react-router'
 import type { ColumnDef } from '@tanstack/react-table'
 import { useAction, useMutation, useQuery } from 'convex/react'
-import { Ellipsis, Mail, UserX } from 'lucide-react'
+import { Ellipsis, UserX } from 'lucide-react'
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { useHotkeys } from 'react-hotkeys-hook'
 import { useTranslation } from 'react-i18next'
@@ -277,11 +277,21 @@ function createMemberColumns(
         }
 
         if (type === 'invitation') {
+          const localPart = name.split('@')[0] ?? name
+          const invitationInitials =
+            localPart
+              .split(/[.\-_+]/)
+              .filter(Boolean)
+              .map((part) => part[0])
+              .join('')
+              .toUpperCase()
+              .slice(0, 2) || localPart.slice(0, 2).toUpperCase()
+
           return (
             <div className="flex items-center gap-3">
-              <Avatar className="size-6 rounded-full">
-                <AvatarFallback className="rounded-full text-xs">
-                  <Mail className="size-3" />
+              <Avatar className="size-6 rounded-full border border-dashed border-muted-foreground/50">
+                <AvatarFallback className="rounded-full bg-transparent text-[10px] text-muted-foreground">
+                  {invitationInitials}
                 </AvatarFallback>
               </Avatar>
               <span className="font-medium">{name}</span>
