@@ -48,8 +48,32 @@ export function SiteFooter() {
     ? mockMinimized.map((c) => ({ threadId: c.id, title: c.title }))
     : minimizedThreads
 
-  // Still loading or not authenticated
-  if (agentStatus === undefined || agentStatus === null) return null
+  // Not authenticated
+  if (agentStatus === null) return null
+
+  // Still loading — render the footer shell with just the Ask Bunkr button
+  // so the layout doesn't shift when data arrives. Minimized tabs and the
+  // history button fill in once agentStatus resolves.
+  if (agentStatus === undefined) {
+    return (
+      <footer className="sticky bottom-0 z-30 flex h-(--header-height) shrink-0 items-center overflow-hidden border-t bg-background md:rounded-b-xl">
+        <div className="flex w-full min-w-0 items-center justify-end gap-1 px-4 lg:gap-2 lg:px-6">
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button variant="ghost" size="sm" disabled>
+                <BotMessageSquare className="size-4" />
+                {t('footer.askBunkr')}
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent className="flex items-center gap-2">
+              <span>{t('footer.askBunkr')}</span>
+              <HotkeyDisplay hotkey={{ keys: 'mod+j' }} />
+            </TooltipContent>
+          </Tooltip>
+        </div>
+      </footer>
+    )
+  }
 
   const isOwner = agentStatus.isOwner
   const isEnabled = agentStatus.enabled
@@ -99,16 +123,15 @@ export function SiteFooter() {
               ))}
           <Tooltip>
             <TooltipTrigger asChild>
-              {minimized.length > 0 ? (
-                <Button variant="ghost" size="icon-sm" onClick={handleAskBunkr}>
-                  <BotMessageSquare className="size-4" />
-                </Button>
-              ) : (
-                <Button variant="ghost" size="sm" onClick={handleAskBunkr}>
-                  <BotMessageSquare className="size-4" />
-                  {t('footer.askBunkr')}
-                </Button>
-              )}
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={handleAskBunkr}
+                className="shrink-0"
+              >
+                <BotMessageSquare className="size-4" />
+                {t('footer.askBunkr')}
+              </Button>
             </TooltipTrigger>
             <TooltipContent className="flex items-center gap-2">
               <span>{t('footer.askBunkr')}</span>
