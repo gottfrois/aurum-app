@@ -32,6 +32,7 @@ import type * as lib_agentPrimitivesCore from "../lib/agentPrimitivesCore.js";
 import type * as lib_aiModels from "../lib/aiModels.js";
 import type * as lib_auth from "../lib/auth.js";
 import type * as lib_billing from "../lib/billing.js";
+import type * as lib_chartSpec from "../lib/chartSpec.js";
 import type * as lib_serverCrypto from "../lib/serverCrypto.js";
 import type * as members from "../members.js";
 import type * as migrations from "../migrations.js";
@@ -80,6 +81,7 @@ declare const fullApi: ApiFromModules<{
   "lib/aiModels": typeof lib_aiModels;
   "lib/auth": typeof lib_auth;
   "lib/billing": typeof lib_billing;
+  "lib/chartSpec": typeof lib_chartSpec;
   "lib/serverCrypto": typeof lib_serverCrypto;
   members: typeof members;
   migrations: typeof migrations;

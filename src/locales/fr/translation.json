@@ -801,6 +801,8 @@
   "chat.tools.updatingBudget": "Mise à jour de l'exclusion budgétaire",
   "chat.tools.findingSavings": "Recherche d'opportunités d'économies",
   "chat.tools.searchingWeb": "Recherche sur le web",
+  "chat.tools.renderingChart": "Génération du graphique",
+  "chat.chartError": "Erreur du graphique :",
   "chat.toolApproval.ruleWhen": "Quand la transaction {{matchType}} \"{{pattern}}\"",
   "chat.toolApproval.categorize": "catégoriser comme",
   "chat.toolApproval.setDescription": "définir la description",

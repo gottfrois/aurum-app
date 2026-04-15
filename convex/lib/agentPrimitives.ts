@@ -28,6 +28,7 @@ import type {
   SortField,
 } from './agentPrimitivesCore'
 import { queryTransactions as runQueryTransactions } from './agentPrimitivesCore'
+import { buildChartSpec, CHART_MAX_ROWS, CHART_MAX_SERIES } from './chartSpec'
 import {
   decryptFieldGroups,
   decryptForProfile,
@@ -1490,6 +1491,99 @@ export const queryAuditLogs = createTool({
           agentThreadId: l.agentThreadId ?? null,
         }),
       ),
+    }
+  },
+})
+
+// ============================================================================
+// 8. render_chart (UI action — turns tabular data into an inline Recharts viz)
+// ============================================================================
+
+export const renderChart = createTool({
+  title: 'Render Chart',
+  description: [
+    'Render tabular data as an inline chart in the chat UI. Call AFTER a data tool',
+    '(query_transactions, query_series, query_audit_logs) when a chart communicates',
+    'the answer better than a table. Pure UI — no approval dialog, no data fetching.',
+    '',
+    'Chart types:',
+    '- line / area: time-series ("over time", "trend"). Use area for stacked income/expense.',
+    '- bar: comparisons by category/merchant/day-of-week. Supports stacked groups via `stack`.',
+    '- pie: parts-of-whole with ≤8 slices. Requires exactly one series.',
+    '',
+    'Skip when: result is a single scalar, has <3 rows, the user explicitly asked for a list/table, or no natural axis exists.',
+    '',
+    `Limits: max ${CHART_MAX_ROWS} rows, max ${CHART_MAX_SERIES} series. Aggregate client-side before calling if over.`,
+    '',
+    'Pass rows flat — typically bucket.label + bucket.aggregates.{sum|count|avg}.',
+    'Set `currency` (ISO 4217) whenever values are money — axes and tooltips will format accordingly.',
+  ].join('\n'),
+  inputSchema: z.object({
+    type: z
+      .enum(['bar', 'line', 'area', 'pie'])
+      .describe('Chart type. See tool description for when to use each.'),
+    title: z.string().optional(),
+    description: z.string().optional(),
+    data: z
+      .array(z.record(z.string(), z.union([z.string(), z.number()])))
+      .min(1)
+      .max(CHART_MAX_ROWS)
+      .describe(
+        'Flat rows, one per category/time-bucket. Each row must contain the xKey and every series key.',
+      ),
+    xKey: z
+      .string()
+      .describe(
+        'Row field used as the X axis (bar/line/area). For pie, acts as default nameKey.',
+      ),
+    series: z
+      .array(
+        z.object({
+          key: z.string().describe('Row field whose value this series plots.'),
+          label: z.string().describe('Legend / tooltip label.'),
+          color: z
+            .string()
+            .optional()
+            .describe(
+              'Optional CSS color. Omit to auto-assign from the theme palette.',
+            ),
+        }),
+      )
+      .min(1)
+      .max(CHART_MAX_SERIES),
+    stack: z
+      .enum(['none', 'normal', 'percent'])
+      .optional()
+      .describe('Stacking mode for bar/area. Ignored for line/pie.'),
+    nameKey: z
+      .string()
+      .optional()
+      .describe('Pie only — row field for slice name. Defaults to xKey.'),
+    valueKey: z
+      .string()
+      .optional()
+      .describe(
+        'Pie only — row field for slice value. Defaults to series[0].key.',
+      ),
+    valueFormat: z
+      .enum(['currency', 'number', 'percent'])
+      .optional()
+      .describe(
+        "How to format axis/tooltip values. Inferred as 'currency' when currency is set.",
+      ),
+    currency: z
+      .string()
+      .optional()
+      .describe('ISO 4217 currency code (e.g. "EUR") when values are money.'),
+  }),
+  execute: async (_ctx, input) => {
+    try {
+      return buildChartSpec(input)
+    } catch (error) {
+      return {
+        error:
+          error instanceof Error ? error.message : 'Failed to build chart spec',
+      }
     }
   },
 })

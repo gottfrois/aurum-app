@@ -9,6 +9,7 @@ import { useMutation } from 'convex/react'
 import { ArrowRight, Check, Copy } from 'lucide-react'
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
+import { ChartMessage } from '~/components/chat/chart-message'
 import { ChatBubble } from '~/components/chat/chat-bubble'
 import { ChatDisclaimer } from '~/components/chat/chat-disclaimer'
 import { ChatEmptyState } from '~/components/chat/chat-empty-state'
@@ -33,6 +34,7 @@ import { Tool, type ToolPart } from '~/components/ui/tool'
 import { useChatDispatch, useChatState } from '~/contexts/chat-context'
 import { cn } from '~/lib/utils'
 import { api } from '../../../convex/_generated/api'
+import type { ChartSpec } from '../../../convex/lib/chartSpec'
 
 /** Map tool names to i18n keys for human-readable labels. */
 const TOOL_LABEL_KEYS: Record<string, string> = {
@@ -58,6 +60,7 @@ const TOOL_LABEL_KEYS: Record<string, string> = {
   excludeFromBudget: 'chat.tools.updatingBudget',
   findSavingsOpportunities: 'chat.tools.findingSavings',
   web_search: 'chat.tools.searchingWeb',
+  render_chart: 'chat.tools.renderingChart',
 }
 
 interface ChatMessagesProps {
@@ -302,6 +305,25 @@ function ChatMessageBubble({
             approvalId={approval.id}
             threadId={threadId}
             onApprovalSubmitted={onApprovalSubmitted}
+          />,
+        )
+      }
+      continue
+    }
+
+    // render_chart → render chart inline (replaces the generic Tool JSON card)
+    if (toolName === 'render_chart' && part.state === 'output-available') {
+      const output =
+        'output' in part
+          ? (part.output as ChartSpec | { error: string } | null)
+          : null
+      if (output) {
+        renderedParts.push(
+          <ChartMessage
+            key={
+              'toolCallId' in part ? (part.toolCallId as string) : `chart-${i}`
+            }
+            spec={output}
           />,
         )
       }

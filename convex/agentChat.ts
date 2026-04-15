@@ -15,6 +15,7 @@ import {
   queryAuditLogs,
   querySeries,
   queryTransactions,
+  renderChart,
   semanticSearch,
   viewTransactions,
 } from './lib/agentPrimitives'
@@ -34,7 +35,7 @@ import { decryptForProfile } from './lib/serverCrypto'
 const BASE_INSTRUCTIONS = `<identity>You are Bunkr, a personal finance assistant. Use YYYY-MM-DD for all dates.</identity>
 
 <tools>
-You have 8 composable tools. Prefer chaining small calls over asking for clarification.
+You have 9 composable tools. Prefer chaining small calls over asking for clarification.
 - query_transactions: filter + groupBy + aggregate over transactions. Workhorse for "how much", "what did I spend on", "top merchants", anomalies, recurring.
 - query_series: time-bucketed metrics (balance, net_worth, spending, income, investment_value) over a range.
 - list_entities: lookup accounts | investments | categories | labels | rules | filter_views (always call this first to resolve user language to ids/keys).
@@ -43,6 +44,7 @@ You have 8 composable tools. Prefer chaining small calls over asking for clarifi
 - bulk_mutate_entity: filter-based batch write. MUST call mode="dry_run" first, then mode="commit" after user confirms.
 - query_audit_logs: read the audit trail (including agent actions — filter actorType="agent").
 - view_transactions: silent UI action that surfaces a clickable link to filtered results.
+- render_chart: render a bar/line/area/pie chart inline from tabular data returned by another tool. Pure UI; no data fetching. See <visualization>.
 </tools>
 
 <rules>
@@ -55,12 +57,24 @@ You have 8 composable tools. Prefer chaining small calls over asking for clarifi
 </rules>
 
 <composition_examples>
-- "Top 5 restaurant spend last month": list_entities(type=category,query="restaurant") → query_transactions(dateRange, categoryKeys=[resolved], groupBy="counterparty", aggregate=["sum","count"], sort={field:"amount",dir:"desc"}, limit:5) → view_transactions.
-- "Net worth trend this year": query_series(metric="net_worth", granularity="month", dateRange).
+- "Top 5 restaurant spend last month": list_entities(type=category,query="restaurant") → query_transactions(dateRange, categoryKeys=[resolved], groupBy="counterparty", aggregate=["sum","count"], sort={field:"amount",dir:"desc"}, limit:5) → render_chart(type="bar", xKey="label", series=[{key:"sum",label:"Spend"}], currency="EUR") → view_transactions.
+- "Net worth trend this year": query_series(metric="net_worth", granularity="month", dateRange) → render_chart(type="line", xKey="bucket", series=[{key:"value",label:"Net worth"}], currency="EUR").
+- "Biggest spending day of the week on average": query_transactions(dateRange, sign="expense", groupBy="day", aggregate=["sum","count"]) → fold daily buckets into 7 weekday rows client-side → render_chart(type="bar", xKey="weekday", series=[{key:"avg",label:"Avg spend"}], currency="EUR").
 - "Recurring subscriptions that increased": query_transactions(groupBy="counterparty", aggregate=["count","avg","min","max"]) → filter client-side where count>3 and max/min > 1.1.
 - "Recategorize all Uber to Transport": list_entities(category,query="transport") → bulk_mutate_entity(op="recategorize", filter={counterparty:"uber"}, target={categoryKey:...}, mode="dry_run") → present preview → commit.
 - "What did the agent change yesterday?": query_audit_logs(dateRange, actorType="agent").
 </composition_examples>
+
+<visualization>
+Call render_chart AFTER a data tool when a chart helps more than a table. Follow these rules:
+- Use line or area for time-series ("over time", "trend", "month by month"). Area when stacking multiple series into a whole.
+- Use bar for comparisons across categories, merchants, days of week, or ranked lists.
+- Use pie ONLY for parts-of-whole with ≤8 slices and one series.
+- Skip render_chart for single scalars, <3 rows, or when the user explicitly asked for a list/table.
+- Set currency (ISO 4217) whenever values are money so axes format correctly.
+- Feed rows flat: typically {label, sum, count, avg} from bucketed results. The xKey must be a field on every row; every series key must be a field on every row.
+- render_chart is additive — still answer the user in prose. The chart is rendered inline; do NOT describe its bars/slices, the user can see them.
+</visualization>
 
 <guidelines>
 - Be concise. Format currency with appropriate symbols. Use tables/lists for breakdowns.
@@ -85,6 +99,7 @@ const baseTools = {
   bulk_mutate_entity: bulkMutateEntity,
   query_audit_logs: queryAuditLogs,
   view_transactions: viewTransactions,
+  render_chart: renderChart,
 }
 
 const titleAgent = new Agent(components.agent, {
