@@ -38,7 +38,10 @@ export function ChatPanel() {
   const [prevThreadId, setPrevThreadId] = useState(activeThreadId)
   if (activeThreadId !== prevThreadId) {
     setPrevThreadId(activeThreadId)
-    if (activeThreadId) setIsWaiting(true)
+    // Pessimistically assume an existing thread is streaming until
+    // ChatMessages mounts and calls onWaitingChange with the real status.
+    // A draft (null) has nothing to wait on, so leave the input enabled.
+    setIsWaiting(!!activeThreadId)
   }
   const handleWaitingChange = useCallback((waiting: boolean) => {
     setIsWaiting(waiting)

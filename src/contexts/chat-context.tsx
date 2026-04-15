@@ -200,6 +200,9 @@ function ConvexChatProvider({
         activeThreadId: threadId,
         panelMode: 'popover',
         pendingMessage: null,
+        isDraftThread: false,
+        draftPortfolioScope: undefined,
+        draftPortfolioId: undefined,
         minimizedThreadIds: prev.minimizedThreadIds.includes(threadId)
           ? prev.minimizedThreadIds
           : [...prev.minimizedThreadIds, threadId],
