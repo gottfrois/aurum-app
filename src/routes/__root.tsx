@@ -18,7 +18,6 @@ import { createServerFn } from '@tanstack/react-start'
 import type { ConvexReactClient } from 'convex/react'
 import { useConvexAuth, useQuery } from 'convex/react'
 import { ConvexProviderWithClerk } from 'convex/react-clerk'
-import { Loader2 } from 'lucide-react'
 import { ThemeProvider } from 'next-themes'
 import * as React from 'react'
 import { useTranslation } from 'react-i18next'
@@ -304,28 +303,12 @@ function OnboardingGuard({ children }: { children: React.ReactNode }) {
     }
   }, [isAuthLoading, isAuthenticated, isExempt, onboardingState, navigate])
 
-  // Block rendering while determining onboarding status or while redirecting
-  // This prevents the full app layout from flashing before redirect
-  if (!isExempt && isAuthenticated && !isAuthLoading) {
-    if (onboardingState === undefined) {
-      return (
-        <div className="flex min-h-svh items-center justify-center">
-          <Loader2 className="size-8 animate-spin text-muted-foreground" />
-        </div>
-      )
-    }
-    if (
-      onboardingState.status === 'none' ||
-      (onboardingState.status === 'in_progress' && onboardingState.step)
-    ) {
-      return (
-        <div className="flex min-h-svh items-center justify-center">
-          <Loader2 className="size-8 animate-spin text-muted-foreground" />
-        </div>
-      )
-    }
-  }
-
+  // beforeLoad performs the onboarding check server-side on every navigation
+  // and throws redirect() when needed, so the SSR/client render path is always
+  // the real app layout. The useEffect above handles the edge case where
+  // onboarding state changes live during a session. We don't block rendering
+  // here — doing so would tear down the SSR-rendered layout during hydration
+  // and cause a full-screen spinner flash on every refresh.
   return <>{children}</>
 }
 

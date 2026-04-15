@@ -30,7 +30,6 @@ import { useCommandRegistry } from '~/contexts/command-context'
 export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
   const { t } = useTranslation()
   const { commands } = useCommandRegistry()
-  const shortcutsCommand = commands.find((c) => c.id === 'shortcuts.show')
 
   const navMain = [
     {
@@ -66,15 +65,17 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
         <SidebarGroup className="mt-auto">
           <SidebarGroupContent>
             <SidebarMenu>
-              {shortcutsCommand && (
-                <SidebarMenuItem>
-                  <SidebarMenuButton onClick={shortcutsCommand.handler}>
-                    <Keyboard />
-                    <span>{t('nav.shortcuts')}</span>
-                    <Kbd className="ml-auto">?</Kbd>
-                  </SidebarMenuButton>
-                </SidebarMenuItem>
-              )}
+              <SidebarMenuItem>
+                <SidebarMenuButton
+                  onClick={() =>
+                    commands.find((c) => c.id === 'shortcuts.show')?.handler()
+                  }
+                >
+                  <Keyboard />
+                  <span>{t('nav.shortcuts')}</span>
+                  <Kbd className="ml-auto">?</Kbd>
+                </SidebarMenuButton>
+              </SidebarMenuItem>
               <SidebarMenuItem>
                 <SidebarMenuButton asChild>
                   <Link to="/settings">

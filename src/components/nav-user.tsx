@@ -25,7 +25,7 @@ export function NavUser() {
   const { user, isLoaded } = useUser()
   const { signOut } = useClerk()
 
-  if (!isLoaded) {
+  if (!isLoaded || !user) {
     return (
       <SidebarMenu>
         <SidebarMenuItem>
@@ -40,8 +40,6 @@ export function NavUser() {
       </SidebarMenu>
     )
   }
-
-  if (!user) return null
 
   const name = user.fullName ?? user.primaryEmailAddress?.emailAddress ?? ''
   const email = user.primaryEmailAddress?.emailAddress ?? ''

@@ -37,20 +37,20 @@ export function PortfolioSwitcher() {
 
   const showTeamOption = subscription?.plan === 'team' && subscription?.isActive
 
-  if (isLoading) {
+  if (isLoading || portfolios === undefined) {
     return (
       <SidebarMenu>
         <SidebarMenuItem>
-          <div className="flex items-center gap-2 px-2 py-2">
-            <Skeleton className="h-6 w-6 rounded" />
-            <Skeleton className="h-4 w-24" />
+          <div className="flex h-12 items-center gap-2 px-2 py-2">
+            <Skeleton className="size-8 shrink-0 rounded-lg" />
+            <Skeleton className="h-4 flex-1" />
           </div>
         </SidebarMenuItem>
       </SidebarMenu>
     )
   }
 
-  if (!portfolios || portfolios.length === 0) {
+  if (portfolios.length === 0) {
     return (
       <SidebarMenu>
         <SidebarMenuItem>
