@@ -30,6 +30,17 @@ import type {
 import { queryTransactions as runQueryTransactions } from './agentPrimitivesCore'
 import { buildChartSpec, CHART_MAX_ROWS, CHART_MAX_SERIES } from './chartSpec'
 import {
+  type AccountMeta,
+  capGroups,
+  computeBalanceSeries,
+  computeCashFlowSeries,
+  type GroupedSeries,
+  type SeriesGroupBy,
+  type SeriesSnapshot,
+  type SeriesTx,
+  SINGLE_SERIES_KEY,
+} from './querySeriesCore'
+import {
   decryptFieldGroups,
   decryptForProfile,
   encryptForProfile,
@@ -319,6 +330,12 @@ export const querySeries = createTool({
     '',
     'Use for "net worth over time", "monthly spending trend", etc.',
     'For cross-category comparisons within a range use query_transactions instead.',
+    '',
+    'Optional `groupBy` (none|account|accountType|assetClass|currency|portfolio) breaks the series',
+    'into multiple stacks. With groupBy=none (default) each point is {t, value: number}. With any',
+    'other value each point is {t, <groupKey>: number, ...} and `groups` lists the keys — pass those',
+    'straight into render_chart as `data` with `series: groups.map(g => ({key: g, label: g}))`.',
+    'If more than 6 groups would result the smallest are collapsed into `other`.',
   ].join('\n'),
   inputSchema: z.object({
     metric: z.enum([
@@ -331,6 +348,16 @@ export const querySeries = createTool({
     granularity: z.enum(['day', 'week', 'month']),
     dateRange: DateRange,
     portfolioIds: z.array(z.string()).optional(),
+    groupBy: z
+      .enum([
+        'none',
+        'account',
+        'accountType',
+        'assetClass',
+        'currency',
+        'portfolio',
+      ])
+      .optional(),
   }),
   execute: async (ctx, input) => {
     const threadCtx = await resolveContext(ctx)
@@ -343,15 +370,46 @@ export const querySeries = createTool({
       input.portfolioIds,
     )
 
-    const bucketOf = (date: string): string => {
-      if (input.granularity === 'day') return date
-      if (input.granularity === 'month') return date.slice(0, 7)
-      // week — ISO week start (Monday)
-      const d = new Date(`${date}T00:00:00Z`)
-      const day = d.getUTCDay()
-      const offset = day === 0 ? -6 : 1 - day
-      d.setUTCDate(d.getUTCDate() + offset)
-      return d.toISOString().slice(0, 10)
+    const groupBy: SeriesGroupBy = input.groupBy ?? 'none'
+
+    // Fetch account metadata only when we actually need it for grouping.
+    const accounts = new Map<string, AccountMeta>()
+    if (groupBy !== 'none') {
+      const rows: Array<{
+        _id: string
+        type?: string
+        currency: string
+        portfolioId: string
+      }> = await ctx.runQuery(
+        internal.agentChatQueries.listBankAccountsByPortfolios,
+        { portfolioIds },
+      )
+      for (const r of rows) {
+        accounts.set(String(r._id), {
+          id: String(r._id),
+          type: r.type,
+          currency: r.currency,
+          portfolioId: String(r.portfolioId),
+        })
+      }
+    }
+
+    const shapeResult = (result: GroupedSeries) => {
+      const capped = capGroups(result, CHART_MAX_SERIES)
+      if (groupBy === 'none') {
+        const points = capped.points.map((row) => ({
+          t: row.t as string,
+          value: Number(row[SINGLE_SERIES_KEY] ?? 0),
+        }))
+        return { metric: input.metric, points, currency: 'EUR' }
+      }
+      return {
+        metric: input.metric,
+        groupBy,
+        groups: capped.groups,
+        points: capped.points,
+        currency: 'EUR',
+      }
     }
 
     if (input.metric === 'spending' || input.metric === 'income') {
@@ -370,86 +428,60 @@ export const querySeries = createTool({
         )
       ).flat()
 
-      const buckets = new Map<string, number>()
-      for (const tx of raw) {
-        if (tx.excludedFromBudget) continue
-        const fin = await decryptForProfile(
-          tx.encryptedFinancials,
-          wsKey,
-          tx._id,
-          'encryptedFinancials',
-        )
-        const v = Number(fin.value) || 0
-        if (input.metric === 'spending' && v >= 0) continue
-        if (input.metric === 'income' && v <= 0) continue
-        const key = bucketOf(tx.date)
-        buckets.set(key, (buckets.get(key) ?? 0) + Math.abs(v))
-      }
+      const txs: SeriesTx[] = await Promise.all(
+        raw.map(async (tx) => {
+          const fin = await decryptForProfile(
+            tx.encryptedFinancials,
+            wsKey,
+            tx._id,
+            'encryptedFinancials',
+          )
+          return {
+            accountId: String(tx.bankAccountId),
+            date: tx.date,
+            value: Number(fin.value) || 0,
+            excludedFromBudget: Boolean(tx.excludedFromBudget),
+          }
+        }),
+      )
 
-      const points = [...buckets.entries()]
-        .sort(([a], [b]) => a.localeCompare(b))
-        .map(([t, v]) => ({ t, value: Math.round(v * 100) / 100 }))
-
-      return { metric: input.metric, points, currency: 'EUR' }
+      return shapeResult(
+        computeCashFlowSeries(
+          txs,
+          accounts,
+          input.metric,
+          input.granularity,
+          groupBy,
+        ),
+      )
     }
 
     // balance / net_worth / investment_value — from snapshots
     const startTs = new Date(input.dateRange.from).getTime()
     const endTs = new Date(input.dateRange.to).getTime() + 86400000
-    const snapshots = await ctx.runQuery(
+    const snapshotRows = await ctx.runQuery(
       internal.agentChatQueries.listSnapshotsByPortfolios,
       { portfolioIds, startTimestamp: startTs, endTimestamp: endTs },
     )
 
-    // Per (account, bucket) take last snapshot, then sum across accounts per bucket
-    // (with carry-forward of last known balance per account).
-    const perAccount = new Map<
-      string,
-      Array<{ bucket: string; date: string; balance: number }>
-    >()
-    for (const snap of snapshots) {
+    const snapshots: SeriesSnapshot[] = []
+    for (const snap of snapshotRows) {
       if (!snap.encryptedData) continue
       const data = await decryptForProfile(
         snap.encryptedData,
         wsKey,
         snap._id as string,
       )
-      const bucket = bucketOf(snap.date)
-      const entry = {
-        bucket,
+      snapshots.push({
+        accountId: String(snap.bankAccountId),
         date: snap.date,
         balance: Number(data.balance) || 0,
-      }
-      const acct = String(snap.bankAccountId)
-      const arr = perAccount.get(acct) ?? []
-      arr.push(entry)
-      perAccount.set(acct, arr)
+      })
     }
 
-    // Collapse to last entry per (account, bucket).
-    const lastPerBucket = new Map<string, Map<string, number>>() // bucket -> account -> balance
-    for (const [acct, entries] of perAccount) {
-      entries.sort((a, b) => a.date.localeCompare(b.date))
-      const byBucket = new Map<string, number>()
-      for (const e of entries) byBucket.set(e.bucket, e.balance)
-      for (const [bucket, bal] of byBucket) {
-        if (!lastPerBucket.has(bucket)) lastPerBucket.set(bucket, new Map())
-        lastPerBucket.get(bucket)?.set(acct, bal)
-      }
-    }
-
-    const allBuckets = [...lastPerBucket.keys()].sort()
-    const carry = new Map<string, number>()
-    const points: Array<{ t: string; value: number }> = []
-    for (const b of allBuckets) {
-      const byAcct = lastPerBucket.get(b)
-      if (byAcct) for (const [acct, bal] of byAcct) carry.set(acct, bal)
-      let total = 0
-      for (const v of carry.values()) total += v
-      points.push({ t: b, value: Math.round(total * 100) / 100 })
-    }
-
-    return { metric: input.metric, points, currency: 'EUR' }
+    return shapeResult(
+      computeBalanceSeries(snapshots, accounts, input.granularity, groupBy),
+    )
   },
 })
 

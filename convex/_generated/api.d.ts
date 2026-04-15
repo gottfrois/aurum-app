@@ -34,6 +34,7 @@ import type * as lib_aiModels from "../lib/aiModels.js";
 import type * as lib_auth from "../lib/auth.js";
 import type * as lib_billing from "../lib/billing.js";
 import type * as lib_chartSpec from "../lib/chartSpec.js";
+import type * as lib_querySeriesCore from "../lib/querySeriesCore.js";
 import type * as lib_serverCrypto from "../lib/serverCrypto.js";
 import type * as lib_usageHandler from "../lib/usageHandler.js";
 import type * as members from "../members.js";
@@ -85,6 +86,7 @@ declare const fullApi: ApiFromModules<{
   "lib/auth": typeof lib_auth;
   "lib/billing": typeof lib_billing;
   "lib/chartSpec": typeof lib_chartSpec;
+  "lib/querySeriesCore": typeof lib_querySeriesCore;
   "lib/serverCrypto": typeof lib_serverCrypto;
   "lib/usageHandler": typeof lib_usageHandler;
   members: typeof members;

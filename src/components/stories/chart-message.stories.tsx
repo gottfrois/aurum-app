@@ -112,6 +112,34 @@ export const AreaStacked: Story = {
   args: { spec: areaSpec },
 }
 
+// Mirrors what query_series(metric='net_worth', groupBy='assetClass') returns:
+// multi-series rows keyed by asset-class taxonomy keys.
+const assetClassStackSpec: ChartSpec = {
+  type: 'area',
+  title: 'Net worth by asset class',
+  data: Array.from({ length: 12 }, (_, i) => ({
+    month: `2026-${String(i + 1).padStart(2, '0')}`,
+    checking: 4200 + i * 80,
+    savings: 18000 + i * 350,
+    investments: 62000 + i * 1800 + Math.round(Math.sin(i) * 1500),
+    insurance: 9500 + i * 120,
+  })),
+  xKey: 'month',
+  series: [
+    { key: 'checking', label: 'Checking', color: 'var(--chart-1)' },
+    { key: 'savings', label: 'Savings', color: 'var(--chart-2)' },
+    { key: 'investments', label: 'Investments', color: 'var(--chart-3)' },
+    { key: 'insurance', label: 'Insurance', color: 'var(--chart-4)' },
+  ],
+  stack: 'normal',
+  valueFormat: 'currency',
+  currency: 'EUR',
+}
+
+export const AreaStackedByAssetClass: Story = {
+  args: { spec: assetClassStackSpec },
+}
+
 const pieSpec: ChartSpec = {
   type: 'pie',
   title: 'Spending by category — March',
