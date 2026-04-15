@@ -101,7 +101,7 @@ export function HoldingsTable({
             </TableCell>
             <TableCell className="text-right">
               {inv.portfolioShare != null
-                ? pctFmt.format(inv.portfolioShare / 100)
+                ? pctFmt.format(inv.portfolioShare)
                 : '—'}
             </TableCell>
           </TableRow>
