@@ -18,7 +18,7 @@ import { SiteHeader } from '~/components/site-header'
 import type { TransactionRow } from '~/components/transactions-list'
 import { TransactionsList } from '~/components/transactions-list'
 import { Button } from '~/components/ui/button'
-import { Card, CardContent, CardHeader, CardTitle } from '~/components/ui/card'
+import { Card, CardContent, CardHeader } from '~/components/ui/card'
 import { Skeleton } from '~/components/ui/skeleton'
 import { usePortfolio } from '~/contexts/portfolio-context'
 import {
@@ -395,77 +395,75 @@ function AccountDetailPage() {
                 )}
               </div>
 
-              {isInvestment && investments && investments.length > 0 && (
-                <Card>
-                  <CardHeader>
-                    <CardTitle>{t('accounts.holdings')}</CardTitle>
-                  </CardHeader>
-                  <CardContent>
+              {isInvestment ? (
+                investments &&
+                investments.length > 0 && (
+                  <div className="rounded-md border">
                     <HoldingsTable
                       investments={investments}
                       currency={bankAccount.currency ?? 'EUR'}
                     />
-                  </CardContent>
-                </Card>
-              )}
-
-              <TransactionsList
-                data={tableData}
-                currency={bankAccount.currency ?? 'EUR'}
-                labels={labels}
-                workspaceId={workspaceId ?? undefined}
-                onEditManualTransaction={manualTxDialog.openEdit}
-                onDeleteManualTransaction={handleDeleteManual}
-                filterActions={
-                  <>
-                    <Filters
-                      filters={filters}
-                      fields={reuiFields}
-                      onChange={setFilters}
-                      size="sm"
-                      i18n={filterI18n}
-                      trigger={
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          className="rounded-full"
-                        >
-                          <ListFilter />
-                        </Button>
-                      }
-                    />
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={manualTxDialog.openCreate}
-                    >
-                      <Plus />
-                      {t('transactions.addTransaction')}
-                    </Button>
-                  </>
-                }
-                activeFilters={
-                  filters.length > 0 ? (
-                    <div className="flex flex-wrap items-center gap-2">
+                  </div>
+                )
+              ) : (
+                <TransactionsList
+                  data={tableData}
+                  currency={bankAccount.currency ?? 'EUR'}
+                  labels={labels}
+                  workspaceId={workspaceId ?? undefined}
+                  onEditManualTransaction={manualTxDialog.openEdit}
+                  onDeleteManualTransaction={handleDeleteManual}
+                  filterActions={
+                    <>
                       <Filters
                         filters={filters}
                         fields={reuiFields}
                         onChange={setFilters}
+                        size="sm"
                         i18n={filterI18n}
+                        trigger={
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="rounded-full"
+                          >
+                            <ListFilter />
+                          </Button>
+                        }
                       />
-                      <div className="ml-auto">
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => setFilters([])}
-                        >
-                          {t('button.clearFilter')}
-                        </Button>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={manualTxDialog.openCreate}
+                      >
+                        <Plus />
+                        {t('transactions.addTransaction')}
+                      </Button>
+                    </>
+                  }
+                  activeFilters={
+                    filters.length > 0 ? (
+                      <div className="flex flex-wrap items-center gap-2">
+                        <Filters
+                          filters={filters}
+                          fields={reuiFields}
+                          onChange={setFilters}
+                          i18n={filterI18n}
+                        />
+                        <div className="ml-auto">
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => setFilters([])}
+                          >
+                            {t('button.clearFilter')}
+                          </Button>
+                        </div>
                       </div>
-                    </div>
-                  ) : undefined
-                }
-              />
+                    ) : undefined
+                  }
+                />
+              )}
             </>
           )}
         </div>
