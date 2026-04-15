@@ -1,7 +1,8 @@
+import { restrictToVerticalAxis } from '@dnd-kit/modifiers'
 import * as Sentry from '@sentry/tanstackstart-react'
 import { createFileRoute } from '@tanstack/react-router'
 import { useAction, useMutation, useQuery } from 'convex/react'
-import { Link2, Loader2 } from 'lucide-react'
+import { GripVertical, Landmark, Link2, Loader2 } from 'lucide-react'
 import * as React from 'react'
 import { useTranslation } from 'react-i18next'
 import { toast } from 'sonner'
@@ -29,6 +30,11 @@ import {
 import { Input } from '~/components/ui/input'
 import { PageHeader } from '~/components/ui/page-header'
 import { Skeleton } from '~/components/ui/skeleton'
+import {
+  Sortable,
+  SortableItem,
+  SortableItemHandle,
+} from '~/components/ui/sortable'
 import { useEncryption } from '~/contexts/encryption-context'
 import { useCachedDecryptRecords } from '~/hooks/use-cached-decrypt'
 import { encryptData, importPublicKey } from '~/lib/crypto'
@@ -152,16 +158,32 @@ function formatAccountType(
   switch (type) {
     case 'checking':
       return t('accountTypes.checking')
-    case 'savings':
-      return t('accountTypes.savings')
-    case 'market':
-    case 'pea':
-    case 'pee':
-      return t('accountTypes.investment')
-    case 'life_insurance':
-      return t('accountTypes.insurance')
     case 'card':
       return t('accountTypes.card')
+    case 'savings':
+      return t('accountTypes.savings')
+    case 'livret_a':
+      return t('accountTypes.livret_a')
+    case 'ldds':
+      return t('accountTypes.ldds')
+    case 'market':
+      return t('accountTypes.market')
+    case 'pea':
+      return t('accountTypes.pea')
+    case 'pee':
+      return t('accountTypes.pee')
+    case 'lifeinsurance':
+      return t('accountTypes.lifeinsurance')
+    case 'per':
+      return t('accountTypes.per')
+    case 'perco':
+      return t('accountTypes.perco')
+    case 'perp':
+      return t('accountTypes.perp')
+    case 'madelin':
+      return t('accountTypes.madelin')
+    case 'article83':
+      return t('accountTypes.article83')
     default:
       return type ?? t('accountTypes.account')
   }
@@ -217,8 +239,30 @@ function ConnectionCard({
 }) {
   const { t } = useTranslation()
   const generateManageUrl = useAction(api.powens.generateManageUrl)
+  const reorderBankAccounts = useMutation(api.powens.reorderBankAccounts)
   const [editing, setEditing] = React.useState(false)
   const { label, dotColor } = getConnectionState(connection.state, t)
+
+  const [localAccounts, setLocalAccounts] = React.useState<
+    DecryptedBankAccount[] | null
+  >(null)
+  const pendingReorder = React.useRef(false)
+
+  React.useEffect(() => {
+    if (!pendingReorder.current) {
+      setLocalAccounts(accounts)
+    }
+  }, [accounts])
+
+  const sortedAccounts = React.useMemo(() => {
+    const source = localAccounts ?? accounts
+    return [...source].sort((a, b) => {
+      const ao = a.sortOrder ?? Number.POSITIVE_INFINITY
+      const bo = b.sortOrder ?? Number.POSITIVE_INFINITY
+      if (ao !== bo) return ao - bo
+      return a._creationTime - b._creationTime
+    })
+  }, [localAccounts, accounts])
 
   async function handleManage() {
     setEditing(true)
@@ -233,6 +277,29 @@ function ConnectionCard({
       toast.error(t('toast.failedManageConnection'))
       setEditing(false)
     }
+  }
+
+  const handleReorder = (reordered: DecryptedBankAccount[]) => {
+    pendingReorder.current = true
+    const orderedIds = reordered.map((a) => a._id)
+    const sortOrderMap = new Map(orderedIds.map((id, i) => [id, i]))
+    const base = localAccounts ?? accounts
+    const next = base.map((a) =>
+      sortOrderMap.has(a._id)
+        ? { ...a, sortOrder: sortOrderMap.get(a._id) }
+        : a,
+    )
+    setLocalAccounts(next)
+
+    reorderBankAccounts({ orderedBankAccountIds: orderedIds })
+      .catch((error) => {
+        Sentry.captureException(error)
+        toast.error(t('toast.failedReorderAccounts'))
+        setLocalAccounts(accounts)
+      })
+      .finally(() => {
+        pendingReorder.current = false
+      })
   }
 
   return (
@@ -263,7 +330,7 @@ function ConnectionCard({
         </Button>
       </ItemCardHeader>
       <ItemCardItems>
-        {accounts.length === 0 ? (
+        {sortedAccounts.length === 0 ? (
           <ItemCardItem>
             <ItemCardItemContent>
               <ItemCardItemDescription>
@@ -272,9 +339,18 @@ function ConnectionCard({
             </ItemCardItemContent>
           </ItemCardItem>
         ) : (
-          accounts.map((account) => (
-            <BankAccountItem key={account._id} account={account} />
-          ))
+          <Sortable
+            value={sortedAccounts}
+            onValueChange={handleReorder}
+            getItemValue={(a) => a._id}
+            modifiers={[restrictToVerticalAxis]}
+          >
+            {sortedAccounts.map((account) => (
+              <SortableItem key={account._id} value={account._id}>
+                <BankAccountItem account={account} />
+              </SortableItem>
+            ))}
+          </Sortable>
         )}
       </ItemCardItems>
     </ItemCard>
@@ -344,18 +420,26 @@ function BankAccountItem({ account }: { account: DecryptedBankAccount }) {
   }
 
   return (
-    <ItemCardItem>
-      <ItemCardItemContent>
-        <ItemCardItemTitle>
-          <div className="flex items-center gap-2">
-            {originalName}
-            <Badge variant="outline" className="font-normal">
-              {formatAccountType(account.type, t)}
-            </Badge>
-          </div>
+    <ItemCardItem className="gap-3">
+      <div className="flex shrink-0 items-center gap-1.5">
+        <SortableItemHandle className="flex items-center text-muted-foreground/60 hover:text-muted-foreground">
+          <GripVertical className="size-4" />
+        </SortableItemHandle>
+        <div className="flex size-8 items-center justify-center rounded-sm border bg-muted text-muted-foreground">
+          <Landmark className="size-4" />
+        </div>
+      </div>
+      <ItemCardItemContent className="min-w-0 flex-1">
+        <ItemCardItemTitle className="min-w-0">
+          <span className="truncate">{originalName}</span>
+          <Badge variant="outline" className="shrink-0 font-normal">
+            {formatAccountType(account.type, t)}
+          </Badge>
         </ItemCardItemTitle>
         {identifier && (
-          <ItemCardItemDescription>{identifier}</ItemCardItemDescription>
+          <ItemCardItemDescription className="truncate">
+            {identifier}
+          </ItemCardItemDescription>
         )}
       </ItemCardItemContent>
       <ItemCardItemAction>
