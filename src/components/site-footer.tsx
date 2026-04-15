@@ -15,6 +15,7 @@ import {
 } from '~/components/ui/tooltip'
 import {
   useChatDispatch,
+  useChatState,
   useMinimizedThreads,
   useMockMinimizedConversations,
   useMockState,
@@ -48,6 +49,14 @@ export function SiteFooter() {
     ? mockMinimized.map((c) => ({ threadId: c.id, title: c.title }))
     : minimizedThreads
 
+  // Persisted thread id count (from localStorage) — available synchronously
+  // on first render, before Convex populates titles. Use this to decide the
+  // Ask Bunkr button shape so it doesn't flip once Convex data arrives.
+  const { minimizedThreadIds } = useChatState()
+  const hasMinimizedThreads = mockState
+    ? mockMinimized.length > 0
+    : minimizedThreadIds.length > 0
+
   // Not authenticated
   if (agentStatus === null) return null
 
@@ -60,10 +69,16 @@ export function SiteFooter() {
         <div className="flex w-full min-w-0 items-center justify-end gap-1 px-4 lg:gap-2 lg:px-6">
           <Tooltip>
             <TooltipTrigger asChild>
-              <Button variant="ghost" size="sm" disabled>
-                <BotMessageSquare className="size-4" />
-                {t('footer.askBunkr')}
-              </Button>
+              {hasMinimizedThreads ? (
+                <Button variant="ghost" size="icon-sm" disabled>
+                  <BotMessageSquare className="size-4" />
+                </Button>
+              ) : (
+                <Button variant="ghost" size="sm" disabled>
+                  <BotMessageSquare className="size-4" />
+                  {t('footer.askBunkr')}
+                </Button>
+              )}
             </TooltipTrigger>
             <TooltipContent className="flex items-center gap-2">
               <span>{t('footer.askBunkr')}</span>
@@ -123,15 +138,16 @@ export function SiteFooter() {
               ))}
           <Tooltip>
             <TooltipTrigger asChild>
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={handleAskBunkr}
-                className="shrink-0"
-              >
-                <BotMessageSquare className="size-4" />
-                {t('footer.askBunkr')}
-              </Button>
+              {hasMinimizedThreads ? (
+                <Button variant="ghost" size="icon-sm" onClick={handleAskBunkr}>
+                  <BotMessageSquare className="size-4" />
+                </Button>
+              ) : (
+                <Button variant="ghost" size="sm" onClick={handleAskBunkr}>
+                  <BotMessageSquare className="size-4" />
+                  {t('footer.askBunkr')}
+                </Button>
+              )}
             </TooltipTrigger>
             <TooltipContent className="flex items-center gap-2">
               <span>{t('footer.askBunkr')}</span>
