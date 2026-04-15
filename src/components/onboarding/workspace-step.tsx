@@ -90,6 +90,7 @@ export function WorkspaceStep({ next, back }: OnboardingStepProps) {
     } catch (err) {
       toast.error(t('toast.failedCreateWorkspace'))
       console.error(err)
+    } finally {
       setSaving(false)
     }
   }
