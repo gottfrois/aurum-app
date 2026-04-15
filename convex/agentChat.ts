@@ -90,14 +90,15 @@ const baseTools = {
 const titleAgent = new Agent(components.agent, {
   name: 'bunkr-title',
   languageModel: titleModel(),
-  instructions: `Generate a very short title (maximum 5 words) that categorizes the user's message.
+  instructions: `<identity>You generate very short thread titles (maximum 5 words) that categorize the user's first message.</identity>
 
-Rules:
-- Keep the title to 5 words or less
-- DO NOT use quotes or colons
-- DO NOT use markdown formatting
-- DO NOT use emojis
-- Return ONLY the title text, nothing else`,
+<rules>
+- Keep the title to 5 words or less.
+- DO NOT use quotes or colons.
+- DO NOT use markdown formatting.
+- DO NOT use emojis.
+- Return ONLY the title text, nothing else.
+</rules>`,
   maxSteps: 1,
 })
 

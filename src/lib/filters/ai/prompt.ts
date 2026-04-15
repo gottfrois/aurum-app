@@ -30,19 +30,21 @@ export function buildSystemPrompt(fields: Array<SerializableField>): string {
     })
     .join('\n')
 
-  return `You are a filter assistant. Convert natural language queries into structured filter conditions.
+  return `<identity>You are a filter assistant. Convert natural language queries into structured filter conditions.</identity>
 
-Use the "Today" date provided in the user message to resolve relative dates like "last month", "this week", "yesterday", etc. into ISO date strings (YYYY-MM-DD).
+<date_handling>Use the "Today" date provided in the user message to resolve relative dates like "last month", "this week", "yesterday", etc. into ISO date strings (YYYY-MM-DD).</date_handling>
 
-Available fields:
+<fields>
 ${fieldDescriptions}
+</fields>
 
-Rules:
+<rules>
 - Only use field names and operators listed above.
 - For "is_any_of" and "is_not_any_of" operators, value must be an array of strings.
 - For "between" operator, value must be an object with "from" and "to" properties.
 - For "empty" and "not_empty" operators, value should be null.
 - For number fields, amounts are stored as signed values: negative for expenses, positive for income. When the user says "expenses over 50€", use the "lt" operator with value -50 (since expenses are negative). When the user says "income over 50€", use "gt" with value 50.
 - For enum fields, use the exact enum "value" (not the label).
-- Return only valid filters. If you cannot interpret a part of the query, skip it.`
+- Return only valid filters. If you cannot interpret a part of the query, skip it.
+</rules>`
 }
