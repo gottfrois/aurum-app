@@ -28,9 +28,10 @@ import { decryptForProfile } from './lib/serverCrypto'
 
 // --- Agent definitions ---
 
-function buildBaseInstructions(): string {
-  const today = new Date().toISOString().slice(0, 10)
-  return `<identity>You are Bunkr, a personal finance assistant. Today is ${today}. Use YYYY-MM-DD for all dates.</identity>
+// Keep this string static — any per-request value (dates, ids, user context)
+// must be appended AFTER this block so the prompt prefix remains byte-stable
+// across requests and LLM prompt caches can actually hit.
+const BASE_INSTRUCTIONS = `<identity>You are Bunkr, a personal finance assistant. Use YYYY-MM-DD for all dates.</identity>
 
 <tools>
 You have 8 composable tools. Prefer chaining small calls over asking for clarification.
@@ -66,12 +67,11 @@ You have 8 composable tools. Prefer chaining small calls over asking for clarifi
 - Stay on topic: politely decline requests unrelated to personal finance.
 - When a tool returns empty, suggest widening the date range or checking filters.
 </guidelines>`
-}
 
 const chatAgent = new Agent(components.agent, {
   name: 'bunkr-assistant',
   languageModel: chatModel(),
-  instructions: buildBaseInstructions(),
+  instructions: BASE_INSTRUCTIONS,
   maxSteps: 12,
 })
 
@@ -110,8 +110,12 @@ export const streamResponse = action({
     workspaceId: v.optional(v.id('workspaces')),
   },
   handler: async (ctx, { threadId, promptMessageId, workspaceId }) => {
-    // Build system prompt with portfolio context and custom instructions
-    const systemParts: string[] = [buildBaseInstructions()]
+    // Build system prompt with the STABLE prefix first (base instructions →
+    // portfolio scope → custom instructions → language), then volatile
+    // per-request context LAST. This keeps the cacheable prefix maximal:
+    // anything before the trailing date block is byte-identical across
+    // requests and can hit the provider's prompt cache.
+    const systemParts: string[] = [BASE_INSTRUCTIONS]
     let webSearchEnabled = false
 
     if (workspaceId) {
@@ -184,7 +188,14 @@ export const streamResponse = action({
       }
     }
 
-    const system = systemParts.length > 1 ? systemParts.join('') : undefined
+    // Volatile per-request context goes LAST so the preceding prefix stays
+    // cacheable. The date is the only truly per-request value today.
+    const today = new Date().toISOString().slice(0, 10)
+    systemParts.push(
+      `\n\n<context>Today is ${today}. Resolve relative dates ("last month", "this week") against this.</context>`,
+    )
+
+    const system = systemParts.join('')
 
     const { thread } = await chatAgent.continueThread(ctx, { threadId })
 
@@ -199,7 +210,7 @@ export const streamResponse = action({
       const result = await thread.streamText(
         {
           promptMessageId,
-          ...(system ? { system } : {}),
+          system,
           tools: tools as typeof baseTools,
         },
         { saveStreamDeltas: { chunking: 'word', throttleMs: 100 } },

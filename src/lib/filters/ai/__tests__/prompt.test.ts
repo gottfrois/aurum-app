@@ -79,7 +79,7 @@ describe('buildSystemPrompt', () => {
   ]
 
   it('includes field names and types', () => {
-    const prompt = buildSystemPrompt(fields, '2025-03-11')
+    const prompt = buildSystemPrompt(fields)
     expect(prompt).toContain('amount')
     expect(prompt).toContain('number')
     expect(prompt).toContain('category')
@@ -87,19 +87,23 @@ describe('buildSystemPrompt', () => {
   })
 
   it('includes operators', () => {
-    const prompt = buildSystemPrompt(fields, '2025-03-11')
+    const prompt = buildSystemPrompt(fields)
     expect(prompt).toContain('gt, lt')
     expect(prompt).toContain('is_any_of')
   })
 
   it('includes enum values with labels', () => {
-    const prompt = buildSystemPrompt(fields, '2025-03-11')
+    const prompt = buildSystemPrompt(fields)
     expect(prompt).toContain('"food" (Food & Dining)')
     expect(prompt).toContain('"transport" (Transport)')
   })
 
-  it('includes today date', () => {
-    const prompt = buildSystemPrompt(fields, '2025-03-11')
-    expect(prompt).toContain('2025-03-11')
+  it('omits per-request values so the prompt stays cache-stable', () => {
+    // The date lives in the user prompt now — keep it out of the system
+    // prompt so identical field schemas produce byte-identical output.
+    const a = buildSystemPrompt(fields)
+    const b = buildSystemPrompt(fields)
+    expect(a).toBe(b)
+    expect(a).not.toMatch(/\d{4}-\d{2}-\d{2}/)
   })
 })

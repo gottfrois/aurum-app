@@ -13,10 +13,10 @@ export interface SerializableField {
   enumOptions?: Array<{ value: string; label: string }>
 }
 
-export function buildSystemPrompt(
-  fields: Array<SerializableField>,
-  today: string,
-): string {
+// Keep this prompt free of per-request values (dates, ids, etc.) so the
+// provider prompt cache can hit across requests that share the same `fields`
+// schema. Per-request context is injected into the user prompt at call time.
+export function buildSystemPrompt(fields: Array<SerializableField>): string {
   const fieldDescriptions = fields
     .map((f) => {
       let desc = `- **${f.name}** (label: "${f.label}", type: ${f.valueType})\n  Operators: ${f.operators.join(', ')}`
@@ -32,7 +32,7 @@ export function buildSystemPrompt(
 
   return `You are a filter assistant. Convert natural language queries into structured filter conditions.
 
-Today's date is ${today}. Use this to resolve relative dates like "last month", "this week", "yesterday", etc. into ISO date strings (YYYY-MM-DD).
+Use the "Today" date provided in the user message to resolve relative dates like "last month", "this week", "yesterday", etc. into ISO date strings (YYYY-MM-DD).
 
 Available fields:
 ${fieldDescriptions}

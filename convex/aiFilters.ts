@@ -36,16 +36,17 @@ export const askAI = action({
 
     const trimmedQuery = query.slice(0, 500)
 
+    // `today` lives in the user prompt (not the system prompt) so the system
+    // prompt stays byte-stable across requests sharing the same fields
+    // schema — lets Gemini's implicit prompt cache actually hit.
     const today = new Date().toISOString().slice(0, 10)
-    const systemPrompt = buildSystemPrompt(
-      fields as Array<SerializableField>,
-      today,
-    )
+    const systemPrompt = buildSystemPrompt(fields as Array<SerializableField>)
+    const userPrompt = `Today: ${today}\n\n${trimmedQuery}`
 
     const { object } = await generateObject({
       model: google('gemini-2.5-flash'),
       system: systemPrompt,
-      prompt: trimmedQuery,
+      prompt: userPrompt,
       schema: aiFilterSchema,
       maxOutputTokens: 1024,
     })
