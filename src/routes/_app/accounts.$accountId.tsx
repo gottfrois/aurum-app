@@ -365,7 +365,9 @@ function AccountDetailPage() {
                 }
               >
                 <div
-                  className={showAllocationChart ? 'lg:col-span-2' : undefined}
+                  className={
+                    showAllocationChart ? 'h-full lg:col-span-2' : 'h-[400px]'
+                  }
                 >
                   <BalanceChart
                     data={chartData}

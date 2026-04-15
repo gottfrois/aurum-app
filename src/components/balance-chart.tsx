@@ -151,7 +151,7 @@ export function BalanceChart({
 
   if (title) {
     return (
-      <Card className="@container/card flex h-full flex-col">
+      <Card className="@container/card flex h-full min-h-[380px] flex-col">
         <CardHeader>
           <CardTitle>{title}</CardTitle>
           {description && (
