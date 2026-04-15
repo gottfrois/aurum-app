@@ -948,6 +948,7 @@
   "toast.failedDeleteRule": "Failed to delete rule",
   "toast.failedToggleRule": "Failed to toggle rule",
   "toast.failedReorderRules": "Failed to reorder rules",
+  "toast.failedReorderAccounts": "Failed to reorder accounts",
   "toast.viewCreated": "View created",
   "toast.viewUpdated": "View updated",
   "toast.viewDeleted": "View deleted",

@@ -141,6 +141,7 @@ export default defineSchema({
     encryptedIdentity: v.string(),
     encryptedBalance: v.string(),
     encryptedCustomName: v.optional(v.string()),
+    sortOrder: v.optional(v.number()),
   })
     .index('by_connectionId', ['connectionId'])
     .index('by_portfolioId', ['portfolioId']),

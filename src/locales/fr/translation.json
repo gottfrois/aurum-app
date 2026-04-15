@@ -948,6 +948,7 @@
   "toast.failedDeleteRule": "Échec de la suppression de la règle",
   "toast.failedToggleRule": "Échec de l'activation/désactivation de la règle",
   "toast.failedReorderRules": "Échec du réordonnancement des règles",
+  "toast.failedReorderAccounts": "Échec du réordonnancement des comptes",
   "toast.viewCreated": "Vue créée",
   "toast.viewUpdated": "Vue mise à jour",
   "toast.viewDeleted": "Vue supprimée",

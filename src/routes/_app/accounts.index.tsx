@@ -1,8 +1,11 @@
+import { restrictToVerticalAxis } from '@dnd-kit/modifiers'
+import * as Sentry from '@sentry/tanstackstart-react'
 import { createFileRoute, Link } from '@tanstack/react-router'
-import { useQuery } from 'convex/react'
-import { Landmark } from 'lucide-react'
+import { useMutation, useQuery } from 'convex/react'
+import { GripVertical, Landmark } from 'lucide-react'
 import * as React from 'react'
 import { useTranslation } from 'react-i18next'
+import { toast } from 'sonner'
 import { AllocationChart } from '~/components/allocation-chart'
 import { BalanceChart } from '~/components/balance-chart'
 import { SiteHeader } from '~/components/site-header'
@@ -28,6 +31,11 @@ import {
 } from '~/components/ui/item'
 import { Kbd } from '~/components/ui/kbd'
 import { Skeleton } from '~/components/ui/skeleton'
+import {
+  Sortable,
+  SortableItem,
+  SortableItemHandle,
+} from '~/components/ui/sortable'
 import { useCommandRegistry } from '~/contexts/command-context'
 import { usePortfolio } from '~/contexts/portfolio-context'
 import { useAggregatedBalances } from '~/hooks/use-aggregated-balances'
@@ -133,6 +141,18 @@ function BankAccountsList({ categoryFilter }: { categoryFilter?: string }) {
     rawAllBankAccounts,
   ) as DecryptedBankAccount[] | undefined
 
+  const reorderBankAccounts = useMutation(api.powens.reorderBankAccounts)
+  const [localBankAccounts, setLocalBankAccounts] = React.useState<
+    DecryptedBankAccount[] | null
+  >(null)
+  const pendingReorder = React.useRef(false)
+
+  React.useEffect(() => {
+    if (allBankAccounts && !pendingReorder.current) {
+      setLocalBankAccounts(allBankAccounts)
+    }
+  }, [allBankAccounts])
+
   const snapshotsSingle = useQuery(
     api.balanceSnapshots.listSnapshotsByPortfolio,
     singlePortfolioId
@@ -179,14 +199,15 @@ function BankAccountsList({ categoryFilter }: { categoryFilter?: string }) {
   const addConnectionCommand = commands.find((c) => c.id === 'connection.add')
 
   const bankAccounts = React.useMemo(() => {
-    if (!allBankAccounts) return undefined
-    const active = allBankAccounts.filter((a) => !a.deleted && !a.disabled)
+    const source = localBankAccounts ?? allBankAccounts
+    if (!source) return undefined
+    const active = source.filter((a) => !a.deleted && !a.disabled)
     if (!categoryFilter) return active
     const types = new Set(ACCOUNT_CATEGORIES[categoryFilter].types)
     return active.filter((a) => types.has(a.type ?? ''))
-  }, [allBankAccounts, categoryFilter])
+  }, [localBankAccounts, allBankAccounts, categoryFilter])
 
-  // Group accounts by category
+  // Group accounts by category, ordered by persisted sortOrder within each group
   const groupedByCategory = React.useMemo(() => {
     if (!bankAccounts) return []
     const map = new Map<string, typeof bankAccounts>()
@@ -196,12 +217,44 @@ function BankAccountsList({ categoryFilter }: { categoryFilter?: string }) {
       list.push(acct)
       map.set(key, list)
     }
-    // Sort by ACCOUNT_CATEGORIES order
+    for (const list of map.values()) {
+      list.sort((a, b) => {
+        const ao = a.sortOrder ?? Number.POSITIVE_INFINITY
+        const bo = b.sortOrder ?? Number.POSITIVE_INFINITY
+        if (ao !== bo) return ao - bo
+        return a._creationTime - b._creationTime
+      })
+    }
+    // Sort categories by ACCOUNT_CATEGORIES order
     const order = Object.keys(ACCOUNT_CATEGORIES)
     return [...map.entries()].sort(
       ([a], [b]) => order.indexOf(a) - order.indexOf(b),
     )
   }, [bankAccounts])
+
+  const handleReorder = (reordered: DecryptedBankAccount[]) => {
+    if (!allBankAccounts) return
+    pendingReorder.current = true
+    const orderedIds = reordered.map((a) => a._id)
+    const sortOrderMap = new Map(orderedIds.map((id, i) => [id, i]))
+    const base = localBankAccounts ?? allBankAccounts
+    const next = base.map((a) =>
+      sortOrderMap.has(a._id)
+        ? { ...a, sortOrder: sortOrderMap.get(a._id) }
+        : a,
+    )
+    setLocalBankAccounts(next)
+
+    reorderBankAccounts({ orderedBankAccountIds: orderedIds })
+      .catch((error) => {
+        Sentry.captureException(error)
+        toast.error(t('toast.failedReorderAccounts'))
+        setLocalBankAccounts(allBankAccounts)
+      })
+      .finally(() => {
+        pendingReorder.current = false
+      })
+  }
 
   // Set of active category keys based on visible bank accounts
   const activeCategoryKeys = React.useMemo(() => {
@@ -458,36 +511,56 @@ function BankAccountsList({ categoryFilter }: { categoryFilter?: string }) {
                 <span>({accounts.length})</span>
               </h3>
               <ItemGroup className="rounded-lg border">
-                {accounts.map((account, i) => (
-                  <React.Fragment key={account._id}>
-                    {i > 0 && <ItemSeparator />}
-                    <Link
-                      to="/accounts/$accountId"
-                      params={{ accountId: account._id }}
-                    >
-                      <Item className="cursor-pointer hover:bg-muted/50">
-                        <ItemMedia variant="icon">
-                          <Landmark />
-                        </ItemMedia>
-                        <ItemContent>
-                          <ItemTitle>
-                            {account.customName ??
-                              account.connectorName ??
-                              account.name}
-                          </ItemTitle>
-                          <ItemDescription>
-                            {account.iban
-                              ? account.iban.replace(/(.{4})/g, '$1 ').trim()
-                              : (account.number ?? '')}
-                          </ItemDescription>
-                        </ItemContent>
-                        <span className="text-lg font-semibold tabular-nums">
-                          {formatCurrency(account.balance, account.currency)}
-                        </span>
-                      </Item>
-                    </Link>
-                  </React.Fragment>
-                ))}
+                <Sortable
+                  value={accounts}
+                  onValueChange={handleReorder}
+                  getItemValue={(a) => a._id}
+                  modifiers={[restrictToVerticalAxis]}
+                >
+                  {accounts.map((account, i) => (
+                    <React.Fragment key={account._id}>
+                      {i > 0 && <ItemSeparator />}
+                      <SortableItem value={account._id} disabled={isTeamView}>
+                        <Item className="gap-2 pl-2 hover:bg-muted/50">
+                          {!isTeamView && (
+                            <SortableItemHandle className="group/handle flex shrink-0 items-center self-stretch px-1 text-muted-foreground/60 hover:text-muted-foreground">
+                              <GripVertical className="size-4" />
+                            </SortableItemHandle>
+                          )}
+                          <Link
+                            to="/accounts/$accountId"
+                            params={{ accountId: account._id }}
+                            className="flex flex-1 cursor-pointer items-center gap-4"
+                          >
+                            <ItemMedia variant="icon">
+                              <Landmark />
+                            </ItemMedia>
+                            <ItemContent>
+                              <ItemTitle>
+                                {account.customName ??
+                                  account.connectorName ??
+                                  account.name}
+                              </ItemTitle>
+                              <ItemDescription>
+                                {account.iban
+                                  ? account.iban
+                                      .replace(/(.{4})/g, '$1 ')
+                                      .trim()
+                                  : (account.number ?? '')}
+                              </ItemDescription>
+                            </ItemContent>
+                            <span className="text-lg font-semibold tabular-nums">
+                              {formatCurrency(
+                                account.balance,
+                                account.currency,
+                              )}
+                            </span>
+                          </Link>
+                        </Item>
+                      </SortableItem>
+                    </React.Fragment>
+                  ))}
+                </Sortable>
               </ItemGroup>
             </div>
           )

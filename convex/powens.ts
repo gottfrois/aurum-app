@@ -2018,3 +2018,30 @@ export const updateBankAccountCustomName = mutation({
     })
   },
 })
+
+export const reorderBankAccounts = mutation({
+  args: {
+    orderedBankAccountIds: v.array(v.id('bankAccounts')),
+  },
+  handler: async (ctx, args) => {
+    const userId = await requireAuthUserId(ctx)
+    const member = await ctx.db
+      .query('workspaceMembers')
+      .withIndex('by_userId', (q) => q.eq('userId', userId))
+      .first()
+    if (!member) {
+      throw new Error('Not authorized')
+    }
+
+    for (let i = 0; i < args.orderedBankAccountIds.length; i++) {
+      const bankAccountId = args.orderedBankAccountIds[i]
+      const account = await ctx.db.get('bankAccounts', bankAccountId)
+      if (!account) throw new Error('Bank account not found')
+      const portfolio = await ctx.db.get('portfolios', account.portfolioId)
+      if (!portfolio || portfolio.workspaceId !== member.workspaceId) {
+        throw new Error('Not authorized')
+      }
+      await ctx.db.patch(bankAccountId, { sortOrder: i })
+    }
+  },
+})
