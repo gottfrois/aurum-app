@@ -13,6 +13,7 @@ import { ChartMessage } from '~/components/chat/chart-message'
 import { ChatBubble } from '~/components/chat/chat-bubble'
 import { ChatDisclaimer } from '~/components/chat/chat-disclaimer'
 import { ChatEmptyState } from '~/components/chat/chat-empty-state'
+import { ChatMessagesSkeleton } from '~/components/chat/chat-messages-skeleton'
 import { ToolApproval } from '~/components/chat/tool-approval'
 import { dispatchAIFilters } from '~/components/command-palette'
 import type { Filter } from '~/components/reui/filters'
@@ -77,11 +78,12 @@ export function ChatMessages({
   onWaitingChange,
 }: ChatMessagesProps) {
   const { t } = useTranslation()
-  const { results: messages } = useUIMessages(
+  const { results: messages, status } = useUIMessages(
     api.agentChatQueries.listThreadMessages,
     { threadId },
     { initialNumItems: 50, stream: true },
   )
+  const isLoadingFirstPage = status === 'LoadingFirstPage'
 
   const triggerContinuation = useMutation(
     api.agentChatQueries.triggerContinuation,
@@ -162,6 +164,11 @@ export function ChatMessages({
           </ChatContainerContent>
         </ChatContainerRoot>
       )
+    }
+    // Show skeletons while the first page is loading so reopening a minimized
+    // chat doesn't flash the empty state before messages arrive.
+    if (isLoadingFirstPage) {
+      return <ChatMessagesSkeleton />
     }
     return (
       <div className="flex flex-1 flex-col items-center justify-center gap-4 p-4">

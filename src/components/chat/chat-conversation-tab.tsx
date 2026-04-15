@@ -6,12 +6,15 @@ interface ChatConversationTabProps {
   conversation: { id: string; title: string }
   onOpen: () => void
   onClose: () => void
+  /** Fires on first pointer/focus — used to prewarm the thread's messages. */
+  onHover?: () => void
 }
 
 export function ChatConversationTab({
   conversation,
   onOpen,
   onClose,
+  onHover,
 }: ChatConversationTabProps) {
   const { t } = useTranslation()
   return (
@@ -27,6 +30,8 @@ export function ChatConversationTab({
             'linear-gradient(to right, black calc(100% - 1.5rem), transparent)',
         }}
         onClick={onOpen}
+        onMouseEnter={onHover}
+        onFocus={onHover}
       >
         {conversation.title}
       </button>

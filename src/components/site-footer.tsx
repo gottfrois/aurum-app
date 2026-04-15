@@ -1,10 +1,11 @@
 import { useQuery } from 'convex/react'
 import { BotMessageSquare } from 'lucide-react'
-import { useState } from 'react'
+import { useCallback, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { ActivateAgentDialog } from '~/components/activate-agent-dialog'
 import { ChatConversationTab } from '~/components/chat/chat-conversation-tab'
 import { ChatHistoryPopover } from '~/components/chat/chat-history-popover'
+import { ChatMessagesPrewarm } from '~/components/chat/chat-messages-prewarm'
 import { Button } from '~/components/ui/button'
 import { HotkeyDisplay } from '~/components/ui/kbd'
 import {
@@ -26,6 +27,19 @@ export function SiteFooter() {
   const [activateDialogOpen, setActivateDialogOpen] = useState(false)
   const dispatch = useChatDispatch()
   const mockState = useMockState()
+  // Thread IDs whose messages have been prewarmed via hover. Stays populated
+  // for the session so re-hovering doesn't toggle subscriptions.
+  const [prewarmedThreadIds, setPrewarmedThreadIds] = useState<Set<string>>(
+    () => new Set(),
+  )
+  const prewarmThread = useCallback((threadId: string) => {
+    setPrewarmedThreadIds((prev) => {
+      if (prev.has(threadId)) return prev
+      const next = new Set(prev)
+      next.add(threadId)
+      return next
+    })
+  }, [])
 
   // Use mock or Convex minimized threads
   const minimizedThreads = useMinimizedThreads()
@@ -65,10 +79,24 @@ export function SiteFooter() {
                   }}
                   onOpen={() => dispatch.openThread(thread.threadId)}
                   onClose={() => dispatch.closeThread(thread.threadId)}
+                  onHover={
+                    mockState ? undefined : () => prewarmThread(thread.threadId)
+                  }
                 />
               ))}
             </div>
           )}
+          {/* Invisible subscribers that warm the Convex cache for hovered
+              threads so opening a minimized chat feels instant. */}
+          {!mockState &&
+            minimized
+              .filter((thread) => prewarmedThreadIds.has(thread.threadId))
+              .map((thread) => (
+                <ChatMessagesPrewarm
+                  key={thread.threadId}
+                  threadId={thread.threadId}
+                />
+              ))}
           <Tooltip>
             <TooltipTrigger asChild>
               {minimized.length > 0 ? (
