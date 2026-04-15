@@ -28,8 +28,8 @@ import { api } from '../../convex/_generated/api'
 interface PassphraseDialogProps {
   open: boolean
   onOpenChange: (open: boolean) => void
-  unlock: (passphrase: string) => Promise<void>
-  onUnlocked: () => void
+  unlock: (passphrase: string) => Promise<string>
+  onUnlocked: (wsPrivateKeyJwk: string) => void
   description?: string
   submitLabel?: string
 }
@@ -81,9 +81,9 @@ export function PassphraseDialog({
     setError(null)
     setUnlocking(true)
     try {
-      await unlock(passphrase)
+      const wsPrivateKeyJwk = await unlock(passphrase)
       resetState()
-      onUnlocked()
+      onUnlocked(wsPrivateKeyJwk)
     } catch {
       setError(t('toast.invalidPassphrase'))
     } finally {
@@ -154,11 +154,11 @@ export function PassphraseDialog({
       await invalidateCode({ codeHash })
 
       // Unlock the vault
-      await unlockWithPersonalKey(recoveredKeyJwk)
+      const wsPrivateKeyJwk = await unlockWithPersonalKey(recoveredKeyJwk)
 
       toast.success(t('recoveryCodes.recoverySuccess'))
       resetState()
-      onUnlocked()
+      onUnlocked(wsPrivateKeyJwk)
     } catch {
       setError(t('recoveryCodes.recoveryFailed'))
     } finally {

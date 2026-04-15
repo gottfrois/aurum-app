@@ -665,7 +665,6 @@ function GrantAccessButton({
   const grantAccess = useMutation(api.encryptionKeys.grantMemberAccess)
   const [granting, setGranting] = useState(false)
   const [passphraseOpen, setPassphraseOpen] = useState(false)
-  const [pendingGrant, setPendingGrant] = useState(false)
 
   async function doGrantAccess(wsPrivateKeyJwk: string) {
     setGranting(true)
@@ -687,13 +686,6 @@ function GrantAccessButton({
       setGranting(false)
     }
   }
-
-  useEffect(() => {
-    if (pendingGrant && workspacePrivateKeyJwk) {
-      setPendingGrant(false)
-      doGrantAccess(workspacePrivateKeyJwk)
-    }
-  })
 
   async function handleClick() {
     if (workspacePrivateKeyJwk) {
@@ -717,9 +709,9 @@ function GrantAccessButton({
         open={passphraseOpen}
         onOpenChange={setPassphraseOpen}
         unlock={unlock}
-        onUnlocked={() => {
+        onUnlocked={(wsPrivateKeyJwk) => {
           setPassphraseOpen(false)
-          setPendingGrant(true)
+          void doGrantAccess(wsPrivateKeyJwk)
         }}
         description={t('settings.members.grantAccessDescription')}
         submitLabel={t('settings.members.unlockAndGrant')}

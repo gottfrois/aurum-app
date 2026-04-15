@@ -26,8 +26,8 @@ interface EncryptionContextValue {
   isUnlocked: boolean
   isLoading: boolean
   privateKey: CryptoKey | null
-  unlock: (passphrase: string) => Promise<void>
-  unlockWithPersonalKey: (personalPrivateKeyJwk: string) => Promise<void>
+  unlock: (passphrase: string) => Promise<string>
+  unlockWithPersonalKey: (personalPrivateKeyJwk: string) => Promise<string>
   lock: () => Promise<void>
   hasPersonalKey: boolean
   hasWorkspaceAccess: boolean
@@ -145,6 +145,7 @@ export function EncryptionProvider({
       setWorkerKeyJwk(wsPrivateKeyJwk) // Keep JWK for Web Workers
       if (isWorkerAvailable()) initWorkerKey(wsPrivateKeyJwk)
       setPrivateKey(wsKey)
+      return wsPrivateKeyJwk
     },
     [wsEncryption],
   )
@@ -169,6 +170,7 @@ export function EncryptionProvider({
       setWorkerKeyJwk(wsPrivateKeyJwk)
       if (isWorkerAvailable()) initWorkerKey(wsPrivateKeyJwk)
       setPrivateKey(wsKey)
+      return wsPrivateKeyJwk
     },
     [wsEncryption],
   )
