@@ -235,6 +235,15 @@ function AgentSettings() {
                       <SelectItem value="30">
                         {t('settings.agent.retention30d')}
                       </SelectItem>
+                      <SelectItem value="90">
+                        {t('settings.agent.retention90d')}
+                      </SelectItem>
+                      <SelectItem value="180">
+                        {t('settings.agent.retention180d')}
+                      </SelectItem>
+                      <SelectItem value="365">
+                        {t('settings.agent.retention365d')}
+                      </SelectItem>
                     </SelectContent>
                   </Select>
                 </ItemCardItemAction>
