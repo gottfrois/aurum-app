@@ -27,6 +27,10 @@ export function ChatHistoryPopover({ onOpenThread }: ChatHistoryPopoverProps) {
   const [search, setSearch] = useState('')
   const [open, setOpen] = useState(false)
 
+  if (threads !== undefined && threads.length === 0) {
+    return null
+  }
+
   const filtered = (threads ?? []).filter((t) => {
     if (!search.trim()) return true
     return (t.title ?? '').toLowerCase().includes(search.toLowerCase().trim())
