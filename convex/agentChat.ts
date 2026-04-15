@@ -37,7 +37,7 @@ You have 8 composable tools. Prefer chaining small calls over asking for clarifi
 - query_transactions: filter + groupBy + aggregate over transactions. Workhorse for "how much", "what did I spend on", "top merchants", anomalies, recurring.
 - query_series: time-bucketed metrics (balance, net_worth, spending, income, investment_value) over a range.
 - list_entities: lookup accounts | investments | categories | labels | rules | filter_views (always call this first to resolve user language to ids/keys).
-- semantic_search: fuzzy vector search (currently stubbed — prefer query_transactions(textSearch) until populated).
+- semantic_search: fuzzy vector search over the workspace taxonomy (categories, labels, rules). Use when user phrasing is fuzzy about a taxonomy entity ("the label I use for subscriptions", "that rule about ride-sharing"). Transactions are NOT indexed — for fuzzy transaction text use query_transactions(textSearch).
 - mutate_entity: single create/update/delete on a transaction/rule/label. Triggers approval dialog.
 - bulk_mutate_entity: filter-based batch write. MUST call mode="dry_run" first, then mode="commit" after user confirms.
 - query_audit_logs: read the audit trail (including agent actions — filter actorType="agent").

@@ -257,7 +257,7 @@ export const searchWorkspace = internalAction({
 // Internal queries used by the index actions above.
 // ---------------------------------------------------------------------------
 
-import { internalQuery } from './_generated/server'
+import { internalMutation, internalQuery } from './_generated/server'
 
 export const getCategoryForIndexing = internalQuery({
   args: { categoryId: v.id('transactionCategories') },
@@ -303,6 +303,59 @@ export const getRuleForIndexing = internalQuery({
       matchType: r.matchType,
       categoryKey: r.categoryKey ?? null,
       customDescription: r.customDescription ?? null,
+    }
+  },
+})
+
+// ---------------------------------------------------------------------------
+// Backfill — re-index every indexable entity (categories, labels, rules) in
+// a workspace, or across every workspace when no id is provided.
+//
+// Intended to be invoked from the Convex dashboard after initial deploy or
+// after entity data changes outside the normal write paths. Live write-path
+// hooks keep the index fresh for subsequent edits.
+// ---------------------------------------------------------------------------
+
+export const backfillWorkspace = internalMutation({
+  args: { workspaceId: v.id('workspaces') },
+  handler: async (ctx, { workspaceId }) => {
+    const [categories, labels, rules] = await Promise.all([
+      ctx.db
+        .query('transactionCategories')
+        .withIndex('by_workspaceId', (q) => q.eq('workspaceId', workspaceId))
+        .collect(),
+      ctx.db
+        .query('transactionLabels')
+        .withIndex('by_workspaceId', (q) => q.eq('workspaceId', workspaceId))
+        .collect(),
+      ctx.db
+        .query('transactionRules')
+        .withIndex('by_workspaceId', (q) => q.eq('workspaceId', workspaceId))
+        .collect(),
+    ])
+    for (const c of categories) {
+      await ctx.scheduler.runAfter(0, internal.rag.indexCategory, {
+        workspaceId,
+        categoryId: c._id,
+      })
+    }
+    for (const l of labels) {
+      await ctx.scheduler.runAfter(0, internal.rag.indexLabel, {
+        workspaceId,
+        labelId: l._id,
+      })
+    }
+    for (const r of rules) {
+      await ctx.scheduler.runAfter(0, internal.rag.indexRule, {
+        workspaceId,
+        ruleId: r._id,
+      })
+    }
+    return {
+      workspaceId,
+      categories: categories.length,
+      labels: labels.length,
+      rules: rules.length,
     }
   },
 })
